@@ -1,0 +1,13 @@
+.idea/
+.vscode/
+
+# JVM
+.kotlin/
+.gradle/
+
+# Artifacts
+build/
+
+# Runtime
+logs/
+out/
