@@ -24,7 +24,7 @@ import org.araumi.server.protocol.Codec
 import org.araumi.server.protocol.IProtocol
 import org.araumi.server.protocol.ProtocolBuffer
 
-data class Resource(
+data class ResourceDependency(
   val id: Long,
   val version: Long,
   val kind: Short,
@@ -35,7 +35,7 @@ data class Resource(
 data class ObjectsDependencies(
   val callbackId: Int,
   val classes: List<IGameClass>,
-  val resources: List<Resource>,
+  val resources: List<ResourceDependency>,
 )
 
 class ObjectsDependenciesCodec : Codec<ObjectsDependencies>() {
@@ -70,8 +70,8 @@ class ObjectsDependenciesCodec : Codec<ObjectsDependencies>() {
     intCodec.encode(buffer, value.resources.size)
     for(resource in value.resources) {
       longCodec.encode(buffer, resource.id)
-      longCodec.encode(buffer, resource.version)
       shortCodec.encode(buffer, resource.kind)
+      longCodec.encode(buffer, resource.version)
       booleanCodec.encode(buffer, resource.lazy)
 
       byteCodec.encode(buffer, resource.dependents.size.toByte())

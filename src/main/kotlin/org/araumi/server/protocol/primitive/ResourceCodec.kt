@@ -16,12 +16,27 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package org.araumi.server.entrance
+package org.araumi.server.protocol.primitive
 
-import org.araumi.server.net.IModelConstructor
-import org.araumi.server.net.command.ProtocolModel
+import kotlin.reflect.KType
+import org.araumi.server.protocol.*
+import org.araumi.server.res.Resource
 
-@ProtocolModel(2951079444907754024)
-data class EntranceModelCC(
-  val antiAddictionEnabled: Boolean,
-) : IModelConstructor
+class ResourceCodec(
+  private val type: KType
+) : Codec<Resource<*, *>>() {
+  private lateinit var longCodec: ICodec<Long>
+
+  override fun init(protocol: IProtocol) {
+    super.init(protocol)
+    longCodec = protocol.getTypedCodec<Long>()
+  }
+
+  override fun encode(buffer: ProtocolBuffer, value: Resource<*, *>) {
+    longCodec.encode(buffer, value.id.id)
+  }
+
+  override fun decode(buffer: ProtocolBuffer): Resource<*, *> {
+    TODO("Unsupported")
+  }
+}

@@ -16,12 +16,22 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package org.araumi.server.entrance
+package org.araumi.server.protocol.factory
 
-import org.araumi.server.net.IModelConstructor
-import org.araumi.server.net.command.ProtocolModel
+import kotlin.reflect.KType
+import kotlin.reflect.full.isSubclassOf
+import org.araumi.server.extensions.kotlinClass
+import org.araumi.server.protocol.ICodec
+import org.araumi.server.protocol.IProtocol
+import org.araumi.server.protocol.primitive.ResourceCodec
+import org.araumi.server.res.Resource
 
-@ProtocolModel(2951079444907754024)
-data class EntranceModelCC(
-  val antiAddictionEnabled: Boolean,
-) : IModelConstructor
+class ResourceCodecFactory : ICodecFactory<Resource<*, *>> {
+  override fun create(protocol: IProtocol, type: KType): ICodec<Resource<*, *>>? {
+    if(!type.kotlinClass.isSubclassOf(Resource::class)) return null
+    assert(!type.isMarkedNullable)
+
+    val elementInfo = requireNotNull(type.arguments.first().type) { "Invalid Resource<T, _> generic argument" }
+    return ResourceCodec(elementInfo)
+  }
+}

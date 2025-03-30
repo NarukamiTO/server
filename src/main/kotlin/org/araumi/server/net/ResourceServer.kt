@@ -31,9 +31,12 @@ import io.ktor.server.plugins.defaultheaders.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.datetime.Clock
+import org.araumi.server.res.LocalizationRes
+import org.araumi.server.res.RemoteGameResourceRepository
 
 class ResourceServer(
-  private val objectMapper: ObjectMapper
+  private val objectMapper: ObjectMapper,
+  private val gameResourceManager: RemoteGameResourceRepository
 ) {
   private val logger = KotlinLogging.logger { }
 
@@ -61,8 +64,35 @@ class ResourceServer(
           }
         }
 
+        resource()
+
         route("resources") {
           resource()
+        }
+
+        get("index.json") {
+          call.respondPath(root.resolve("00-resources.json"))
+        }
+
+        route("localization") {
+          get("meta.json") {
+            // get all LocalizationRes resources
+            val localizations = gameResourceManager.getAll().filter { it.type == LocalizationRes }
+            logger.info { "Found ${localizations.size} localization resources" }
+
+            val files = localizations.associate { resource ->
+              val resourceName = resource.name.substringAfterLast('.')
+              val name = "${resourceName.uppercase()}.l18n"
+
+              // Localization files are resolved rel
+              val file = "../resources/${resource.id.encode()}/$resourceName.l18n"
+              logger.debug { "$name -> $file" }
+
+              Pair(name, file)
+            }
+
+            call.respondText { objectMapper.writeValueAsString(files) }
+          }
         }
 
         route("libs") {

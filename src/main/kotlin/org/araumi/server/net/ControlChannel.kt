@@ -20,6 +20,8 @@ package org.araumi.server.net
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.netty.buffer.ByteBufAllocator
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import org.araumi.server.net.command.*
 import org.araumi.server.net.session.Session
 import org.araumi.server.net.session.SessionHash
@@ -73,6 +75,10 @@ class ControlChannel(socket: ISocketClient) : ChannelKind(socket) {
 
         is InitSpaceCommand   -> {
           socket.kind = SpaceChannel(socket)
+          GlobalScope.launch {
+            (socket.kind as SpaceChannel).init()
+          }
+
           logger.info { "Initialized $socket as space channel" }
         }
 

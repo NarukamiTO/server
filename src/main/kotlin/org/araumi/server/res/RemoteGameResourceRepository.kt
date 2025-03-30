@@ -21,15 +21,12 @@ package org.araumi.server.res
 import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.io.path.readText
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.core.JsonGenerator
 import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.databind.*
 import com.fasterxml.jackson.module.kotlin.readValue
 import io.github.oshai.kotlinlogging.KotlinLogging
-import io.ktor.client.*
-import io.ktor.client.engine.cio.*
-import io.ktor.client.plugins.contentnegotiation.*
-import io.ktor.serialization.jackson.*
 import org.araumi.server.extensions.singleOrNullOrThrow
 
 data class ResourceInfo(
@@ -39,6 +36,7 @@ data class ResourceInfo(
   val namespaces: Map<String, String>
 )
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 data class PartialRemoteResource(
   val info: ResourceInfo,
   val type: ResourceType
@@ -56,7 +54,8 @@ enum class ResourceType(val id: Short, val type: String) {
   LocalizedImage(13, "LocalizedImage"),
   Object3D(17, "Object3D"),
   Effects(25, ""), // Unused
-  RawData(400, ""); // Unused
+  RawData(400, ""),
+  Localization(-1, "Localization"); // Unused
 }
 
 object ResourceTypeConverter {
@@ -93,39 +92,66 @@ object ResourceTypeConverter {
 
 private fun ResourceType.intoMarker(): Res {
   return when(this) {
-    ResourceType.Map -> MapRes
-    else             -> throw IllegalArgumentException("Resource type $this is not supported")
+    ResourceType.SwfLibrary        -> UnknownRes
+    ResourceType.Sound             -> UnknownRes
+    ResourceType.Map               -> MapRes
+    ResourceType.Proplib           -> UnknownRes
+    ResourceType.Texture           -> UnknownRes
+    ResourceType.Image             -> ImageRes
+    ResourceType.MultiframeTexture -> UnknownRes
+    ResourceType.LocalizedImage    -> LocalizedImageRes
+    ResourceType.Object3D          -> UnknownRes
+    ResourceType.Localization      -> LocalizationRes
+    else                           -> throw IllegalArgumentException("Resource type $this is not supported")
   }
 }
 
-class Resource<T : Res>(
+val Res.type: ResourceType
+  get() = when(this) {
+    is MapRes            -> ResourceType.Map
+    is ImageRes          -> ResourceType.Image
+    is LocalizedImageRes -> ResourceType.LocalizedImage
+    is LocalizationRes   -> ResourceType.Localization
+    is UnknownRes        -> throw IllegalArgumentException("Resource type $this is not supported")
+  }
+
+data class Resource<T : Res, L : Laziness>(
   val name: String,
   val namespaces: Map<String, String>,
   val id: ResourceId,
-  val type: T
+  val type: T,
+  val laziness: L,
 )
 
-interface Res
-object MapRes : Res
+sealed interface Laziness {
+  data object Undefined : Laziness
+}
 
-data class ShitConstructor(
-  val backgroundImage: Resource<MapRes>,
-)
+data object Lazy : Laziness
+data object Eager : Laziness
+
+val Laziness.isLazy: Boolean
+  get() = when(this) {
+    Lazy               -> true
+    Eager              -> false
+    Laziness.Undefined -> throw IllegalStateException("Laziness is undefined")
+  }
+
+sealed interface Res
+data object UnknownRes : Res
+data object MapRes : Res
+data object ImageRes : Res
+data object LocalizedImageRes : Res
+data object LocalizationRes : Res
 
 class RemoteGameResourceRepository(
   private val objectMapper: ObjectMapper
 ) {
   private val logger = KotlinLogging.logger { }
 
-  private val client = HttpClient(CIO) {
-    install(ContentNegotiation) {
-      jackson()
-    }
-  }
-
   // private val scope = CoroutineScope(coroutineContext + SupervisorJob())
 
-  private val resources: MutableMap<String, Set<Resource<*>>> = mutableMapOf()
+  private val resources: MutableMap<String, Set<Resource<*, *>>> = mutableMapOf()
 
   private val root: Path = Paths.get(requireNotNull(System.getenv("RESOURCES_ROOT")) { "No \"RESOURCES_ROOT\" environment variable set" })
 
@@ -161,7 +187,8 @@ class RemoteGameResourceRepository(
             resource.info.name,
             resource.info.namespaces,
             ResourceId(resource.info.id, resource.info.version),
-            resource.type.intoMarker()
+            resource.type.intoMarker(),
+            Laziness.Undefined
           )
         }.toSet()
       }
@@ -170,9 +197,9 @@ class RemoteGameResourceRepository(
     logger.debug { "Fetched ${fetched.size} remote resources" }
   }
 
-  fun getAll(): List<Resource<*>> = resources.values.flatten().toList()
+  fun getAll(): List<Resource<*, *>> = resources.values.flatten().toList()
 
-  fun <T : Res> get(name: String, namespaces: Map<String, String>, type: T): Resource<T> {
+  fun <T : Res, L : Laziness> get(name: String, namespaces: Map<String, String>, type: T, laziness: L): Resource<T, L> {
     logger.trace { "Get resource $name with namespaces $namespaces" }
     val resources = requireNotNull(resources[name]) { "Resource $name not found" }
     logger.trace { "Resources: $resources" }
@@ -182,8 +209,10 @@ class RemoteGameResourceRepository(
 
     check(resource.type == type) { "Resource $name is not of type $type" }
 
+    val lazyResource = (resource as Resource<*, in Laziness>).copy(laziness = laziness)
+
     @Suppress("UNCHECKED_CAST")
-    return resource as Resource<T>
+    return lazyResource as Resource<T, L>
   }
 
   // fun <T : Res> get(reference: ResourceReference<T>): Resource<T> {

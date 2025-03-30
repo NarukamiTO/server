@@ -96,6 +96,12 @@ tasks {
     }
   }
 
+  compileKotlin {
+    compilerOptions {
+      freeCompilerArgs.add("-Xcontext-receivers")
+    }
+  }
+
   jar {
     dependsOn(copyDependencies)
   }

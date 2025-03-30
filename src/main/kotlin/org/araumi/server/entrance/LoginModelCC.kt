@@ -18,8 +18,8 @@
 
 package org.araumi.server.entrance
 
-import org.araumi.server.net.IModel
+import org.araumi.server.net.IModelConstructor
 import org.araumi.server.net.command.ProtocolModel
 
 @ProtocolModel(7384979261462408242)
-class LoginModelCC : IModel
+class LoginModelCC : IModelConstructor

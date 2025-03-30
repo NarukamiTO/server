@@ -66,7 +66,7 @@ class ConfigServer {
           call.respond(
             Status(
               nodes = mapOf(
-                "main.c1" to Node(
+                "main.c1" to StatusNode(
                   endpoint = NodeEndpoint(
                     host = "127.0.0.1",
                     status = "NORMAL",
@@ -124,10 +124,10 @@ data class Status(
   val linkForDownloadAPK: String = "",
   val maxSupportedAndroidVersion: Int = 2147483647,
   val minSupportedAndroidVersion: Int = 1661932145,
-  val nodes: Map<String, Node>
+  val nodes: Map<String, StatusNode>
 )
 
-data class Node(
+data class StatusNode(
   val endpoint: NodeEndpoint,
   @JsonProperty("inbattles") val inBattles: Int = 0,
   val online: Int = 1,

@@ -18,10 +18,11 @@
 
 package org.araumi.server.dispatcher
 
+import org.araumi.server.net.IGameObject
 import org.araumi.server.protocol.*
 
 data class ObjectsData(
-  val objects: List<GameObject>,
+  val objects: List<IGameObject<*>>,
   val modelData: List<ModelData>,
 )
 
@@ -41,7 +42,7 @@ class ObjectsDataCodec : Codec<ObjectsData>() {
     intCodec.encode(buffer, value.objects.size)
     for(gameObject in value.objects) {
       longCodec.encode(buffer, gameObject.id)
-      longCodec.encode(buffer, gameObject.parent)
+      longCodec.encode(buffer, gameObject.parent.id)
     }
 
     intCodec.encode(buffer, value.modelData.size)

@@ -21,7 +21,5 @@ package org.araumi.server.entrance
 import org.araumi.server.net.IModelConstructor
 import org.araumi.server.net.command.ProtocolModel
 
-@ProtocolModel(2951079444907754024)
-data class EntranceModelCC(
-  val antiAddictionEnabled: Boolean,
-) : IModelConstructor
+@ProtocolModel(7840560143954508415)
+class EntranceAlertModelCC : IModelConstructor

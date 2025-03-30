@@ -19,20 +19,20 @@
 package org.araumi.server.dispatcher
 
 import kotlin.reflect.full.createType
-import org.araumi.server.net.IModel
+import org.araumi.server.net.IModelConstructor
 import org.araumi.server.protocol.*
 
 class ModelData private constructor(
   val id: Long,
   val objectId: Long?,
-  val data: IModel?
+  val data: IModelConstructor?
 ) {
   companion object {
     fun newObject(objectId: Long): ModelData {
       return ModelData(0, objectId, null)
     }
 
-    fun newModel(id: Long, data: IModel): ModelData {
+    fun newModel(id: Long, data: IModelConstructor): ModelData {
       return ModelData(id, null, data)
     }
   }
@@ -83,7 +83,7 @@ class ModelDataCodec : Codec<ModelData>() {
     } else {
       // Object model, can only follow after object definition
       requireNotNull(value.data)
-      (protocol.getCodec(value.data::class.createType()) as ICodec<IModel>).encode(buffer, value.data)
+      (protocol.getCodec(value.data::class.createType()) as ICodec<IModelConstructor>).encode(buffer, value.data)
     }
   }
 
@@ -91,5 +91,3 @@ class ModelDataCodec : Codec<ModelData>() {
     TODO("Unsupported")
   }
 }
-
-data class GameObject(val id: Long, val parent: Long)

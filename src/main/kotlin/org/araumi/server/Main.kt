@@ -34,6 +34,7 @@ import org.apache.logging.log4j.core.config.Configurator
 import org.araumi.server.net.ConfigServer
 import org.araumi.server.net.GameServer
 import org.araumi.server.net.ResourceServer
+import org.araumi.server.res.RemoteGameResourceRepository
 import org.araumi.server.res.ResourceType
 import org.araumi.server.res.ResourceTypeConverter
 import org.koin.core.context.startKoin
@@ -98,10 +99,16 @@ suspend fun main() {
     modules(module {
       single { provideObjectMapper() }
 
+      singleOf(::RemoteGameResourceRepository)
+
       singleOf(::ConfigServer)
       singleOf(::ResourceServer)
       singleOf(::GameServer)
     })
+  }
+
+  coroutineScope {
+    launch { koin.koin.get<RemoteGameResourceRepository>().fetch() }
   }
 
   coroutineScope {

@@ -53,6 +53,7 @@ class Protocol : IProtocol {
     factories.add(PairCodecFactory())
     factories.add(ListCodecFactory())
     factories.add(MapCodecFactory())
+    factories.add(ResourceCodecFactory())
     factories.add(AnnotatedStructCodecFactory())
     factories.add(AnnotatedEnumCodecFactory())
 

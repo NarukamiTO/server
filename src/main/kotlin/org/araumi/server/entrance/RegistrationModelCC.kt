@@ -20,8 +20,17 @@ package org.araumi.server.entrance
 
 import org.araumi.server.net.IModelConstructor
 import org.araumi.server.net.command.ProtocolModel
+import org.araumi.server.res.ImageRes
+import org.araumi.server.res.Resource
 
-@ProtocolModel(2951079444907754024)
-data class EntranceModelCC(
-  val antiAddictionEnabled: Boolean,
-) : IModelConstructor
+@ProtocolModel(2474458842977623992)
+data class RegistrationModelCC(
+  val bgResource: Resource<ImageRes, *>,
+  val enableRequiredEmail: Boolean,
+  val maxPasswordLength: Int,
+  val minPasswordLength: Int,
+) : IModelConstructor {
+  override fun getResources(): List<Resource<*, *>> {
+    return listOf(bgResource)
+  }
+}

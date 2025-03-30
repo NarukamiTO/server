@@ -18,10 +18,10 @@
 
 package org.araumi.server.entrance
 
-import org.araumi.server.net.IModel
+import org.araumi.server.net.IModelConstructor
 import org.araumi.server.net.command.ProtocolModel
 
 @ProtocolModel(2108103923322474513)
 data class CaptchaModelCC(
   val stateWithCaptcha: List<CaptchaLocation>,
-) : IModel
+) : IModelConstructor
