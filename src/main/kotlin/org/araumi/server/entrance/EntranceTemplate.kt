@@ -16,25 +16,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package org.araumi.server.core
+package org.araumi.server.entrance
 
-import org.araumi.server.core.impl.EventScheduler
+import org.araumi.server.core.ITemplate
+import org.araumi.server.net.command.ProtocolClass
 
-/**
- *
- */
-abstract class AbstractSystem {
-  val eventScheduler: IEventScheduler = EventScheduler()
-}
-
-@Target(AnnotationTarget.FUNCTION)
-@Retention(AnnotationRetention.RUNTIME)
-annotation class OnEventFire
-
-@Target(AnnotationTarget.FUNCTION)
-@Retention(AnnotationRetention.RUNTIME)
-annotation class Mandatory
-
-@Target(AnnotationTarget.VALUE_PARAMETER)
-@Retention(AnnotationRetention.RUNTIME)
-annotation class JoinAll
+@ProtocolClass(2)
+data class EntranceTemplate(
+  val entrance: EntranceModelCC,
+  val captcha: CaptchaModelCC,
+  val login: LoginModelCC,
+  val registration: RegistrationModelCC,
+  val entranceAlert: EntranceAlertModelCC,
+) : ITemplate

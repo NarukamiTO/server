@@ -28,12 +28,13 @@ import org.araumi.server.core.*
 import org.araumi.server.dispatcher.DispatcherSystem
 import org.araumi.server.entrance.LoginSystem
 import org.araumi.server.extensions.kotlinClass
+import org.araumi.server.lobby.LobbySystem
 import org.araumi.server.net.SpaceChannel
 
-class EventScheduler {
+class EventScheduler : IEventScheduler {
   private val logger = KotlinLogging.logger { }
 
-  fun process(event: IEvent, sender: SpaceChannel, gameObject: IGameObject<*>) {
+  override fun process(event: IEvent, sender: SpaceChannel, gameObject: IGameObject<*>) {
     if(event is IClientEvent) {
       sender.sendBatched {
         event.attach(gameObject).enqueue()
@@ -43,31 +44,36 @@ class EventScheduler {
     }
   }
 
-  fun processServerEvent(event: IEvent, sender: SpaceChannel, gameObject: IGameObject<*>) {
-    logger.debug { "Processing server event: $event" }
+  // Because it looks awful
+  @Suppress("FoldInitializerAndIfToElvis")
+  private fun processServerEvent(event: IEvent, sender: SpaceChannel, gameObject: IGameObject<*>) {
+    logger.info { "Processing server event: $event" }
 
     val systems = listOf(
       DispatcherSystem::class,
       LoginSystem::class,
+      LobbySystem::class,
     )
 
     for(system in systems) {
       val methods = system.declaredFunctions
-      for(method in methods) {
+      method@ for(method in methods) {
         if(!method.hasAnnotation<OnEventFire>()) {
-          logger.debug { "Method $method is not annotated with @OnEventFire" }
+          logger.trace { "Method $method is not annotated with @OnEventFire" }
           continue
         }
 
-        if(method.parameters.none { it.kind == KParameter.Kind.INSTANCE }) {
+        val instanceParameter = method.instanceParameter
+        if(instanceParameter == null) {
           throw IllegalArgumentException("Method $method is not an instance method")
         }
 
+        val mandatory = method.hasAnnotation<Mandatory>()
         val parameters = method.valueParameters
 
         val eventClass = parameters[0].type.kotlinClass
         if(eventClass != event::class) {
-          logger.debug { "Method $method expects event of type ${eventClass.qualifiedName}, but received event is of type ${event::class.qualifiedName}" }
+          logger.trace { "Method $method expects event of type ${eventClass.qualifiedName}, but received event is of type ${event::class.qualifiedName}" }
           continue
         }
 
@@ -80,21 +86,66 @@ class EventScheduler {
         val nodeBuilder = NodeBuilder()
         val nodeDefinition = nodeBuilder.getNodeDefinition(nodeClass)
 
-        logger.info { "Trying to build node $nodeDefinition" }
+        logger.trace { "Trying to build node $nodeDefinition" }
         val node = nodeBuilder.tryBuild(nodeDefinition, gameObject.models.values.toSet())
-                   ?: throw IllegalArgumentException("Failed to build node $nodeDefinition")
+        if(node == null) {
+          if(mandatory) {
+            throw IllegalArgumentException("Failed to build node $nodeDefinition")
+          } else {
+            logger.trace { "Failed to build node $nodeDefinition" }
+            continue
+          }
+        }
+
         node.init(sender, gameObject)
-        logger.info { "Built node $node" }
+        logger.trace { "Built node $node" }
+
+        val args = mutableMapOf<KParameter, Any?>()
+        args[parameters[0]] = event
+        args[parameters[1]] = node
+
+        for(parameter in parameters.filter { it.hasAnnotation<JoinAll>() }) {
+          @Suppress("UNCHECKED_CAST")
+          val nodeClass = parameter.type.kotlinClass as KClass<out Node>
+          if(!nodeClass.isSubclassOf(Node::class)) {
+            throw IllegalArgumentException("Method $method expects $parameter to be ${Node::class.qualifiedName}, but declared type is ${nodeClass.qualifiedName}")
+          }
+
+          val nodeDefinition = nodeBuilder.getNodeDefinition(nodeClass)
+          var node: Node? = null
+          for(gameObject in sender.space.objects.all) {
+            logger.trace { "Trying to build @JoinAll node $nodeDefinition for $gameObject" }
+
+            node = nodeBuilder.tryBuild(nodeDefinition, gameObject.models.values.toSet())
+            if(node != null) {
+              node.init(sender, gameObject)
+              logger.trace { "Built @JoinAll node $node" }
+              break
+            }
+          }
+
+          if(node == null) {
+            if(mandatory) {
+              throw IllegalArgumentException("Failed to build @JoinAll node $nodeDefinition")
+            } else {
+              logger.trace { "Failed to build @JoinAll node $nodeDefinition" }
+              continue@method
+            }
+          }
+
+          args[parameter] = node
+        }
 
         val instance = system.createInstance()
+        args[instanceParameter] = instance
 
-        logger.info { "Invoking ${system.qualifiedName}::${method.name} with event $event and node $node" }
+        logger.trace { "Invoking ${system.qualifiedName}::${method.name} with ${args.mapKeys { (parameter, _) -> "(${parameter.name}: ${parameter.type})" }}" }
         if(method.isSuspend) {
           GlobalScope.launch {
-            method.callSuspend(instance, event, node)
+            method.callSuspendBy(args)
           }
         } else {
-          method.call(instance, event, node)
+          method.callBy(args)
         }
       }
     }

@@ -18,27 +18,13 @@
 
 package org.araumi.server.core
 
-import kotlin.reflect.KClass
-import io.github.oshai.kotlinlogging.KotlinLogging
-import org.araumi.server.core.impl.TemplatedGameClass
-import org.araumi.server.extensions.kotlinClass
+import org.araumi.server.net.SpaceChannel
+import org.araumi.server.net.command.ProtocolEvent
 
-interface IGameObject<TClass : IGameClass> {
-  val id: Long
-  val parent: TClass
-  val models: Map<KClass<out IModelConstructor>, IModelConstructor>
-}
-
-fun <T : ITemplate> IGameObject<TemplatedGameClass<T>>.adapt(): T {
-  val logger = KotlinLogging.logger { }
-  logger.trace { "Adapting ${this.models}" }
-
-  val templateClass = parent.template
-  val template = templateClass.constructors.first().callBy(
-    templateClass.constructors.first().parameters.associateWith { parameter ->
-      models[parameter.type.kotlinClass] ?: error("Missing model for parameter $parameter")
-    }
-  )
-
-  return template
-}
+/**
+ * Synthetic server event that is sent when a space channel opens.
+ */
+@ProtocolEvent(-1)
+data class ChannelAddedEvent(
+  val channel: SpaceChannel
+) : IServerEvent

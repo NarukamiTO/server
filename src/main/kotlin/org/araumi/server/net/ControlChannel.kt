@@ -22,11 +22,9 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import io.netty.buffer.ByteBufAllocator
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
-import org.araumi.server.core.IPending
-import org.araumi.server.core.IRegistry
-import org.araumi.server.core.ISessionRegistry
-import org.araumi.server.core.ISpace
+import org.araumi.server.core.*
 import org.araumi.server.core.impl.DeferredPending
+import org.araumi.server.dispatcher.DispatcherLoadObjectsManagedEvent
 import org.araumi.server.net.command.*
 import org.araumi.server.net.session.Session
 import org.araumi.server.net.session.SessionHash
@@ -84,7 +82,18 @@ class ControlChannel(socket: ISocketClient) : ChannelKind(socket), KoinComponent
             HashResponseCommand(hash, channelProtectionEnabled = false).enqueue()
           }
 
-          openSpace(0xaa55)
+          // Bootstrap the first space using low-level API,
+          // rest of the spaces should be opened using the Systems API
+          GlobalScope.launch {
+            val channel = openSpace(0xaa55).await()
+            val entranceObject = channel.space.objects.get(2) ?: error("Entrance object not found")
+
+            channel.apply {
+              DispatcherLoadObjectsManagedEvent(
+                objects = listOf(entranceObject),
+              ).schedule(channel.space.rootObject).await()
+            }
+          }
         }
 
         is InitSpaceCommand   -> {
@@ -129,7 +138,7 @@ class ControlChannel(socket: ISocketClient) : ChannelKind(socket), KoinComponent
    * Opens a new space channel.
    *
    * Note: This is a low-level API, most of the time you should use
-   * [org.araumi.server.dispatcher.DispatcherModelOpenSpaceEvent] instead.
+   * [org.araumi.server.dispatcher.DispatcherOpenSpaceEvent] instead.
    */
   fun openSpace(id: Long): IPending<SpaceChannel> {
     val pending = DeferredPending<SpaceChannel>(id)

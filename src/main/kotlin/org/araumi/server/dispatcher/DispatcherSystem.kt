@@ -26,7 +26,6 @@ import org.araumi.server.core.*
 import org.araumi.server.core.impl.TemplatedGameClass
 import org.araumi.server.core.impl.TransientGameObject
 import org.araumi.server.extensions.kotlinClass
-import org.araumi.server.net.PreloadResourcesWrappedEvent
 import org.araumi.server.net.command.ProtocolClass
 import org.araumi.server.net.command.ProtocolModel
 import org.araumi.server.net.sessionNotNull
@@ -61,7 +60,7 @@ class DispatcherSystem : AbstractSystem() {
       .toList()
     logger.debug { "Preload resources: $resources" }
 
-    DispatcherModelLoadDependenciesManagedEvent(
+    DispatcherLoadDependenciesManagedEvent(
       classes = listOf(),
       resources = resources
     ).schedule(any.sender, any.gameObject).await()
@@ -72,7 +71,7 @@ class DispatcherSystem : AbstractSystem() {
 
   @OnEventFire
   @Mandatory
-  suspend fun loadDependenciesManaged(event: DispatcherModelLoadDependenciesManagedEvent, any: Node) {
+  suspend fun loadDependenciesManaged(event: DispatcherLoadDependenciesManagedEvent, any: Node) {
     logger.info { "Load dependencies managed: $event" }
 
     // TODO: Use a better ID source, it is used as temporary object ID,
@@ -116,14 +115,14 @@ class DispatcherSystem : AbstractSystem() {
 
   @OnEventFire
   @Mandatory
-  suspend fun loadObjectsManaged(event: DispatcherModelLoadObjectsManagedEvent, any: DispatcherNode) {
+  suspend fun loadObjectsManaged(event: DispatcherLoadObjectsManagedEvent, any: DispatcherNode) {
     logger.info { "Load objects managed: $event" }
 
     // TODO: Use a better ID source, it is used as temporary object ID,
     //  so either it should be unique, or we need to have some object namespacing
     event.callbackId = event.deferred.hashCode()
 
-    DispatcherModelLoadDependenciesManagedEvent(
+    DispatcherLoadDependenciesManagedEvent(
       classes = event.objects.map { it.parent },
       resources = event.objects.flatMap { gameObject ->
         gameObject.models.values.flatMap { model ->
@@ -142,7 +141,7 @@ class DispatcherSystem : AbstractSystem() {
 
   @OnEventFire
   @Mandatory
-  suspend fun openSpace(event: DispatcherModelOpenSpaceEvent, any: Node) {
+  suspend fun openSpace(event: DispatcherOpenSpaceEvent, any: Node) {
     logger.info { "Open space channel: $event" }
 
     // Space management is too low-level for the Systems API,

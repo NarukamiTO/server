@@ -19,6 +19,7 @@
 package org.araumi.server.net
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.ktor.server.netty.*
 import io.netty.buffer.ByteBufAllocator
 import io.netty.channel.socket.SocketChannel
 import org.araumi.server.net.session.ISession
@@ -66,5 +67,6 @@ class NettySocketClient(
 
   override suspend fun close() {
     logger.debug { "Closing socket" }
+    channel.close().suspendAwait()
   }
 }

@@ -21,7 +21,8 @@ package org.araumi.server.core.impl
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.araumi.server.core.*
 import org.araumi.server.entrance.*
-import org.araumi.server.net.EntranceTemplate
+import org.araumi.server.lobby.LobbyLayoutNotifyModelCC
+import org.araumi.server.lobby.LobbyTemplate
 import org.araumi.server.res.Eager
 import org.araumi.server.res.ImageRes
 import org.araumi.server.res.RemoteGameResourceRepository
@@ -59,6 +60,20 @@ class SpaceInitializer(
       logger.info { entranceObject.adapt() }
 
       objects.add(entranceObject)
+    })
+
+    spaces.add(Space(0x55aa).apply {
+      val lobbyClass = TemplatedGameClass.fromTemplate(LobbyTemplate::class)
+      val lobbyObject = TransientGameObject.instantiate(
+        id = 2,
+        lobbyClass,
+        LobbyTemplate(
+          lobbyLayoutNotify = LobbyLayoutNotifyModelCC()
+        )
+      )
+      logger.info { lobbyObject.adapt() }
+
+      objects.add(lobbyObject)
     })
   }
 }

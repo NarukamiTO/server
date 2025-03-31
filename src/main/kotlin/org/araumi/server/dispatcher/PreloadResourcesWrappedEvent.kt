@@ -16,25 +16,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package org.araumi.server.core
+package org.araumi.server.dispatcher
 
-import org.araumi.server.core.impl.EventScheduler
+import org.araumi.server.core.IEvent
 
 /**
+ * Loads contained in the event resources on the client before scheduling the actual event.
  *
+ * Used when client event contains resources that need to be loaded beforehand,
+ * e.g. in [org.araumi.server.entrance.EntranceAlertModelShowAlertEvent].
  */
-abstract class AbstractSystem {
-  val eventScheduler: IEventScheduler = EventScheduler()
-}
-
-@Target(AnnotationTarget.FUNCTION)
-@Retention(AnnotationRetention.RUNTIME)
-annotation class OnEventFire
-
-@Target(AnnotationTarget.FUNCTION)
-@Retention(AnnotationRetention.RUNTIME)
-annotation class Mandatory
-
-@Target(AnnotationTarget.VALUE_PARAMETER)
-@Retention(AnnotationRetention.RUNTIME)
-annotation class JoinAll
+data class PreloadResourcesWrappedEvent<T : IEvent>(
+  val event: T
+) : IEvent

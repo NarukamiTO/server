@@ -25,34 +25,35 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import io.netty.buffer.ByteBufAllocator
 import org.araumi.server.core.*
 import org.araumi.server.core.impl.EventScheduler
-import org.araumi.server.dispatcher.DispatcherModelLoadObjectsManagedEvent
-import org.araumi.server.entrance.*
-import org.araumi.server.net.command.ProtocolClass
 import org.araumi.server.net.command.SpaceCommandHeader
 import org.araumi.server.protocol.ICodec
 import org.araumi.server.protocol.OptionalMap
 import org.araumi.server.protocol.ProtocolBuffer
 import org.araumi.server.protocol.getTypedCodec
 import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
-/**
- * Loads contained in the event resources on the client before scheduling the actual event.
- *
- * Used when client event contains resources that need to be loaded beforehand,
- * e.g. in [org.araumi.server.entrance.EntranceAlertModelShowAlertEvent].
- */
-data class PreloadResourcesWrappedEvent<T : IEvent>(
-  val event: T
-) : IEvent
+class SpaceEventProcessor {
+  private val logger = KotlinLogging.logger { }
 
-@ProtocolClass(2)
-data class EntranceTemplate(
-  val entrance: EntranceModelCC,
-  val captcha: CaptchaModelCC,
-  val login: LoginModelCC,
-  val registration: RegistrationModelCC,
-  val entranceAlert: EntranceAlertModelCC,
-) : ITemplate
+  private val serverEvents: Map<Long, KClass<out IServerEvent>> = ClassGraph()
+    .enableAllInfo()
+    .acceptPackages("org.araumi.server")
+    .scan()
+    .use { scanResult ->
+      scanResult.getClassesImplementing(IServerEvent::class.java).associate { classInfo ->
+        @Suppress("UNCHECKED_CAST")
+        val clazz = classInfo.loadClass().kotlin as KClass<out IServerEvent>
+
+        logger.info { "Discovered server event: $clazz" }
+        Pair(clazz.protocolId, clazz)
+      }
+    }
+
+  fun getClass(methodId: Long): KClass<out IServerEvent>? {
+    return serverEvents[methodId]
+  }
+}
 
 /**
  * A client connection to a space. One space can have multiple clients (space channels).
@@ -63,15 +64,14 @@ class SpaceChannel(
 ) : ChannelKind(socket), KoinComponent {
   private val logger = KotlinLogging.logger { }
 
+  private val spaceEventProcessor: SpaceEventProcessor by inject()
+
   private val commandHeaderCodec = protocol.getTypedCodec<SpaceCommandHeader>()
 
-  val eventScheduler: EventScheduler = EventScheduler()
+  val eventScheduler: IEventScheduler = EventScheduler()
 
   suspend fun init() {
-    val entranceObject = space.objects.get(2) ?: error("Entrance object not found")
-    DispatcherModelLoadObjectsManagedEvent(
-      objects = listOf(entranceObject),
-    ).schedule(space.rootObject).await()
+    ChannelAddedEvent(this).schedule(space.rootObject)
   }
 
   override fun process(buffer: ProtocolBuffer) {
@@ -83,22 +83,7 @@ class SpaceChannel(
       val command = commandHeaderCodec.decode(buffer)
       logger.trace { "Received $command" }
 
-      val serverEvents = mutableMapOf<Long, KClass<out IServerEvent>>()
-      ClassGraph().enableAllInfo().acceptPackages("org.araumi").scan().use { scanResult ->
-        @Suppress("UNCHECKED_CAST")
-        val classes = scanResult
-          .getClassesImplementing(IServerEvent::class.qualifiedName)
-          .loadClasses()
-          .map { it.kotlin } as List<KClass<out IServerEvent>>
-        logger.info { "Found ${classes.size} server events" }
-
-        for(clazz in classes) {
-          logger.debug { "Discovered server event: $clazz" }
-          serverEvents[clazz.protocolId] = clazz
-        }
-      }
-
-      val eventClass = serverEvents[command.methodId]
+      val eventClass = spaceEventProcessor.getClass(command.methodId)
       if(eventClass == null) {
         logger.error { "Unknown method: $command" }
         return
@@ -109,10 +94,9 @@ class SpaceChannel(
       val event = codec.decode(buffer)
       logger.info { "Received server event: $event" }
 
-      // val gameObject = TransientGameObject(command.objectId, TransientGameClass(id = -1, models = listOf()))
       val gameObject = space.objects.get(command.objectId) ?: error("Game object ${command.objectId} not found")
 
-      eventScheduler.processServerEvent(event, this, gameObject)
+      eventScheduler.process(event, this, gameObject)
     }
 
     if(buffer.data.readableBytes() > 0) {
@@ -150,6 +134,10 @@ class SpaceChannel(
 
     logger.trace { "Sending batch with ${batch.commands.size} commands" }
     socket.send(buffer)
+  }
+
+  suspend fun close() {
+    socket.close()
   }
 }
 

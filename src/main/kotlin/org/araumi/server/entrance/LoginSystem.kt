@@ -20,6 +20,7 @@ package org.araumi.server.entrance
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.araumi.server.core.*
+import org.araumi.server.dispatcher.DispatcherOpenSpaceEvent
 import org.araumi.server.dispatcher.preloadResources
 import org.araumi.server.res.Eager
 import org.araumi.server.res.LocalizedImageRes
@@ -40,14 +41,23 @@ class LoginSystem : AbstractSystem(), KoinComponent {
   @Mandatory
   suspend fun login(event: LoginModelLoginEvent, entrance: EntranceNode) {
     logger.info { "Login event: $event" }
-    entrance.sender.sendBatched {
-      LoginModelWrongPasswordEvent().attach(entrance).enqueue()
+
+    if(event.password.isNotEmpty() && event.password.length % 2 == 0) {
+      entrance.sender.sendBatched {
+        LoginModelWrongPasswordEvent().attach(entrance).enqueue()
+      }
+
+      EntranceAlertModelShowAlertEvent(
+        image = gameResourceRepository.get("alert.restrict", emptyMap(), LocalizedImageRes, Eager),
+        header = "Login failed",
+        text = "Wrong password"
+      ).preloadResources().schedule(entrance)
+      return
     }
 
-    EntranceAlertModelShowAlertEvent(
-      image = gameResourceRepository.get("alert.restrict", emptyMap(), LocalizedImageRes, Eager),
-      header = "Login failed",
-      text = "Wrong password"
-    ).preloadResources().schedule(entrance)
+    DispatcherOpenSpaceEvent(0x55aa).schedule(entrance).await()
+
+    // Close the entrance space channel to trigger loading screen on the client
+    entrance.sender.close()
   }
 }

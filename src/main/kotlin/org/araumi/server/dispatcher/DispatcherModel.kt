@@ -25,6 +25,10 @@ import org.araumi.server.net.SpaceChannel
 import org.araumi.server.net.command.ProtocolEvent
 import org.araumi.server.res.Resource
 
+/**
+ * Note: This is a low-level API, most of the time you should use
+ * [PreloadResourcesWrappedEvent] or [DispatcherLoadDependenciesManagedEvent] instead.
+ */
 @ProtocolEvent(3216143066888387731)
 data class DispatcherModelLoadDependenciesEvent(
   val dependencies: ObjectsDependencies
@@ -40,7 +44,7 @@ data class DispatcherModelDependenciesLoadedEvent(
   val callbackId: Int
 ) : IServerEvent
 
-data class DispatcherModelLoadDependenciesManagedEvent(
+data class DispatcherLoadDependenciesManagedEvent(
   val classes: List<IGameClass>,
   val resources: List<Resource<*, *>>,
 ) : IEvent {
@@ -55,7 +59,7 @@ data class DispatcherModelLoadDependenciesManagedEvent(
   }
 }
 
-data class DispatcherModelLoadObjectsManagedEvent(
+data class DispatcherLoadObjectsManagedEvent(
   val objects: List<IGameObject<*>>,
 ) : IEvent {
   private val logger = KotlinLogging.logger { }
@@ -69,9 +73,9 @@ data class DispatcherModelLoadObjectsManagedEvent(
   }
 }
 
-data class DispatcherModelOpenSpaceEvent(
+data class DispatcherOpenSpaceEvent(
   val id: Long
-) {
+) : IEvent {
   private val logger = KotlinLogging.logger { }
 
   val deferred: CompletableDeferred<SpaceChannel> = CompletableDeferred()

@@ -18,27 +18,8 @@
 
 package org.araumi.server.core
 
-import kotlin.reflect.KClass
-import io.github.oshai.kotlinlogging.KotlinLogging
-import org.araumi.server.core.impl.TemplatedGameClass
-import org.araumi.server.extensions.kotlinClass
+import org.araumi.server.net.SpaceChannel
 
-interface IGameObject<TClass : IGameClass> {
-  val id: Long
-  val parent: TClass
-  val models: Map<KClass<out IModelConstructor>, IModelConstructor>
-}
-
-fun <T : ITemplate> IGameObject<TemplatedGameClass<T>>.adapt(): T {
-  val logger = KotlinLogging.logger { }
-  logger.trace { "Adapting ${this.models}" }
-
-  val templateClass = parent.template
-  val template = templateClass.constructors.first().callBy(
-    templateClass.constructors.first().parameters.associateWith { parameter ->
-      models[parameter.type.kotlinClass] ?: error("Missing model for parameter $parameter")
-    }
-  )
-
-  return template
+interface IEventScheduler {
+  fun process(event: IEvent, sender: SpaceChannel, gameObject: IGameObject<*>)
 }

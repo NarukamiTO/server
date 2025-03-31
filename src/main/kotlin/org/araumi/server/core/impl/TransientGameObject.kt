@@ -40,7 +40,7 @@ class TransientGameObject<TClass : IGameClass>(
           .getter.call(template) as IModelConstructor
         gameObject.models[modelClass] = model
 
-        logger.debug { "Instantiated $model from $template" }
+        logger.trace { "Instantiated $model from $template" }
       }
 
       return gameObject
@@ -48,4 +48,8 @@ class TransientGameObject<TClass : IGameClass>(
   }
 
   override val models: MutableMap<KClass<out IModelConstructor>, IModelConstructor> = mutableMapOf()
+
+  override fun toString(): String {
+    return "TransientGameObject(id=$id, parent=$parent, models=$models)"
+  }
 }

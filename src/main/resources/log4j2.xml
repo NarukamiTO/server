@@ -6,7 +6,9 @@
                    https://logging.apache.org/xml/ns/log4j-config-2.xsd">
   <Appenders>
     <Console name="CONSOLE">
-      <PatternLayout pattern="%d [%t] %p %c - %m%n" />
+      <!-- <PatternLayout pattern="%d [%t] %p %c - %m%n" /> -->
+      <PatternLayout disableAnsi="false"
+                     pattern="%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd HH:mm:ss.SSS}} %highlight{${LOG_LEVEL_PATTERN:-%5p}}{FATAL=red bold, ERROR=red, WARN=yellow bold, INFO=green, DEBUG=blue bold, TRACE=cyan} [%t] %style{%c}{cyan}: %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%xEx}" />
     </Console>
     <File name="MAIN" fileName="logs/main.log">
       <JsonTemplateLayout />
