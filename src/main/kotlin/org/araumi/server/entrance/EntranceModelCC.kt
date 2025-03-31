@@ -18,7 +18,7 @@
 
 package org.araumi.server.entrance
 
-import org.araumi.server.net.IModelConstructor
+import org.araumi.server.core.IModelConstructor
 import org.araumi.server.net.command.ProtocolModel
 
 @ProtocolModel(2951079444907754024)

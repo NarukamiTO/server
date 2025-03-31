@@ -18,13 +18,30 @@
 
 package org.araumi.server.dispatcher
 
-import org.araumi.server.net.IGameObject
+import kotlin.reflect.full.declaredMembers
+import org.araumi.server.core.IGameObject
+import org.araumi.server.core.protocolId
 import org.araumi.server.protocol.*
 
 data class ObjectsData(
   val objects: List<IGameObject<*>>,
   val modelData: List<ModelData>,
-)
+) {
+  companion object {
+    fun new(objects: List<IGameObject<*>>): ObjectsData {
+      return ObjectsData(
+        objects = objects,
+        modelData = objects.flatMap { gameObject ->
+          listOf(
+            ModelData.newObject(gameObject.id)
+          ) + gameObject.models
+            .filter { (clazz, _) -> clazz.declaredMembers.isNotEmpty() }
+            .map { (clazz, model) -> ModelData.newModel(clazz.protocolId, model) }
+        }
+      )
+    }
+  }
+}
 
 class ObjectsDataCodec : Codec<ObjectsData>() {
   private lateinit var intCodec: ICodec<Int>

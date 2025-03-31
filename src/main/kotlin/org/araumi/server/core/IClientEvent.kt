@@ -16,12 +16,19 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package org.araumi.server.entrance
+package org.araumi.server.core
 
-import org.araumi.server.core.IModelConstructor
-import org.araumi.server.net.command.ProtocolModel
+import org.araumi.server.net.SpaceCommand
+import org.araumi.server.net.command.SpaceCommandHeader
 
-@ProtocolModel(2108103923322474513)
-data class CaptchaModelCC(
-  val stateWithCaptcha: List<CaptchaLocation>,
-) : IModelConstructor
+/**
+ * A server-to-client event (S2C).
+ */
+interface IClientEvent : IEvent
+
+fun IClientEvent.attach(gameObject: IGameObject<*>) = SpaceCommand(
+  header = SpaceCommandHeader(objectId = gameObject.id, methodId = this::class.protocolId),
+  body = this
+)
+
+fun IClientEvent.attach(node: Node) = attach(node.gameObject)

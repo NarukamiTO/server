@@ -31,9 +31,13 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import org.apache.logging.log4j.Level
 import org.apache.logging.log4j.core.config.Configurator
-import org.araumi.server.net.ConfigServer
-import org.araumi.server.net.GameServer
-import org.araumi.server.net.ResourceServer
+import org.araumi.server.core.IRegistry
+import org.araumi.server.core.ISessionRegistry
+import org.araumi.server.core.ISpace
+import org.araumi.server.core.impl.Registry
+import org.araumi.server.core.impl.SessionRegistry
+import org.araumi.server.core.impl.SpaceInitializer
+import org.araumi.server.net.*
 import org.araumi.server.res.RemoteGameResourceRepository
 import org.araumi.server.res.ResourceType
 import org.araumi.server.res.ResourceTypeConverter
@@ -101,6 +105,10 @@ suspend fun main() {
 
       singleOf(::RemoteGameResourceRepository)
 
+      single<IRegistry<ISpace>> { Registry("Space") { id } }
+      singleOf<ISessionRegistry>(::SessionRegistry)
+      singleOf(::SpaceInitializer)
+
       singleOf(::ConfigServer)
       singleOf(::ResourceServer)
       singleOf(::GameServer)
@@ -110,6 +118,8 @@ suspend fun main() {
   coroutineScope {
     launch { koin.koin.get<RemoteGameResourceRepository>().fetch() }
   }
+
+  koin.koin.get<SpaceInitializer>().init()
 
   coroutineScope {
     launch { koin.koin.get<ConfigServer>().start() }

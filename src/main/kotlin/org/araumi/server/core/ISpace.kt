@@ -16,12 +16,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package org.araumi.server.entrance
+package org.araumi.server.core
 
-import org.araumi.server.core.IModelConstructor
-import org.araumi.server.net.command.ProtocolModel
+/**
+ * Spaces are used for the actual client-server communication.
+ *
+ * All spaces have a Dispatcher object with ID same as the space ID and class `0`.
+ */
+interface ISpace {
+  val id: Long
+  val objects: IRegistry<IGameObject<*>>
 
-@ProtocolModel(2108103923322474513)
-data class CaptchaModelCC(
-  val stateWithCaptcha: List<CaptchaLocation>,
-) : IModelConstructor
+  val rootObject: IGameObject<*>
+}

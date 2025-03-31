@@ -22,12 +22,19 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import io.netty.buffer.ByteBufAllocator
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import org.araumi.server.core.IPending
+import org.araumi.server.core.IRegistry
+import org.araumi.server.core.ISessionRegistry
+import org.araumi.server.core.ISpace
+import org.araumi.server.core.impl.DeferredPending
 import org.araumi.server.net.command.*
 import org.araumi.server.net.session.Session
 import org.araumi.server.net.session.SessionHash
 import org.araumi.server.protocol.OptionalMap
 import org.araumi.server.protocol.ProtocolBuffer
 import org.araumi.server.protocol.getTypedCodec
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
 /**
  * All sessions have a single control channel, persisting for the entire session.
@@ -35,8 +42,11 @@ import org.araumi.server.protocol.getTypedCodec
  *
  * Closing the control channel will close all spaces on the client, and basically crash the game.
  */
-class ControlChannel(socket: ISocketClient) : ChannelKind(socket) {
+class ControlChannel(socket: ISocketClient) : ChannelKind(socket), KoinComponent {
   private val logger = KotlinLogging.logger { }
+
+  private val spaces: IRegistry<ISpace> by inject()
+  private val sessions: ISessionRegistry by inject()
 
   private val commandCodec = protocol.getTypedCodec<ControlCommand>()
 
@@ -53,7 +63,10 @@ class ControlChannel(socket: ISocketClient) : ChannelKind(socket) {
         is HashRequestCommand -> {
           val hash = SessionHash.random()
 
-          session = Session(hash)
+          // Create a new session
+          val session = Session(hash, this)
+          this.session = session
+          sessions.add(session)
           logger.debug { "Created $session" }
 
           sendBatch {
@@ -69,12 +82,33 @@ class ControlChannel(socket: ISocketClient) : ChannelKind(socket) {
             }
 
             HashResponseCommand(hash, channelProtectionEnabled = false).enqueue()
-            OpenSpaceCommand(spaceId = 0xaa55).enqueue()
           }
+
+          openSpace(0xaa55)
         }
 
         is InitSpaceCommand   -> {
-          socket.kind = SpaceChannel(socket)
+          check(this.session == null) { "Session already assigned, control channel -> space channel upgrade (unreachable)" }
+
+          val session = sessions.get(command.hash) ?: error("Session ${command.hash} not found")
+          val space = spaces.get(command.spaceId) ?: error("Space ${command.spaceId} not found")
+          val channel = SpaceChannel(socket, space)
+          socket.kind = channel
+          socket.kind.session = session
+          session.spaces.add(channel)
+
+          logger.debug { "Assigned $this to $session" }
+
+          val pendingSpace = session.pendingSpaces.get(command.spaceId)
+          if(pendingSpace == null) {
+            logger.warn { "Pending space channel not found for space ${command.spaceId}" }
+
+            // TODO: Close the channel
+            throw IllegalStateException("Pending space channel not found for space ${command.spaceId}")
+          }
+
+          (pendingSpace as DeferredPending<SpaceChannel>).complete(channel)
+
           GlobalScope.launch {
             (socket.kind as SpaceChannel).init()
           }
@@ -89,6 +123,23 @@ class ControlChannel(socket: ISocketClient) : ChannelKind(socket) {
     if(buffer.data.readableBytes() > 0) {
       logger.warn { "Buffer has ${buffer.data.readableBytes()} bytes left" }
     }
+  }
+
+  /**
+   * Opens a new space channel.
+   *
+   * Note: This is a low-level API, most of the time you should use
+   * [org.araumi.server.dispatcher.DispatcherModelOpenSpaceEvent] instead.
+   */
+  fun openSpace(id: Long): IPending<SpaceChannel> {
+    val pending = DeferredPending<SpaceChannel>(id)
+    sessionNotNull.pendingSpaces.add(pending)
+
+    sendBatch {
+      OpenSpaceCommand(id).enqueue()
+    }
+
+    return pending
   }
 
   fun send(command: ControlCommand) {

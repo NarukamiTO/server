@@ -18,16 +18,32 @@
 
 package org.araumi.server.net.session
 
+import org.araumi.server.core.IPending
+import org.araumi.server.core.IRegistry
+import org.araumi.server.core.impl.Registry
+import org.araumi.server.net.ControlChannel
+import org.araumi.server.net.SpaceChannel
+
 /**
  * Session represents a unique client instance connected to the server.
  * It is identified by a session hash and contains multiple channel sockets.
  */
 interface ISession {
   val hash: SessionHash
+  val controlChannel: ControlChannel
+
+  val spaces: IRegistry<SpaceChannel>
+  val pendingSpaces: IRegistry<IPending<SpaceChannel>>
 }
 
-class Session(override val hash: SessionHash) : ISession {
+class Session(
+  override val hash: SessionHash,
+  override val controlChannel: ControlChannel
+) : ISession {
+  override val spaces: IRegistry<SpaceChannel> = Registry("Space channel") { space.id }
+  override val pendingSpaces: IRegistry<IPending<SpaceChannel>> = Registry("Pending space channel") { id }
+
   override fun toString(): String {
-    return "Session(hash=$hash)"
+    return "Session(hash=$hash, controlChannel=$controlChannel)"
   }
 }

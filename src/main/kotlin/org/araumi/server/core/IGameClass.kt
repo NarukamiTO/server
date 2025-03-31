@@ -16,12 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package org.araumi.server.entrance
+package org.araumi.server.core
 
-import org.araumi.server.core.IModelConstructor
-import org.araumi.server.net.command.ProtocolModel
-
-@ProtocolModel(2108103923322474513)
-data class CaptchaModelCC(
-  val stateWithCaptcha: List<CaptchaLocation>,
-) : IModelConstructor
+interface IGameClass {
+  val id: Long
+  val models: List<Long>
+}

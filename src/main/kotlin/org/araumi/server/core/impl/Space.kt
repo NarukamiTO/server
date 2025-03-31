@@ -16,12 +16,30 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package org.araumi.server.entrance
+package org.araumi.server.core.impl
 
-import org.araumi.server.core.IModelConstructor
-import org.araumi.server.net.command.ProtocolModel
+import io.github.oshai.kotlinlogging.KotlinLogging
+import org.araumi.server.core.IGameClass
+import org.araumi.server.core.IGameObject
+import org.araumi.server.core.IRegistry
+import org.araumi.server.core.ISpace
 
-@ProtocolModel(2108103923322474513)
-data class CaptchaModelCC(
-  val stateWithCaptcha: List<CaptchaLocation>,
-) : IModelConstructor
+class Space(override val id: Long) : ISpace {
+  private val logger = KotlinLogging.logger { }
+
+  companion object {
+    val ROOT_CLASS = TransientGameClass(
+      id = 0,
+      models = listOf()
+    )
+  }
+
+  override val objects: IRegistry<IGameObject<*>> = Registry("Game object") { id }
+
+  override val rootObject: IGameObject<*>
+    get() = objects.get(id) ?: error("No root object for space $id")
+
+  init {
+    objects.add(TransientGameObject<IGameClass>(id, ROOT_CLASS))
+  }
+}

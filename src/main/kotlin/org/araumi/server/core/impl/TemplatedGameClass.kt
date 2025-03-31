@@ -16,12 +16,29 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package org.araumi.server.entrance
+package org.araumi.server.core.impl
 
-import org.araumi.server.core.IModelConstructor
-import org.araumi.server.net.command.ProtocolModel
+import kotlin.reflect.KClass
+import io.github.oshai.kotlinlogging.KotlinLogging
+import org.araumi.server.core.IGameClass
+import org.araumi.server.core.ITemplate
+import org.araumi.server.core.models
+import org.araumi.server.core.protocolId
 
-@ProtocolModel(2108103923322474513)
-data class CaptchaModelCC(
-  val stateWithCaptcha: List<CaptchaLocation>,
-) : IModelConstructor
+data class TemplatedGameClass<T : ITemplate>(
+  override val id: Long,
+  override val models: List<Long>,
+  val template: KClass<T>,
+) : IGameClass {
+  private val logger = KotlinLogging.logger { }
+
+  companion object {
+    fun <T : ITemplate> fromTemplate(template: KClass<T>): TemplatedGameClass<T> {
+      return TemplatedGameClass(
+        id = template.protocolId,
+        models = template.models.map { it.protocolId },
+        template = template
+      )
+    }
+  }
+}

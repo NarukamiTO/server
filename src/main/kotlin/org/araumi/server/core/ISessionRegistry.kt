@@ -16,10 +16,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package org.araumi.server.entrance
+package org.araumi.server.core
 
-import org.araumi.server.net.IModelConstructor
-import org.araumi.server.net.command.ProtocolModel
+import org.araumi.server.net.session.ISession
+import org.araumi.server.net.session.SessionHash
 
-@ProtocolModel(7840560143954508415)
-class EntranceAlertModelCC : IModelConstructor
+interface ISessionRegistry {
+  val all: Set<ISession>
+
+  fun add(value: ISession)
+  fun remove(value: ISession)
+  fun get(hash: SessionHash): ISession?
+  fun has(hash: SessionHash): Boolean
+}

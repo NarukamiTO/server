@@ -16,12 +16,22 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package org.araumi.server.entrance
+package org.araumi.server.core
 
-import org.araumi.server.core.IModelConstructor
-import org.araumi.server.net.command.ProtocolModel
+import kotlin.reflect.KClass
+import kotlin.reflect.full.findAnnotation
+import kotlin.reflect.full.isSubclassOf
+import kotlin.reflect.full.memberProperties
+import org.araumi.server.extensions.kotlinClass
+import org.araumi.server.net.command.ProtocolClass
 
-@ProtocolModel(2108103923322474513)
-data class CaptchaModelCC(
-  val stateWithCaptcha: List<CaptchaLocation>,
-) : IModelConstructor
+interface ITemplate
+
+@get:JvmName("KClass_IClass_protocolId")
+val KClass<out ITemplate>.protocolId: Long
+  get() = requireNotNull(findAnnotation<ProtocolClass>()) { "$this has no @ProtocolClass annotation" }.id
+
+val KClass<out ITemplate>.models: List<KClass<out IModelConstructor>>
+  get() {
+    return memberProperties.map { it.returnType.kotlinClass }.filter { it.isSubclassOf(IModelConstructor::class) } as List<KClass<out IModelConstructor>>
+  }

@@ -16,10 +16,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package org.araumi.server.entrance
+package org.araumi.server.core
 
-import org.araumi.server.net.IModelConstructor
-import org.araumi.server.net.command.ProtocolModel
+/**
+ * Represents a pending operation that can be awaited.
+ *
+ * Used to wait for space channels to open.
+ */
+interface IPending<T> {
+  val id: Long
 
-@ProtocolModel(7384979261462408242)
-class LoginModelCC : IModelConstructor
+  suspend fun await(): T
+}

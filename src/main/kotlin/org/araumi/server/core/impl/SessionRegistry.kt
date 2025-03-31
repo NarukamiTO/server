@@ -16,30 +16,35 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package org.araumi.server.net
+package org.araumi.server.core.impl
 
+import org.araumi.server.core.ISessionRegistry
 import org.araumi.server.net.session.ISession
-import org.araumi.server.protocol.IProtocol
-import org.araumi.server.protocol.ProtocolBuffer
+import org.araumi.server.net.session.SessionHash
 
-sealed interface IChannelKind {
-  val socket: ISocketClient
+class SessionRegistry : ISessionRegistry {
+  private val sessions: MutableMap<SessionHash, ISession> = mutableMapOf()
 
-  fun process(buffer: ProtocolBuffer)
-}
+  override val all: Set<ISession>
+    get() = sessions.values.toSet()
 
-val IChannelKind.protocol: IProtocol
-  get() = socket.protocol
+  override fun add(value: ISession) {
+    if(sessions.contains(value.hash)) {
+      throw IllegalArgumentException("Session with hash ${value.hash} already exists")
+    }
 
-var IChannelKind.session: ISession?
-  get() = socket.session
-  set(value) {
-    socket.session = value
+    sessions[value.hash] = value
   }
 
-val IChannelKind.sessionNotNull: ISession
-  get() = checkNotNull(socket.session) { "Session is null for $socket" }
+  override fun remove(value: ISession) {
+    sessions.remove(value.hash)
+  }
 
-abstract class ChannelKind(
-  override val socket: ISocketClient
-) : IChannelKind
+  override fun get(hash: SessionHash): ISession? {
+    return sessions[hash]
+  }
+
+  override fun has(hash: SessionHash): Boolean {
+    return sessions.contains(hash)
+  }
+}

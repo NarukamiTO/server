@@ -19,7 +19,7 @@
 package org.araumi.server.dispatcher
 
 import kotlin.reflect.full.createType
-import org.araumi.server.net.IModelConstructor
+import org.araumi.server.core.IModelConstructor
 import org.araumi.server.protocol.*
 
 class ModelData private constructor(

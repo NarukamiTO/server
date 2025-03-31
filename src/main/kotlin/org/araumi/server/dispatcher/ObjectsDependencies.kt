@@ -19,10 +19,13 @@
 package org.araumi.server.dispatcher
 
 import kotlin.reflect.full.createType
-import org.araumi.server.net.IGameClass
+import org.araumi.server.core.IGameClass
 import org.araumi.server.protocol.Codec
 import org.araumi.server.protocol.IProtocol
 import org.araumi.server.protocol.ProtocolBuffer
+import org.araumi.server.res.Resource
+import org.araumi.server.res.isLazy
+import org.araumi.server.res.type
 
 data class ResourceDependency(
   val id: Long,
@@ -36,7 +39,25 @@ data class ObjectsDependencies(
   val callbackId: Int,
   val classes: List<IGameClass>,
   val resources: List<ResourceDependency>,
-)
+) {
+  companion object {
+    fun new(callbackId: Int, classes: List<IGameClass>, resources: List<Resource<*, *>>): ObjectsDependencies {
+      return ObjectsDependencies(
+        callbackId,
+        classes = classes,
+        resources = resources.map { resource ->
+          ResourceDependency(
+            id = resource.id.id,
+            version = resource.id.version,
+            kind = resource.type.type.id,
+            lazy = resource.laziness.isLazy,
+            dependents = listOf()
+          )
+        }
+      )
+    }
+  }
+}
 
 class ObjectsDependenciesCodec : Codec<ObjectsDependencies>() {
   private lateinit var byteCodec: Codec<Byte>

@@ -18,10 +18,20 @@
 
 package org.araumi.server.entrance
 
+import org.araumi.server.core.IClientEvent
 import org.araumi.server.core.IModelConstructor
+import org.araumi.server.net.command.ProtocolEvent
 import org.araumi.server.net.command.ProtocolModel
+import org.araumi.server.res.Eager
+import org.araumi.server.res.LocalizedImageRes
+import org.araumi.server.res.Resource
 
-@ProtocolModel(2108103923322474513)
-data class CaptchaModelCC(
-  val stateWithCaptcha: List<CaptchaLocation>,
-) : IModelConstructor
+@ProtocolModel(7840560143954508415)
+class EntranceAlertModelCC : IModelConstructor
+
+@ProtocolEvent(7216954482225034551)
+class EntranceAlertModelShowAlertEvent(
+  val image: Resource<LocalizedImageRes, Eager>,
+  val header: String,
+  val text: String
+) : IClientEvent

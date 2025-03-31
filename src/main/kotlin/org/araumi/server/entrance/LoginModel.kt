@@ -18,10 +18,21 @@
 
 package org.araumi.server.entrance
 
+import org.araumi.server.core.IClientEvent
 import org.araumi.server.core.IModelConstructor
+import org.araumi.server.core.IServerEvent
+import org.araumi.server.net.command.ProtocolEvent
 import org.araumi.server.net.command.ProtocolModel
 
-@ProtocolModel(2108103923322474513)
-data class CaptchaModelCC(
-  val stateWithCaptcha: List<CaptchaLocation>,
-) : IModelConstructor
+@ProtocolModel(7384979261462408242)
+class LoginModelCC : IModelConstructor
+
+@ProtocolEvent(108605496059850042)
+data class LoginModelLoginEvent(
+  val uidOrEmail: String,
+  val password: String,
+  val remember: Boolean
+) : IServerEvent
+
+@ProtocolEvent(6160917066910786241)
+class LoginModelWrongPasswordEvent : IClientEvent

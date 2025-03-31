@@ -16,12 +16,19 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package org.araumi.server.entrance
+package org.araumi.server.core.impl
 
-import org.araumi.server.core.IModelConstructor
-import org.araumi.server.net.command.ProtocolModel
+import kotlinx.coroutines.CompletableDeferred
+import org.araumi.server.core.IPending
 
-@ProtocolModel(2108103923322474513)
-data class CaptchaModelCC(
-  val stateWithCaptcha: List<CaptchaLocation>,
-) : IModelConstructor
+class DeferredPending<T>(override val id: Long) : IPending<T> {
+  private val deferred = CompletableDeferred<T>()
+
+  override suspend fun await(): T {
+    return deferred.await()
+  }
+
+  fun complete(value: T) {
+    deferred.complete(value)
+  }
+}
