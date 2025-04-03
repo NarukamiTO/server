@@ -24,4 +24,6 @@ import org.araumi.server.net.command.ProtocolClass
 @ProtocolClass(3)
 data class LobbyTemplate(
   val lobbyLayoutNotify: LobbyLayoutNotifyModelCC,
+  val lobbyLayout: LobbyLayoutModelCC,
+  val panel: PanelModelCC,
 ) : ITemplate

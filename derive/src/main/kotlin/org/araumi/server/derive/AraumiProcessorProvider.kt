@@ -16,21 +16,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package org.araumi.server.core
+package org.araumi.server.derive
 
-import kotlin.reflect.KClass
-import kotlin.reflect.KProperty1
-import kotlin.reflect.full.findAnnotation
-import org.araumi.server.net.command.ProtocolClass
+import com.google.devtools.ksp.processing.SymbolProcessor
+import com.google.devtools.ksp.processing.SymbolProcessorEnvironment
+import com.google.devtools.ksp.processing.SymbolProcessorProvider
 
-/**
- * A template provides a set of models.
- */
-interface ITemplate
-
-@get:JvmName("KClass_IClass_protocolId")
-val KClass<out ITemplate>.protocolId: Long
-  get() = requireNotNull(findAnnotation<ProtocolClass>()) { "$this has no @ProtocolClass annotation" }.id
-
-val KClass<out ITemplate>.models: Map<KProperty1<out ITemplate, *>, KClass<out IModelConstructor>>
-  get() = requireNotNull(org.araumi.server.derive.templateToModels[this]) { "$this is not registered" }
+class AraumiProcessorProvider : SymbolProcessorProvider {
+  override fun create(environment: SymbolProcessorEnvironment): SymbolProcessor {
+    return AraumiProcessor(
+      options = environment.options,
+      logger = environment.logger,
+      codeGenerator = environment.codeGenerator
+    )
+  }
+}

@@ -19,10 +19,8 @@
 package org.araumi.server.core.impl
 
 import kotlin.reflect.KClass
-import kotlin.reflect.full.memberProperties
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.araumi.server.core.*
-import org.araumi.server.extensions.kotlinClass
 
 class TransientGameObject<TClass : IGameClass>(
   override val id: Long,
@@ -35,19 +33,27 @@ class TransientGameObject<TClass : IGameClass>(
       val gameObject = TransientGameObject(id, parent)
 
       parent.models.forEach { modelId ->
-        val modelClass = template::class.models.first { it.protocolId == modelId }
-        val model = template::class.memberProperties.first { it.returnType.kotlinClass == modelClass }
-          .getter.call(template) as IModelConstructor
-        gameObject.models[modelClass] = model
+        try {
+          val (property, clazz) = template::class.models.entries.single { it.value.protocolId == modelId }
+          val provider = when(val value = property.call(template)) {
+            is IModelProvider<*> -> value
+            is IModelConstructor -> StaticModelProvider(value)
+            else                 -> throw IllegalArgumentException("Model $modelId is not a valid model or model provider")
+          }
 
-        logger.trace { "Instantiated $model from $template" }
+          gameObject.models[clazz] = provider
+
+          logger.trace { "Instantiated $provider from $template" }
+        } catch(exception: Exception) {
+          logger.error(exception) { "Failed to instantiate model $modelId from template $template" }
+        }
       }
 
       return gameObject
     }
   }
 
-  override val models: MutableMap<KClass<out IModelConstructor>, IModelConstructor> = mutableMapOf()
+  override val models: MutableMap<KClass<out IModelConstructor>, IModelProvider<*>> = mutableMapOf()
 
   override fun toString(): String {
     return "TransientGameObject(id=$id, parent=$parent, models=$models)"

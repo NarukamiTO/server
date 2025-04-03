@@ -18,19 +18,21 @@
 
 package org.araumi.server.core
 
-import kotlin.reflect.KClass
-import kotlin.reflect.KProperty1
-import kotlin.reflect.full.findAnnotation
-import org.araumi.server.net.command.ProtocolClass
+import org.araumi.server.net.SpaceChannel
 
 /**
- * A template provides a set of models.
+ * Calls a closure with the given space channel to provide a model constructor.
+ *
+ * This is useful for models that have different constructors for different sessions.
+ * For example, [org.araumi.server.lobby.user.UserPropertiesModelCC] is completely different
+ * for different users, but the game object is the same.
+ *
+ * @see org.araumi.server.core.ArchitectureDocs
  */
-interface ITemplate
-
-@get:JvmName("KClass_IClass_protocolId")
-val KClass<out ITemplate>.protocolId: Long
-  get() = requireNotNull(findAnnotation<ProtocolClass>()) { "$this has no @ProtocolClass annotation" }.id
-
-val KClass<out ITemplate>.models: Map<KProperty1<out ITemplate, *>, KClass<out IModelConstructor>>
-  get() = requireNotNull(org.araumi.server.derive.templateToModels[this]) { "$this is not registered" }
+class ClosureModelProvider<T : IModelConstructor>(
+  private val closure: SpaceChannel.() -> T,
+) : IModelProvider<T> {
+  override fun provide(channel: SpaceChannel): T {
+    return closure(channel)
+  }
+}

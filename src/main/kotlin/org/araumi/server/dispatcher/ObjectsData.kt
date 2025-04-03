@@ -21,6 +21,7 @@ package org.araumi.server.dispatcher
 import kotlin.reflect.full.declaredMembers
 import org.araumi.server.core.IGameObject
 import org.araumi.server.core.protocolId
+import org.araumi.server.net.SpaceChannel
 import org.araumi.server.protocol.*
 
 data class ObjectsData(
@@ -28,7 +29,7 @@ data class ObjectsData(
   val modelData: List<ModelData>,
 ) {
   companion object {
-    fun new(objects: List<IGameObject<*>>): ObjectsData {
+    fun new(objects: List<IGameObject<*>>, sender: SpaceChannel): ObjectsData {
       return ObjectsData(
         objects = objects,
         modelData = objects.flatMap { gameObject ->
@@ -36,7 +37,7 @@ data class ObjectsData(
             ModelData.newObject(gameObject.id)
           ) + gameObject.models
             .filter { (clazz, _) -> clazz.declaredMembers.isNotEmpty() }
-            .map { (clazz, model) -> ModelData.newModel(clazz.protocolId, model) }
+            .map { (clazz, model) -> ModelData.newModel(clazz.protocolId, model.provide(sender)) }
         }
       )
     }

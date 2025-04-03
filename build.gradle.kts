@@ -18,6 +18,7 @@
 
 plugins {
   kotlin("jvm") version "2.1.10"
+  id("com.google.devtools.ksp") version "2.1.10-1.0.31"
   application
   idea
 }
@@ -30,6 +31,8 @@ repositories {
 }
 
 dependencies {
+  ksp(project(":derive"))
+
   implementation("io.netty:netty-all:4.1.119.Final")
 
   /* HTTP */

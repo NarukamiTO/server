@@ -19,10 +19,15 @@
 package org.araumi.server.core.impl
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import org.araumi.server.core.*
+import org.araumi.server.core.IEvent
+import org.araumi.server.core.IRegistry
+import org.araumi.server.core.ISpace
+import org.araumi.server.core.models
 import org.araumi.server.entrance.*
+import org.araumi.server.lobby.LobbyLayoutModelCC
 import org.araumi.server.lobby.LobbyLayoutNotifyModelCC
 import org.araumi.server.lobby.LobbyTemplate
+import org.araumi.server.lobby.PanelModelCC
 import org.araumi.server.res.Eager
 import org.araumi.server.res.ImageRes
 import org.araumi.server.res.RemoteGameResourceRepository
@@ -57,7 +62,6 @@ class SpaceInitializer(
           entranceAlert = EntranceAlertModelCC()
         )
       )
-      logger.info { entranceObject.adapt() }
 
       objects.add(entranceObject)
     })
@@ -68,10 +72,11 @@ class SpaceInitializer(
         id = 2,
         lobbyClass,
         LobbyTemplate(
-          lobbyLayoutNotify = LobbyLayoutNotifyModelCC()
+          lobbyLayoutNotify = LobbyLayoutNotifyModelCC(),
+          lobbyLayout = LobbyLayoutModelCC(),
+          panel = PanelModelCC()
         )
       )
-      logger.info { lobbyObject.adapt() }
 
       objects.add(lobbyObject)
     })

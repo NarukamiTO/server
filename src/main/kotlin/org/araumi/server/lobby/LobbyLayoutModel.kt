@@ -16,21 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package org.araumi.server.core
+package org.araumi.server.lobby
 
-import kotlin.reflect.KClass
-import kotlin.reflect.KProperty1
-import kotlin.reflect.full.findAnnotation
-import org.araumi.server.net.command.ProtocolClass
+import org.araumi.server.core.IModelConstructor
+import org.araumi.server.net.command.ProtocolModel
 
-/**
- * A template provides a set of models.
- */
-interface ITemplate
-
-@get:JvmName("KClass_IClass_protocolId")
-val KClass<out ITemplate>.protocolId: Long
-  get() = requireNotNull(findAnnotation<ProtocolClass>()) { "$this has no @ProtocolClass annotation" }.id
-
-val KClass<out ITemplate>.models: Map<KProperty1<out ITemplate, *>, KClass<out IModelConstructor>>
-  get() = requireNotNull(org.araumi.server.derive.templateToModels[this]) { "$this is not registered" }
+@ProtocolModel(5255782026414758079)
+class LobbyLayoutModelCC : IModelConstructor

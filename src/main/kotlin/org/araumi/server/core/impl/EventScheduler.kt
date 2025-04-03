@@ -87,7 +87,7 @@ class EventScheduler : IEventScheduler {
         val nodeDefinition = nodeBuilder.getNodeDefinition(nodeClass)
 
         logger.trace { "Trying to build node $nodeDefinition" }
-        val node = nodeBuilder.tryBuild(nodeDefinition, gameObject.models.values.toSet())
+        val node = nodeBuilder.tryBuild(nodeDefinition, gameObject.models.values.map { it.provide(sender) }.toSet())
         if(node == null) {
           if(mandatory) {
             throw IllegalArgumentException("Failed to build node $nodeDefinition")
@@ -116,7 +116,7 @@ class EventScheduler : IEventScheduler {
           for(gameObject in sender.space.objects.all) {
             logger.trace { "Trying to build @JoinAll node $nodeDefinition for $gameObject" }
 
-            node = nodeBuilder.tryBuild(nodeDefinition, gameObject.models.values.toSet())
+            node = nodeBuilder.tryBuild(nodeDefinition, gameObject.models.values.map { it.provide(sender) }.toSet())
             if(node != null) {
               node.init(sender, gameObject)
               logger.trace { "Built @JoinAll node $node" }

@@ -36,7 +36,7 @@ data class TemplatedGameClass<T : ITemplate>(
     fun <T : ITemplate> fromTemplate(template: KClass<T>): TemplatedGameClass<T> {
       return TemplatedGameClass(
         id = template.protocolId,
-        models = template.models.map { it.protocolId },
+        models = template.models.values.map { it.protocolId },
         template = template
       )
     }

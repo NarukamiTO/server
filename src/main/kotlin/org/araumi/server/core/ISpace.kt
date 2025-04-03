@@ -22,6 +22,8 @@ package org.araumi.server.core
  * Spaces are used for the actual client-server communication.
  *
  * All spaces have a Dispatcher object with ID same as the space ID and class `0`.
+ *
+ * @see org.araumi.server.core.ArchitectureDocs
  */
 interface ISpace {
   val id: Long

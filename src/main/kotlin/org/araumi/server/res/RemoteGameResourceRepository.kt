@@ -115,6 +115,9 @@ val Res.type: ResourceType
     is UnknownRes        -> throw IllegalArgumentException("Resource type $this is not supported")
   }
 
+/**
+ * Represents a game resource.
+ */
 data class Resource<T : Res, L : Laziness>(
   val name: String,
   val namespaces: Map<String, String>,
@@ -123,11 +126,21 @@ data class Resource<T : Res, L : Laziness>(
   val laziness: L,
 )
 
+/**
+ * Indicates whether the resource is lazily loaded or not.
+ */
 sealed interface Laziness {
   data object Undefined : Laziness
 }
 
+/**
+ * Indicates that the resource is lazily loaded.
+ */
 data object Lazy : Laziness
+
+/**
+ * Indicates that the resource is eagerly loaded.
+ */
 data object Eager : Laziness
 
 val Laziness.isLazy: Boolean

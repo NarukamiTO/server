@@ -107,7 +107,7 @@ class DispatcherSystem : AbstractSystem() {
 
     val deferredDependenciesObject = any.sender.space.objects.get(event.callbackId.toLong()) as IGameObject<TemplatedGameClass<DeferredDependenciesTemplate>>?
                                      ?: error("Deferred dependencies object ${event.callbackId} not found")
-    val (deferredDependencies) = deferredDependenciesObject.adapt()
+    val (deferredDependencies) = deferredDependenciesObject.adapt(any.sender)
     deferredDependencies.deferred.complete(Unit)
     any.sender.space.objects.remove(deferredDependenciesObject)
     logger.info { "Deferred dependencies $deferredDependencies resolved" }
@@ -126,13 +126,13 @@ class DispatcherSystem : AbstractSystem() {
       classes = event.objects.map { it.parent },
       resources = event.objects.flatMap { gameObject ->
         gameObject.models.values.flatMap { model ->
-          model.getResources()
+          model.provide(any.sender).getResources()
         }
       }
     ).schedule(any).await()
 
     DispatcherModelLoadObjectsDataEvent(
-      objectsData = ObjectsData.new(event.objects)
+      objectsData = ObjectsData.new(event.objects, any.sender)
     ).schedule(any)
 
     logger.info { "Objects loaded: $event" }

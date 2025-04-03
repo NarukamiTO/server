@@ -16,22 +16,35 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package org.araumi.server.entrance
+package org.araumi.server.lobby.user
 
-import org.araumi.server.core.IClientEvent
 import org.araumi.server.core.IModelConstructor
-import org.araumi.server.net.command.ProtocolEvent
 import org.araumi.server.net.command.ProtocolModel
-import org.araumi.server.res.Eager
-import org.araumi.server.res.LocalizedImageRes
-import org.araumi.server.res.Resource
+import org.araumi.server.net.command.ProtocolStruct
 
-@ProtocolModel(7840560143954508415)
-class EntranceAlertModelCC : IModelConstructor
+@ProtocolModel(1893408944113965505)
+data class UserPropertiesModelCC(
+  val canUseGroup: Boolean,
+  val crystals: Int,
+  val crystalsRating: Int,
+  val daysFromLastVisit: Int,
+  val daysFromRegistration: Int,
+  val gearScore: Int,
+  val goldsTakenRating: Int,
+  val hasSpectatorPermissions: Boolean,
+  val id: Long,
+  val rank: Int,
+  val rankBounds: RankBounds,
+  val registrationTimestamp: Int,
+  val score: Int,
+  val scoreRating: Int,
+  val uid: String,
+  val userProfileUrl: String,
+  val userRating: Int,
+) : IModelConstructor
 
-@ProtocolEvent(7216954482225034551)
-data class EntranceAlertModelShowAlertEvent(
-  val image: Resource<LocalizedImageRes, Eager>,
-  val header: String,
-  val text: String
-) : IClientEvent
+@ProtocolStruct
+data class RankBounds(
+  val lowBound: Int,
+  val topBound: Int,
+)

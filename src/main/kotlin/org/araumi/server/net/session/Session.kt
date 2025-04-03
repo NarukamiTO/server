@@ -26,7 +26,9 @@ import org.araumi.server.net.SpaceChannel
 
 /**
  * Session represents a unique client instance connected to the server.
- * It is identified by a session hash and contains multiple channel sockets.
+ * It is identified by a session hash, contains a control channel and zero or more space channels.
+ *
+ * @see org.araumi.server.core.ArchitectureDocs
  */
 interface ISession {
   val hash: SessionHash

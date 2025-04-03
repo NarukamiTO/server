@@ -24,13 +24,22 @@ import org.araumi.server.net.command.ProtocolModel
 import org.araumi.server.net.command.ProtocolStruct
 import org.araumi.server.res.Resource
 
+/**
+ * A model constructor (called *CC* in the client, probably for *client constructor*),
+ * coupled with a model info and model resources.
+ *
+ * @see org.araumi.server.core.ArchitectureDocs
+ */
 @ProtocolStruct
 interface IModelConstructor {
+  /**
+   * Returns a list of resources to load with this model.
+   */
   fun getResources(): List<Resource<*, *>> {
     return emptyList()
   }
 }
 
-@get:JvmName("KClass_IModel_protocolId")
+@get:JvmName("KClass_IModelConstructor_protocolId")
 val KClass<out IModelConstructor>.protocolId: Long
   get() = requireNotNull(findAnnotation<ProtocolModel>()) { "$this has no @ProtocolModel annotation" }.id

@@ -18,19 +18,16 @@
 
 package org.araumi.server.core
 
-import kotlin.reflect.KClass
-import kotlin.reflect.KProperty1
-import kotlin.reflect.full.findAnnotation
-import org.araumi.server.net.command.ProtocolClass
+import org.araumi.server.net.SpaceChannel
 
 /**
- * A template provides a set of models.
+ * Provides a model constructor for a given space channel (usually for a given session).
+ *
+ * @see IModelConstructor
  */
-interface ITemplate
-
-@get:JvmName("KClass_IClass_protocolId")
-val KClass<out ITemplate>.protocolId: Long
-  get() = requireNotNull(findAnnotation<ProtocolClass>()) { "$this has no @ProtocolClass annotation" }.id
-
-val KClass<out ITemplate>.models: Map<KProperty1<out ITemplate, *>, KClass<out IModelConstructor>>
-  get() = requireNotNull(org.araumi.server.derive.templateToModels[this]) { "$this is not registered" }
+interface IModelProvider<T : IModelConstructor> {
+  /**
+   * Provides a model constructor for the given space channel.
+   */
+  fun provide(channel: SpaceChannel): T
+}
