@@ -16,22 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package org.araumi.server.core
+package org.araumi.server.lobby.communication
 
-import org.araumi.server.net.SpaceChannel
+import org.araumi.server.core.IModelConstructor
+import org.araumi.server.net.command.ProtocolModel
 
-open class Node {
-  lateinit var sender: SpaceChannel
-    private set
-  lateinit var gameObject: IGameObject<*>
-    private set
-
-  fun init(sender: SpaceChannel, gameObject: IGameObject<*>) {
-    this.sender = sender
-    this.gameObject = gameObject
-  }
-}
-
-data class SingleNode<T : IModelConstructor>(
-  val node: T
-) : Node()
+@ProtocolModel(3650502766592528965)
+class CommunicationPanelModelCC : IModelConstructor

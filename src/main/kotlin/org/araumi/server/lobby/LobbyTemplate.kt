@@ -26,4 +26,5 @@ data class LobbyTemplate(
   val lobbyLayoutNotify: LobbyLayoutNotifyModelCC,
   val lobbyLayout: LobbyLayoutModelCC,
   val panel: PanelModelCC,
+  val onceADayAction: OnceADayActionModelCC,
 ) : ITemplate

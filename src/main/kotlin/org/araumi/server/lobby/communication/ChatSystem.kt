@@ -16,22 +16,27 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package org.araumi.server.core
+package org.araumi.server.lobby.communication
 
-import org.araumi.server.net.SpaceChannel
+import org.araumi.server.core.*
 
-open class Node {
-  lateinit var sender: SpaceChannel
-    private set
-  lateinit var gameObject: IGameObject<*>
-    private set
-
-  fun init(sender: SpaceChannel, gameObject: IGameObject<*>) {
-    this.sender = sender
-    this.gameObject = gameObject
+class ChatSystem : AbstractSystem() {
+  @OnEventFire
+  fun onChatAdded(event: NodeAddedEvent, chat: SingleNode<ChatModelCC>) {
+    ChatModelShowMessagesEvent(
+      messages = listOf(
+        ChatMessage(
+          addressMode = ChatAddressMode.PUBLIC_TO_ALL,
+          battleLinks = emptyList(),
+          channel = null,
+          links = null,
+          messageType = MessageType.SYSTEM,
+          sourceUser = null,
+          targetUser = null,
+          text = "стена текста в стиле тх",
+          timePassedInSec = 0
+        )
+      )
+    ).schedule(chat)
   }
 }
-
-data class SingleNode<T : IModelConstructor>(
-  val node: T
-) : Node()

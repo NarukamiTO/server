@@ -18,20 +18,4 @@
 
 package org.araumi.server.core
 
-import org.araumi.server.net.SpaceChannel
-
-open class Node {
-  lateinit var sender: SpaceChannel
-    private set
-  lateinit var gameObject: IGameObject<*>
-    private set
-
-  fun init(sender: SpaceChannel, gameObject: IGameObject<*>) {
-    this.sender = sender
-    this.gameObject = gameObject
-  }
-}
-
-data class SingleNode<T : IModelConstructor>(
-  val node: T
-) : Node()
+class NodeAddedEvent : IEvent

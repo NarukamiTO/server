@@ -16,22 +16,30 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package org.araumi.server.core
+package org.araumi.server.lobby.communication
 
-import org.araumi.server.net.SpaceChannel
+import org.araumi.server.core.IModelConstructor
+import org.araumi.server.net.command.ProtocolModel
+import org.araumi.server.net.command.ProtocolStruct
 
-open class Node {
-  lateinit var sender: SpaceChannel
-    private set
-  lateinit var gameObject: IGameObject<*>
-    private set
+@ProtocolModel(868364325972433765)
+data class NewsShowingModelCC(
+  val newsItems: List<NewsItemData>,
+) : IModelConstructor
 
-  fun init(sender: SpaceChannel, gameObject: IGameObject<*>) {
-    this.sender = sender
-    this.gameObject = gameObject
-  }
-}
-
-data class SingleNode<T : IModelConstructor>(
-  val node: T
-) : Node()
+@ProtocolStruct
+data class NewsItemData(
+  /**
+   * UTC UNIX timestamp in seconds.
+   */
+  // TODO: DateTime codec with @DateTimeRepresentation(UTC_SECONDS)
+  val dateInSeconds: Int,
+  val description: String,
+  /**
+   * UTC UNIX timestamp in seconds, `0` if not time-limited.
+   */
+  val endDate: Int,
+  val header: String,
+  val id: Long,
+  val imageUrl: String,
+)

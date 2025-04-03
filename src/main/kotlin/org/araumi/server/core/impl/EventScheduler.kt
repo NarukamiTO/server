@@ -18,7 +18,6 @@
 
 package org.araumi.server.core.impl
 
-import kotlin.reflect.KClass
 import kotlin.reflect.KParameter
 import kotlin.reflect.full.*
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -29,6 +28,7 @@ import org.araumi.server.dispatcher.DispatcherSystem
 import org.araumi.server.entrance.LoginSystem
 import org.araumi.server.extensions.kotlinClass
 import org.araumi.server.lobby.LobbySystem
+import org.araumi.server.lobby.communication.ChatSystem
 import org.araumi.server.net.SpaceChannel
 
 class EventScheduler : IEventScheduler {
@@ -53,6 +53,7 @@ class EventScheduler : IEventScheduler {
       DispatcherSystem::class,
       LoginSystem::class,
       LobbySystem::class,
+      ChatSystem::class,
     )
 
     for(system in systems) {
@@ -77,14 +78,15 @@ class EventScheduler : IEventScheduler {
           continue
         }
 
-        @Suppress("UNCHECKED_CAST")
-        val nodeClass = parameters[1].type.kotlinClass as KClass<out Node>
-        if(!nodeClass.isSubclassOf(Node::class)) {
-          throw IllegalArgumentException("Method $method expects second parameter to be ${Node::class.qualifiedName}, but declared type is ${nodeClass.qualifiedName}")
+        logger.info { "parameters[1]: ${parameters[1].type}" }
+
+        val nodeType = parameters[1].type
+        if(!nodeType.kotlinClass.isSubclassOf(Node::class)) {
+          throw IllegalArgumentException("Method $method expects second parameter to be ${Node::class.qualifiedName}, but declared type is $nodeType")
         }
 
         val nodeBuilder = NodeBuilder()
-        val nodeDefinition = nodeBuilder.getNodeDefinition(nodeClass)
+        val nodeDefinition = nodeBuilder.getNodeDefinition(nodeType)
 
         logger.trace { "Trying to build node $nodeDefinition" }
         val node = nodeBuilder.tryBuild(nodeDefinition, gameObject.models.values.map { it.provide(sender) }.toSet())
@@ -105,13 +107,12 @@ class EventScheduler : IEventScheduler {
         args[parameters[1]] = node
 
         for(parameter in parameters.filter { it.hasAnnotation<JoinAll>() }) {
-          @Suppress("UNCHECKED_CAST")
-          val nodeClass = parameter.type.kotlinClass as KClass<out Node>
-          if(!nodeClass.isSubclassOf(Node::class)) {
-            throw IllegalArgumentException("Method $method expects $parameter to be ${Node::class.qualifiedName}, but declared type is ${nodeClass.qualifiedName}")
+          val nodeType = parameter.type
+          if(!nodeType.kotlinClass.isSubclassOf(Node::class)) {
+            throw IllegalArgumentException("Method $method expects $parameter to be ${Node::class.qualifiedName}, but declared type is $nodeType")
           }
 
-          val nodeDefinition = nodeBuilder.getNodeDefinition(nodeClass)
+          val nodeDefinition = nodeBuilder.getNodeDefinition(nodeType)
           var node: Node? = null
           for(gameObject in sender.space.objects.all) {
             logger.trace { "Trying to build @JoinAll node $nodeDefinition for $gameObject" }

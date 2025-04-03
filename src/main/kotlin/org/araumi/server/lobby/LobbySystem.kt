@@ -19,11 +19,13 @@
 package org.araumi.server.lobby
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.datetime.Clock
 import org.araumi.server.core.*
 import org.araumi.server.core.impl.TemplatedGameClass
 import org.araumi.server.core.impl.TransientGameObject
 import org.araumi.server.dispatcher.DispatcherLoadObjectsManagedEvent
 import org.araumi.server.dispatcher.DispatcherNode
+import org.araumi.server.lobby.communication.*
 import org.araumi.server.lobby.user.*
 import org.araumi.server.net.NettySocketClient
 import org.araumi.server.net.sessionNotNull
@@ -81,9 +83,55 @@ class LobbySystem : AbstractSystem() {
       )
     )
 
+    val communicationClass = TemplatedGameClass.fromTemplate(CommunicationTemplate::class)
+    val communicationObject = TransientGameObject.instantiate(
+      5,
+      communicationClass,
+      CommunicationTemplate(
+        communicationPanel = CommunicationPanelModelCC(),
+        newsShowing = NewsShowingModelCC(
+          newsItems = listOf(
+            NewsItemData(
+              dateInSeconds = Clock.System.now().epochSeconds.toInt(),
+              description = """
+                Все всё равно знают, что Пэдди Мориарти, который жил в Австралии в деревне из 11 человек,
+                пропал вместе со своей собакой. Все знают, что Пэдди часто ссорился с бабкой. Она, кстати,
+                пекла пирожки из крокодила и могла сделать из Пэдди Мориарти пирог. Также большинство догадываются,
+                что Пэдди умер из-за пива, ведь он пил его В ПРОЗРАЧНОМ СТАКАНЕ СО ШРЕКОМ!!!
+              """.trimIndent(),
+              endDate = 0,
+              header = "Не нужно это скрывать!",
+              id = 1,
+              imageUrl = "https://files.catbox.moe/99m151.png"
+            )
+          )
+        ),
+        chat = ChatModelCC(
+          admin = true,
+          antifloodEnabled = false,
+          bufferSize = 100,
+          channels = listOf(
+            "General",
+          ),
+          chatEnabled = true,
+          chatModeratorLevel = ChatModeratorLevel.ADMINISTRATOR,
+          linksWhiteList = listOf("github.com"),
+          minChar = 0,
+          minWord = 0,
+          privateMessagesEnabled = false,
+          selfName = "",
+          showLinks = true,
+          typingSpeedAntifloodEnabled = false
+        )
+      )
+    )
+
     // The order of loading objects is important, user object MUST be loaded before lobby object,
     // otherwise user properties will not load on the client.
-    DispatcherLoadObjectsManagedEvent(listOf(userObject, lobbyObject)).schedule(dispatcher).await()
+    DispatcherLoadObjectsManagedEvent(listOf(userObject, lobbyObject, communicationObject)).schedule(dispatcher).await()
+
+    // TODO: NodeAddedEvent is not yet automatically scheduled
+    NodeAddedEvent().schedule(lobby.sender, communicationObject)
 
     // Once entrance object is unloaded (or entrance space channel is closed),
     // loading screen automatically appears on the client. This event hides it.

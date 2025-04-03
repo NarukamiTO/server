@@ -19,12 +19,10 @@
 package org.araumi.server.core
 
 import org.araumi.server.net.SpaceChannel
-import org.araumi.server.net.command.ProtocolEvent
 
 /**
  * Synthetic server event that is sent when a space channel opens.
  */
-@ProtocolEvent(-1)
 data class ChannelAddedEvent(
   val channel: SpaceChannel
-) : IServerEvent
+) : IEvent

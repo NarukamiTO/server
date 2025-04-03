@@ -24,10 +24,7 @@ import org.araumi.server.core.IRegistry
 import org.araumi.server.core.ISpace
 import org.araumi.server.core.models
 import org.araumi.server.entrance.*
-import org.araumi.server.lobby.LobbyLayoutModelCC
-import org.araumi.server.lobby.LobbyLayoutNotifyModelCC
-import org.araumi.server.lobby.LobbyTemplate
-import org.araumi.server.lobby.PanelModelCC
+import org.araumi.server.lobby.*
 import org.araumi.server.res.Eager
 import org.araumi.server.res.ImageRes
 import org.araumi.server.res.RemoteGameResourceRepository
@@ -74,7 +71,8 @@ class SpaceInitializer(
         LobbyTemplate(
           lobbyLayoutNotify = LobbyLayoutNotifyModelCC(),
           lobbyLayout = LobbyLayoutModelCC(),
-          panel = PanelModelCC()
+          panel = PanelModelCC(),
+          onceADayAction = OnceADayActionModelCC(todayRestartTime = 0),
         )
       )
 
