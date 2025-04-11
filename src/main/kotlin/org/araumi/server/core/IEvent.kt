@@ -46,18 +46,18 @@ fun <T : IEvent> T.schedule(node: Node): T {
 }
 
 context(AbstractSystem)
-fun <T : IEvent> T.schedule(sender: SpaceChannel, gameObject: IGameObject<*>): T {
+fun <T : IEvent> T.schedule(sender: SpaceChannel, gameObject: IGameObject): T {
   eventScheduler.process(this, sender, gameObject)
   return this
 }
 
 context(SpaceChannel)
-fun <T : IEvent> T.schedule(gameObject: IGameObject<*>): T {
+fun <T : IEvent> T.schedule(gameObject: IGameObject): T {
   eventScheduler.process(this, this@SpaceChannel, gameObject)
   return this
 }
 
-fun <T : IEvent> T.schedule(scheduler: EventScheduler, sender: SpaceChannel, gameObject: IGameObject<*>): T {
+fun <T : IEvent> T.schedule(scheduler: EventScheduler, sender: SpaceChannel, gameObject: IGameObject): T {
   scheduler.process(this, sender, gameObject)
   return this
 }

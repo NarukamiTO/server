@@ -19,31 +19,19 @@
 package org.araumi.server.core
 
 import kotlin.reflect.KClass
-import io.github.oshai.kotlinlogging.KotlinLogging
-import org.araumi.server.core.impl.TemplatedGameClass
-import org.araumi.server.extensions.kotlinClass
-import org.araumi.server.net.SpaceChannel
 
 /**
  * @see org.araumi.server.core.ArchitectureDocs
  */
-interface IGameObject<TClass : IGameClass> {
+interface IGameObject {
   val id: Long
-  val parent: TClass
-  val models: Map<KClass<out IModelConstructor>, IModelProvider<*>>
+  val parent: IGameClass
+
+  val components: MutableMap<KClass<out IComponent>, IComponent>
+  val models: MutableMap<KClass<out IModelConstructor>, IModelProvider<*>>
 }
 
-fun <T : ITemplate> IGameObject<TemplatedGameClass<T>>.adapt(sender: SpaceChannel): T {
-  val logger = KotlinLogging.logger { }
-  logger.trace { "Adapting ${this.models}" }
-
-  val templateClass = parent.template
-  val template = templateClass.constructors.first().callBy(
-    templateClass.constructors.first().parameters.associateWith { parameter ->
-      val provider = models[parameter.type.kotlinClass] ?: error("Missing model for parameter $parameter")
-      provider.provide(sender)
-    }
-  )
-
-  return template
+fun IGameObject.addComponent(component: IComponent) {
+  check(components[component::class] == null) { "Component ${component::class} already exists in $this" }
+  components[component::class] = component
 }

@@ -27,6 +27,8 @@ import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.full.primaryConstructor
 import io.github.classgraph.ClassGraph
 import io.github.oshai.kotlinlogging.KotlinLogging
+import org.araumi.server.core.IComponent
+import org.araumi.server.core.IDataUnit
 import org.araumi.server.core.IModelConstructor
 import org.araumi.server.core.Node
 import org.araumi.server.extensions.kotlinClass
@@ -34,7 +36,7 @@ import org.araumi.server.extensions.kotlinClass
 class NodeBuilder {
   private val logger = KotlinLogging.logger { }
 
-  private fun normalizeParameterType(parameter: KParameter, type: KType): KClass<out IModelConstructor> {
+  fun normalizeParameterType(parameter: KParameter, type: KType): KClass<out IDataUnit> {
     val clazz: KClass<*>
     if(parameter.type.classifier is KTypeParameter) {
       val classifier = parameter.type.classifier as KTypeParameter
@@ -55,13 +57,12 @@ class NodeBuilder {
       clazz = parameter.type.kotlinClass
     }
 
-    val root = IModelConstructor::class
-    if(!clazz.isSubclassOf(root)) {
-      throw IllegalArgumentException("Parameter $parameter is not a subclass of ${root.qualifiedName}")
+    if(!clazz.isSubclassOf(IModelConstructor::class) && !clazz.isSubclassOf(IComponent::class)) {
+      throw IllegalArgumentException("Parameter $parameter is neither IModelConstructor nor IComponent")
     }
 
     @Suppress("UNCHECKED_CAST")
-    return clazz as KClass<out IModelConstructor>
+    return clazz as KClass<out IDataUnit>
   }
 
   private fun getComponents(type: KType): List<ComponentDefinition> {
@@ -129,6 +130,41 @@ class NodeBuilder {
 
     return constructor.callBy(args) as Node
   }
+
+  fun tryBuildLazy(
+    nodeDefinition: NodeDefinition,
+    models: Map<KClass<out IModelConstructor>, () -> IModelConstructor>,
+    components: Map<KClass<out IComponent>, IComponent>
+  ): Node? {
+    val constructor = nodeDefinition.type.kotlinClass.primaryConstructor ?: return null
+    val parameters = constructor.parameters
+
+    val args = mutableMapOf<KParameter, IDataUnit>()
+    for(parameter in parameters) {
+      val type = normalizeParameterType(parameter, nodeDefinition.type)
+      val value = if(type.isSubclassOf(IModelConstructor::class)) {
+        val provider = models[type]
+        if(provider == null) {
+          logger.warn { "Model $type not found" }
+          return null
+        }
+
+        args[parameter] = provider()
+      } else if(type.isSubclassOf(IComponent::class)) {
+        val component = components[type]
+        if(component == null) {
+          logger.warn { "Component $type not found" }
+          return null
+        }
+
+        args[parameter] = component
+      } else {
+        throw IllegalArgumentException("Parameter $parameter is neither IModelConstructor nor IComponent")
+      }
+    }
+
+    return constructor.callBy(args) as Node
+  }
 }
 
 data class NodeDefinition(
@@ -138,5 +174,5 @@ data class NodeDefinition(
 
 data class ComponentDefinition(
   val parameter: KParameter,
-  val type: KClass<out IModelConstructor>,
+  val type: KClass<out IDataUnit>,
 )

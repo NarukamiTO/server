@@ -34,7 +34,7 @@ import org.araumi.server.net.SpaceChannel
 class EventScheduler : IEventScheduler {
   private val logger = KotlinLogging.logger { }
 
-  override fun process(event: IEvent, sender: SpaceChannel, gameObject: IGameObject<*>) {
+  override fun process(event: IEvent, sender: SpaceChannel, gameObject: IGameObject) {
     if(event is IClientEvent) {
       sender.sendBatched {
         event.attach(gameObject).enqueue()
@@ -46,7 +46,7 @@ class EventScheduler : IEventScheduler {
 
   // Because it looks awful
   @Suppress("FoldInitializerAndIfToElvis")
-  private fun processServerEvent(event: IEvent, sender: SpaceChannel, gameObject: IGameObject<*>) {
+  private fun processServerEvent(event: IEvent, sender: SpaceChannel, gameObject: IGameObject) {
     logger.info { "Processing server event: $event" }
 
     val systems = listOf(
@@ -89,7 +89,7 @@ class EventScheduler : IEventScheduler {
         val nodeDefinition = nodeBuilder.getNodeDefinition(nodeType)
 
         logger.trace { "Trying to build node $nodeDefinition" }
-        val node = nodeBuilder.tryBuild(nodeDefinition, gameObject.models.values.map { it.provide(sender) }.toSet())
+        val node = nodeBuilder.tryBuild(nodeDefinition, gameObject.models.values.map { it.provide(gameObject, sender) }.toSet())
         if(node == null) {
           if(mandatory) {
             throw IllegalArgumentException("Failed to build node $nodeDefinition")
@@ -117,7 +117,7 @@ class EventScheduler : IEventScheduler {
           for(gameObject in sender.space.objects.all) {
             logger.trace { "Trying to build @JoinAll node $nodeDefinition for $gameObject" }
 
-            node = nodeBuilder.tryBuild(nodeDefinition, gameObject.models.values.map { it.provide(sender) }.toSet())
+            node = nodeBuilder.tryBuild(nodeDefinition, gameObject.models.values.map { it.provide(gameObject, sender) }.toSet())
             if(node != null) {
               node.init(sender, gameObject)
               logger.trace { "Built @JoinAll node $node" }

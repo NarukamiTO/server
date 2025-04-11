@@ -19,13 +19,12 @@
 package org.araumi.server.lobby
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlinx.datetime.Clock
 import org.araumi.server.core.*
 import org.araumi.server.core.impl.TemplatedGameClass
 import org.araumi.server.core.impl.TransientGameObject
 import org.araumi.server.dispatcher.DispatcherLoadObjectsManagedEvent
 import org.araumi.server.dispatcher.DispatcherNode
-import org.araumi.server.lobby.communication.*
+import org.araumi.server.lobby.communication.ChatNode
 import org.araumi.server.lobby.user.*
 import org.araumi.server.net.NettySocketClient
 import org.araumi.server.net.sessionNotNull
@@ -34,45 +33,54 @@ data class LobbyNode(
   val lobbyLayoutNotify: LobbyLayoutNotifyModelCC
 ) : Node()
 
+data class UserNode(
+  val username: UsernameComponent,
+  val score: ScoreComponent,
+  val crystals: CrystalsComponent,
+) : Node()
+
+data class UsernameComponent(val username: String) : IComponent
+data class ScoreComponent(val score: Int) : IComponent
+data class CrystalsComponent(val crystals: Int) : IComponent
+
 class LobbySystem : AbstractSystem() {
   private val logger = KotlinLogging.logger { }
 
   @OnEventFire
-  suspend fun channelAdded(event: ChannelAddedEvent, dispatcher: DispatcherNode, @JoinAll lobby: LobbyNode) {
+  suspend fun channelAdded(
+    event: ChannelAddedEvent,
+    dispatcher: DispatcherNode,
+    @JoinAll lobby: LobbyNode,
+    @JoinAll chat: ChatNode,
+    @JoinAll rankLoader: SingleNode<RankLoaderModelCC>,
+  ) {
     logger.info { "Channel added: $event" }
-
-    val lobbyObject = lobby.gameObject as IGameObject<TemplatedGameClass<LobbyTemplate>>
-    logger.info { lobbyObject.adapt(lobby.sender) }
+    logger.info { lobby.gameObject.adapt(lobby.sender) }
 
     val userClass = TemplatedGameClass.fromTemplate(UserTemplate::class)
     val userObject = TransientGameObject.instantiate(
-      30,
+      TransientGameObject.freeId(),
       userClass,
       UserTemplate(
-        rankLoader = RankLoaderModelCC(
-          ranks = listOf(
-            RankInfo(index = 1, name = "Долбаеб 1"),
-            RankInfo(index = 1, name = "Долбаеб 2"),
-          )
-        ),
         userProperties = ClosureModelProvider {
+          val user = it.adapt<UserNode>(this)
           val ip = (lobby.sender.sessionNotNull.controlChannel.socket as NettySocketClient).channel.remoteAddress()
           UserPropertiesModelCC(
             canUseGroup = false,
-            crystals = 123,
+            crystals = user.crystals.crystals,
             crystalsRating = 0,
             daysFromLastVisit = 0,
             daysFromRegistration = 0,
             gearScore = 0,
             goldsTakenRating = 0,
             hasSpectatorPermissions = false,
-            id = 30,
+            id = it.id,
             rank = 1,
-            rankBounds = RankBounds(lowBound = 10, topBound = 20),
+            rankBounds = RankBounds(lowBound = 123456, topBound = 2456789),
             registrationTimestamp = 10,
-            score = 10,
+            score = user.score.score,
             scoreRating = 10,
-            uid = "AraumiTO:AGPLv3+ ($ip)",
+            uid = "${user.username.username} ($ip)",
             userProfileUrl = "",
             userRating = 0
           )
@@ -82,56 +90,25 @@ class LobbySystem : AbstractSystem() {
         rankNotifier = RankNotifierModelCC(rank = 1, userId = 30),
       )
     )
+    userObject.addComponent(UsernameComponent("Sosal xuy"))
+    userObject.addComponent(ScoreComponent(1234567))
+    userObject.addComponent(CrystalsComponent(666666))
+    lobby.sender.space.objects.add(userObject)
 
-    val communicationClass = TemplatedGameClass.fromTemplate(CommunicationTemplate::class)
-    val communicationObject = TransientGameObject.instantiate(
-      5,
-      communicationClass,
-      CommunicationTemplate(
-        communicationPanel = CommunicationPanelModelCC(),
-        newsShowing = NewsShowingModelCC(
-          newsItems = listOf(
-            NewsItemData(
-              dateInSeconds = Clock.System.now().epochSeconds.toInt(),
-              description = """
-                Все всё равно знают, что Пэдди Мориарти, который жил в Австралии в деревне из 11 человек,
-                пропал вместе со своей собакой. Все знают, что Пэдди часто ссорился с бабкой. Она, кстати,
-                пекла пирожки из крокодила и могла сделать из Пэдди Мориарти пирог. Также большинство догадываются,
-                что Пэдди умер из-за пива, ведь он пил его В ПРОЗРАЧНОМ СТАКАНЕ СО ШРЕКОМ!!!
-              """.trimIndent(),
-              endDate = 0,
-              header = "Не нужно это скрывать!",
-              id = 1,
-              imageUrl = "https://files.catbox.moe/99m151.png"
-            )
-          )
-        ),
-        chat = ChatModelCC(
-          admin = true,
-          antifloodEnabled = false,
-          bufferSize = 100,
-          channels = listOf(
-            "General",
-          ),
-          chatEnabled = true,
-          chatModeratorLevel = ChatModeratorLevel.ADMINISTRATOR,
-          linksWhiteList = listOf("github.com"),
-          minChar = 0,
-          minWord = 0,
-          privateMessagesEnabled = false,
-          selfName = "",
-          showLinks = true,
-          typingSpeedAntifloodEnabled = false
-        )
+    // The order of loading objects is important, user object must be loaded
+    // before lobby object, otherwise user properties will not load on the client.
+    // Rank loader object is a dependency of user object, so it must be loaded first.
+    DispatcherLoadObjectsManagedEvent(
+      listOf(
+        rankLoader.gameObject,
+        userObject,
+        lobby.gameObject,
+        chat.gameObject
       )
-    )
-
-    // The order of loading objects is important, user object MUST be loaded before lobby object,
-    // otherwise user properties will not load on the client.
-    DispatcherLoadObjectsManagedEvent(listOf(userObject, lobbyObject, communicationObject)).schedule(dispatcher).await()
+    ).schedule(dispatcher).await()
 
     // TODO: NodeAddedEvent is not yet automatically scheduled
-    NodeAddedEvent().schedule(lobby.sender, communicationObject)
+    NodeAddedEvent().schedule(chat)
 
     // Once entrance object is unloaded (or entrance space channel is closed),
     // loading screen automatically appears on the client. This event hides it.

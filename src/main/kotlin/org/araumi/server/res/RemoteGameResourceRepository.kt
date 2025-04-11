@@ -92,7 +92,7 @@ object ResourceTypeConverter {
 
 private fun ResourceType.intoMarker(): Res {
   return when(this) {
-    ResourceType.SwfLibrary        -> UnknownRes
+    ResourceType.SwfLibrary        -> SwfRes
     ResourceType.Sound             -> UnknownRes
     ResourceType.Map               -> MapRes
     ResourceType.Proplib           -> UnknownRes
@@ -108,6 +108,7 @@ private fun ResourceType.intoMarker(): Res {
 
 val Res.type: ResourceType
   get() = when(this) {
+    is SwfRes            -> ResourceType.SwfLibrary
     is MapRes            -> ResourceType.Map
     is ImageRes          -> ResourceType.Image
     is LocalizedImageRes -> ResourceType.LocalizedImage
@@ -152,6 +153,7 @@ val Laziness.isLazy: Boolean
 
 sealed interface Res
 data object UnknownRes : Res
+data object SwfRes : Res
 data object MapRes : Res
 data object ImageRes : Res
 data object LocalizedImageRes : Res

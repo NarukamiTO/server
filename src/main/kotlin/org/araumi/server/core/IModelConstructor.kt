@@ -31,7 +31,7 @@ import org.araumi.server.res.Resource
  * @see org.araumi.server.core.ArchitectureDocs
  */
 @ProtocolStruct
-interface IModelConstructor {
+interface IModelConstructor : IDataUnit {
   /**
    * Returns a list of resources to load with this model.
    */

@@ -18,34 +18,45 @@
 
 package org.araumi.server.core.impl
 
+import java.util.concurrent.atomic.AtomicLong
 import kotlin.reflect.KClass
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.araumi.server.core.*
 
-class TransientGameObject<TClass : IGameClass>(
+class TransientGameObject(
   override val id: Long,
-  override val parent: TClass
-) : IGameObject<TClass> {
+  override val parent: IGameClass
+) : IGameObject {
   companion object {
     private val logger = KotlinLogging.logger { }
 
-    fun <T : ITemplate> instantiate(id: Long, parent: TemplatedGameClass<T>, template: T): TransientGameObject<TemplatedGameClass<T>> {
+    private val lastId = AtomicLong(-21122019)
+
+    /**
+     * Generates a new transient ID for a game object.
+     *
+     * Transient IDs are negative, as opposed to persistent IDs, which are positive.
+     */
+    fun freeId(): Long {
+      return lastId.getAndDecrement()
+    }
+
+    fun <T : ITemplate> instantiate(id: Long, parent: TemplatedGameClass<T>, template: T): IGameObject {
       val gameObject = TransientGameObject(id, parent)
 
-      parent.models.forEach { modelId ->
+      parent.models.forEach { clazz ->
         try {
-          val (property, clazz) = template::class.models.entries.single { it.value.protocolId == modelId }
+          val (property, _) = template::class.models.entries.single { it.value == clazz }
           val provider = when(val value = property.call(template)) {
             is IModelProvider<*> -> value
             is IModelConstructor -> StaticModelProvider(value)
-            else                 -> throw IllegalArgumentException("Model $modelId is not a valid model or model provider")
+            else                 -> throw IllegalArgumentException("$value (for $clazz) is not a valid model or model provider")
           }
 
           gameObject.models[clazz] = provider
-
           logger.trace { "Instantiated $provider from $template" }
         } catch(exception: Exception) {
-          logger.error(exception) { "Failed to instantiate model $modelId from template $template" }
+          logger.error(exception) { "Failed to instantiate model $clazz from template $template" }
         }
       }
 
@@ -53,6 +64,7 @@ class TransientGameObject<TClass : IGameClass>(
     }
   }
 
+  override val components: MutableMap<KClass<out IComponent>, IComponent> = mutableMapOf()
   override val models: MutableMap<KClass<out IModelConstructor>, IModelProvider<*>> = mutableMapOf()
 
   override fun toString(): String {

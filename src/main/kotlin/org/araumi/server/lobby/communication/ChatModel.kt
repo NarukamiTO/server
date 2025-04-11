@@ -20,6 +20,7 @@ package org.araumi.server.lobby.communication
 
 import org.araumi.server.core.IClientEvent
 import org.araumi.server.core.IModelConstructor
+import org.araumi.server.core.IServerEvent
 import org.araumi.server.net.command.*
 
 @ProtocolModel(6071565290933648049)
@@ -43,6 +44,19 @@ data class ChatModelCC(
 data class ChatModelShowMessagesEvent(
   val messages: List<ChatMessage>,
 ) : IClientEvent
+
+@ProtocolEvent(3122753540375943279)
+data class ChatModelSendMessageEvent(
+  val targetUserName: String,
+  val addressMode: ChatAddressMode,
+  val channel: String,
+  val text: String,
+) : IServerEvent
+
+@ProtocolEvent(6683616035809206555)
+data class ChatModelChangeChannelEvent(
+  val channel: String,
+) : IServerEvent
 
 @ProtocolStruct
 data class ChatMessage(

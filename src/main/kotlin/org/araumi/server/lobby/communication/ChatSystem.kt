@@ -18,11 +18,18 @@
 
 package org.araumi.server.lobby.communication
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.araumi.server.core.*
 
+data class ChatNode(
+  val chat: ChatModelCC,
+) : Node()
+
 class ChatSystem : AbstractSystem() {
+  private val logger = KotlinLogging.logger { }
+
   @OnEventFire
-  fun onChatAdded(event: NodeAddedEvent, chat: SingleNode<ChatModelCC>) {
+  fun chatAdded(event: NodeAddedEvent, chat: ChatNode) {
     ChatModelShowMessagesEvent(
       messages = listOf(
         ChatMessage(
@@ -38,5 +45,27 @@ class ChatSystem : AbstractSystem() {
         )
       )
     ).schedule(chat)
+  }
+
+  @OnEventFire
+  fun sendMessage(event: ChatModelSendMessageEvent, chat: ChatNode) {
+    val message = ChatMessage(
+      addressMode = event.addressMode,
+      battleLinks = emptyList(),
+      channel = event.channel,
+      links = null,
+      messageType = MessageType.USER,
+      sourceUser = null,
+      targetUser = null,
+      text = event.text,
+      timePassedInSec = 0
+    )
+
+    ChatModelShowMessagesEvent(messages = listOf(message)).schedule(chat)
+  }
+
+  @OnEventFire
+  fun changeChannel(event: ChatModelChangeChannelEvent, chat: ChatNode) {
+    logger.debug { "Changed channel: $event" }
   }
 }

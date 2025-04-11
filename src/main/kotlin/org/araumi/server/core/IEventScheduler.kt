@@ -21,5 +21,5 @@ package org.araumi.server.core
 import org.araumi.server.net.SpaceChannel
 
 interface IEventScheduler {
-  fun process(event: IEvent, sender: SpaceChannel, gameObject: IGameObject<*>)
+  fun process(event: IEvent, sender: SpaceChannel, gameObject: IGameObject)
 }

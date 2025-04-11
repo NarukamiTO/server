@@ -31,8 +31,10 @@ import io.ktor.server.plugins.defaultheaders.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.datetime.Clock
+import org.araumi.server.res.Eager
 import org.araumi.server.res.LocalizationRes
 import org.araumi.server.res.RemoteGameResourceRepository
+import org.araumi.server.res.SwfRes
 
 class ResourceServer(
   private val objectMapper: ObjectMapper,
@@ -124,8 +126,8 @@ class ResourceServer(
               }
             }
 
-            // val resource = gameResourceManager.get<SwfLibraryResource>(name)
-            // call.respondFile(root.resolve("${resource.id.encode()}/library.swf").toFile())
+            val resource = gameResourceManager.get(name, mapOf(), SwfRes, Eager)
+            call.respondFile(root.resolve("${resource.id.encode()}/library.swf").toFile())
           }
         }
       }

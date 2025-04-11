@@ -60,7 +60,7 @@ data class DispatcherLoadDependenciesManagedEvent(
 }
 
 data class DispatcherLoadObjectsManagedEvent(
-  val objects: List<IGameObject<*>>,
+  val objects: List<IGameObject>,
 ) : IEvent {
   private val logger = KotlinLogging.logger { }
 

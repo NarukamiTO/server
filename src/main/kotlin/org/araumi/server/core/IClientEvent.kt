@@ -26,7 +26,7 @@ import org.araumi.server.net.command.SpaceCommandHeader
  */
 interface IClientEvent : IEvent
 
-fun IClientEvent.attach(gameObject: IGameObject<*>) = SpaceCommand(
+fun IClientEvent.attach(gameObject: IGameObject) = SpaceCommand(
   header = SpaceCommandHeader(objectId = gameObject.id, methodId = this::class.protocolId),
   body = this
 )

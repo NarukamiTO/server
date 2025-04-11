@@ -18,15 +18,45 @@
 
 package org.araumi.server.lobby.user
 
-import org.araumi.server.core.IModelProvider
-import org.araumi.server.core.ITemplate
+import kotlin.reflect.KClass
+import kotlin.reflect.full.createType
+import org.araumi.server.core.*
+import org.araumi.server.core.impl.NodeBuilder
+import org.araumi.server.net.SpaceChannel
 import org.araumi.server.net.command.ProtocolClass
+
+@ProtocolClass(6)
+data class RankLoaderTemplate(
+  val rankLoader: RankLoaderModelCC,
+) : ITemplate
 
 @ProtocolClass(4)
 data class UserTemplate(
-  val rankLoader: RankLoaderModelCC,
   val userProperties: IModelProvider<UserPropertiesModelCC>,
   val userNotifier: UserNotifierModelCC,
   val uidNotifier: UidNotifierModelCC,
   val rankNotifier: RankNotifierModelCC,
 ) : ITemplate
+
+fun <T : Node> IGameObject.adapt(sender: SpaceChannel, clazz: KClass<T>): T {
+  val builder = NodeBuilder()
+  val definition = builder.getNodeDefinition(clazz.createType())
+  val node = builder.tryBuildLazy(
+    definition,
+    models.mapValues { (_, model) ->
+      { model.provide(this, sender) }
+    },
+    components
+  ) ?: throw IllegalStateException("Failed to build node $clazz")
+
+  return node as T
+}
+
+inline fun <reified T : Node> IGameObject.adapt(sender: SpaceChannel): T {
+  return adapt(sender, T::class)
+}
+
+inline fun <reified T : IModelConstructor> IGameObject.adaptSingle(sender: SpaceChannel): T {
+  val provider = requireNotNull(models[T::class]) { "No ${T::class} in $this" }
+  return provider.provide(this, sender) as T
+}

@@ -18,7 +18,9 @@
 
 package org.araumi.server.core
 
+import kotlin.reflect.KClass
+
 interface IGameClass {
   val id: Long
-  val models: List<Long>
+  val models: List<KClass<out IModelConstructor>>
 }

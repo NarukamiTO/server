@@ -20,6 +20,9 @@ package org.araumi.server.dispatcher
 
 import kotlin.reflect.full.createType
 import org.araumi.server.core.IGameClass
+import org.araumi.server.core.protocolId
+import org.araumi.server.extensions.hasInheritedAnnotation
+import org.araumi.server.net.command.ProtocolTransient
 import org.araumi.server.protocol.Codec
 import org.araumi.server.protocol.IProtocol
 import org.araumi.server.protocol.ProtocolBuffer
@@ -82,9 +85,11 @@ class ObjectsDependenciesCodec : Codec<ObjectsDependencies>() {
     for(gameClass in value.classes) {
       longCodec.encode(buffer, gameClass.id)
 
-      intCodec.encode(buffer, gameClass.models.size)
-      for(model in gameClass.models) {
-        longCodec.encode(buffer, model)
+      val models = gameClass.models.filterNot { it.hasInheritedAnnotation<ProtocolTransient>() }
+
+      intCodec.encode(buffer, models.size)
+      for(model in models) {
+        longCodec.encode(buffer, model.protocolId)
       }
     }
 

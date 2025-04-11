@@ -27,7 +27,7 @@ package org.araumi.server.core
  */
 interface ISpace {
   val id: Long
-  val objects: IRegistry<IGameObject<*>>
+  val objects: IRegistry<IGameObject>
 
-  val rootObject: IGameObject<*>
+  val rootObject: IGameObject
 }

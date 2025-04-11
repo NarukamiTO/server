@@ -23,10 +23,10 @@ import org.araumi.server.net.SpaceChannel
 /**
  * Provides the same model constructor for any space channel.
  */
-class StaticModelProvider<T : IModelConstructor>(
-  private val model: T,
-) : IModelProvider<T> {
-  override fun provide(channel: SpaceChannel): T {
+class StaticModelProvider<CC : IModelConstructor>(
+  val model: CC,
+) : IModelProvider<CC> {
+  override fun provide(gameObject: IGameObject, channel: SpaceChannel): CC {
     return model
   }
 }

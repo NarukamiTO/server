@@ -19,12 +19,17 @@
 package org.araumi.server.core.impl
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.datetime.Clock
 import org.araumi.server.core.IEvent
 import org.araumi.server.core.IRegistry
 import org.araumi.server.core.ISpace
 import org.araumi.server.core.models
 import org.araumi.server.entrance.*
 import org.araumi.server.lobby.*
+import org.araumi.server.lobby.communication.*
+import org.araumi.server.lobby.user.RankInfo
+import org.araumi.server.lobby.user.RankLoaderModelCC
+import org.araumi.server.lobby.user.RankLoaderTemplate
 import org.araumi.server.res.Eager
 import org.araumi.server.res.ImageRes
 import org.araumi.server.res.RemoteGameResourceRepository
@@ -77,6 +82,94 @@ class SpaceInitializer(
       )
 
       objects.add(lobbyObject)
+
+      val rankLoaderObject = TransientGameObject.instantiate(
+        id = 8,
+        parent = TemplatedGameClass.fromTemplate(RankLoaderTemplate::class),
+        RankLoaderTemplate(
+          rankLoader = RankLoaderModelCC(
+            ranks = listOf(
+              RankInfo(index = 1, name = "Новобранец"),
+              RankInfo(index = 2, name = "Рядовой"),
+              RankInfo(index = 3, name = "Ефрейтор"),
+              RankInfo(index = 4, name = "Капрал"),
+              RankInfo(index = 5, name = "Мастер-капрал"),
+              RankInfo(index = 6, name = "Сержант"),
+              RankInfo(index = 7, name = "Штаб-сержант"),
+              RankInfo(index = 8, name = "Мастер-сержант"),
+              RankInfo(index = 9, name = "Первый сержант"),
+              RankInfo(index = 10, name = "Сержант-майор"),
+              RankInfo(index = 11, name = "Уорэнт-офицер 1"),
+              RankInfo(index = 12, name = "Уорэнт-офицер 2"),
+              RankInfo(index = 13, name = "Уорэнт-офицер 3"),
+              RankInfo(index = 14, name = "Уорэнт-офицер 4"),
+              RankInfo(index = 15, name = "Уорэнт-офицер 5"),
+              RankInfo(index = 16, name = "Младший лейтенант"),
+              RankInfo(index = 17, name = "Лейтенант"),
+              RankInfo(index = 18, name = "Старший лейтенант"),
+              RankInfo(index = 19, name = "Капитан"),
+              RankInfo(index = 20, name = "Майор"),
+              RankInfo(index = 21, name = "Подполковник"),
+              RankInfo(index = 22, name = "Полковник"),
+              RankInfo(index = 23, name = "Бригадир"),
+              RankInfo(index = 24, name = "Генерал-майор"),
+              RankInfo(index = 25, name = "Генерал-лейтенант"),
+              RankInfo(index = 26, name = "Генерал"),
+              RankInfo(index = 27, name = "Маршал"),
+              RankInfo(index = 28, name = "Фельдмаршал"),
+              RankInfo(index = 29, name = "Командор"),
+              RankInfo(index = 30, name = "Генералиссимус"),
+              RankInfo(index = 31, name = "Легенда")
+            )
+          )
+        )
+      )
+      objects.add(rankLoaderObject)
+
+      val communicationClass = TemplatedGameClass.fromTemplate(CommunicationTemplate::class)
+      val communicationObject = TransientGameObject.instantiate(
+        5,
+        communicationClass,
+        CommunicationTemplate(
+          communicationPanel = CommunicationPanelModelCC(),
+          newsShowing = NewsShowingModelCC(
+            newsItems = listOf(
+              NewsItemData(
+                dateInSeconds = Clock.System.now().epochSeconds.toInt(),
+                description = """
+                Все всё равно знают, что Пэдди Мориарти, который жил в Австралии в деревне из 11 человек,
+                пропал вместе со своей собакой. Все знают, что Пэдди часто ссорился с бабкой. Она, кстати,
+                пекла пирожки из крокодила и могла сделать из Пэдди Мориарти пирог. Также большинство догадываются,
+                что Пэдди умер из-за пива, ведь он пил его В ПРОЗРАЧНОМ СТАКАНЕ СО ШРЕКОМ!!!
+              """.trimIndent(),
+                endDate = 0,
+                header = "Не нужно это скрывать!",
+                id = 1,
+                imageUrl = "https://files.catbox.moe/99m151.png"
+              )
+            )
+          ),
+          chat = ChatModelCC(
+            admin = true,
+            antifloodEnabled = false,
+            bufferSize = 100,
+            channels = listOf(
+              "General",
+              "Logs",
+            ),
+            chatEnabled = true,
+            chatModeratorLevel = ChatModeratorLevel.ADMINISTRATOR,
+            linksWhiteList = listOf("github.com"),
+            minChar = 0,
+            minWord = 0,
+            privateMessagesEnabled = false,
+            selfName = "",
+            showLinks = true,
+            typingSpeedAntifloodEnabled = false
+          ),
+        )
+      )
+      objects.add(communicationObject)
     })
   }
 }

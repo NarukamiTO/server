@@ -23,10 +23,10 @@ import org.araumi.server.net.SpaceChannel
 open class Node {
   lateinit var sender: SpaceChannel
     private set
-  lateinit var gameObject: IGameObject<*>
+  lateinit var gameObject: IGameObject
     private set
 
-  fun init(sender: SpaceChannel, gameObject: IGameObject<*>) {
+  fun init(sender: SpaceChannel, gameObject: IGameObject) {
     this.sender = sender
     this.gameObject = gameObject
   }

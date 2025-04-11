@@ -25,9 +25,9 @@ import org.araumi.server.net.SpaceChannel
  *
  * @see IModelConstructor
  */
-interface IModelProvider<T : IModelConstructor> {
+interface IModelProvider<CC : IModelConstructor> {
   /**
    * Provides a model constructor for the given space channel.
    */
-  fun provide(channel: SpaceChannel): T
+  fun provide(gameObject: IGameObject, channel: SpaceChannel): CC
 }

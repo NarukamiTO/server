@@ -20,14 +20,11 @@ package org.araumi.server.core.impl
 
 import kotlin.reflect.KClass
 import io.github.oshai.kotlinlogging.KotlinLogging
-import org.araumi.server.core.IGameClass
-import org.araumi.server.core.ITemplate
-import org.araumi.server.core.models
-import org.araumi.server.core.protocolId
+import org.araumi.server.core.*
 
 data class TemplatedGameClass<T : ITemplate>(
   override val id: Long,
-  override val models: List<Long>,
+  override val models: List<KClass<out IModelConstructor>>,
   val template: KClass<T>,
 ) : IGameClass {
   private val logger = KotlinLogging.logger { }
@@ -36,7 +33,7 @@ data class TemplatedGameClass<T : ITemplate>(
     fun <T : ITemplate> fromTemplate(template: KClass<T>): TemplatedGameClass<T> {
       return TemplatedGameClass(
         id = template.protocolId,
-        models = template.models.values.map { it.protocolId },
+        models = template.models.values.toList(),
         template = template
       )
     }

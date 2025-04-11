@@ -26,6 +26,7 @@ import org.araumi.server.core.*
 import org.araumi.server.core.impl.TemplatedGameClass
 import org.araumi.server.core.impl.TransientGameObject
 import org.araumi.server.extensions.kotlinClass
+import org.araumi.server.lobby.user.adaptSingle
 import org.araumi.server.net.command.ProtocolClass
 import org.araumi.server.net.command.ProtocolModel
 import org.araumi.server.net.sessionNotNull
@@ -105,9 +106,9 @@ class DispatcherSystem : AbstractSystem() {
   suspend fun dependenciesLoaded(event: DispatcherModelDependenciesLoadedEvent, any: Node) {
     logger.info { "Dependencies loaded: ${event.callbackId}" }
 
-    val deferredDependenciesObject = any.sender.space.objects.get(event.callbackId.toLong()) as IGameObject<TemplatedGameClass<DeferredDependenciesTemplate>>?
+    val deferredDependenciesObject = any.sender.space.objects.get(event.callbackId.toLong())
                                      ?: error("Deferred dependencies object ${event.callbackId} not found")
-    val (deferredDependencies) = deferredDependenciesObject.adapt(any.sender)
+    val deferredDependencies = deferredDependenciesObject.adaptSingle<DeferredDependenciesCC>(any.sender)
     deferredDependencies.deferred.complete(Unit)
     any.sender.space.objects.remove(deferredDependenciesObject)
     logger.info { "Deferred dependencies $deferredDependencies resolved" }
@@ -126,7 +127,7 @@ class DispatcherSystem : AbstractSystem() {
       classes = event.objects.map { it.parent },
       resources = event.objects.flatMap { gameObject ->
         gameObject.models.values.flatMap { model ->
-          model.provide(any.sender).getResources()
+          model.provide(gameObject, any.sender).getResources()
         }
       }
     ).schedule(any).await()

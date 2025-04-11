@@ -29,10 +29,10 @@ import org.araumi.server.net.SpaceChannel
  *
  * @see org.araumi.server.core.ArchitectureDocs
  */
-class ClosureModelProvider<T : IModelConstructor>(
-  private val closure: SpaceChannel.() -> T,
-) : IModelProvider<T> {
-  override fun provide(channel: SpaceChannel): T {
-    return closure(channel)
+class ClosureModelProvider<CC : IModelConstructor>(
+  private val closure: SpaceChannel.(IGameObject) -> CC,
+) : IModelProvider<CC> {
+  override fun provide(gameObject: IGameObject, channel: SpaceChannel): CC {
+    return closure(channel, gameObject)
   }
 }

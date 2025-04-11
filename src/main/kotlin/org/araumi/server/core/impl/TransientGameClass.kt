@@ -18,9 +18,11 @@
 
 package org.araumi.server.core.impl
 
+import kotlin.reflect.KClass
 import org.araumi.server.core.IGameClass
+import org.araumi.server.core.IModelConstructor
 
 data class TransientGameClass(
   override val id: Long,
-  override val models: List<Long>,
+  override val models: List<KClass<out IModelConstructor>>,
 ) : IGameClass
