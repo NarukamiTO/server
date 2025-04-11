@@ -16,14 +16,22 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
+package jp.assasans.narukami.server.core
+
+import kotlin.reflect.KClass
+
+/**
+ * @see jp.assasans.narukami.server.core.ArchitectureDocs
+ */
+interface IGameObject {
+  val id: Long
+  val parent: IGameClass
+
+  val components: MutableMap<KClass<out IComponent>, IComponent>
+  val models: MutableMap<KClass<out IModelConstructor>, IModelProvider<*>>
 }
 
-repositories {
-  mavenCentral()
-}
-
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
+fun IGameObject.addComponent(component: IComponent) {
+  check(components[component::class] == null) { "Component ${component::class} already exists in $this" }
+  components[component::class] = component
 }

@@ -16,14 +16,19 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.core.impl
 
-repositories {
-  mavenCentral()
-}
+import kotlinx.coroutines.CompletableDeferred
+import jp.assasans.narukami.server.core.IPending
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
+class DeferredPending<T>(override val id: Long) : IPending<T> {
+  private val deferred = CompletableDeferred<T>()
+
+  override suspend fun await(): T {
+    return deferred.await()
+  }
+
+  fun complete(value: T) {
+    deferred.complete(value)
+  }
 }

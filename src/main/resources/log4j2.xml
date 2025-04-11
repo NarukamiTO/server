@@ -23,7 +23,7 @@
       <AppenderRef ref="MAIN" />
     </Root>
 
-    <Logger name="org.araumi" level="DEBUG">
+    <Logger name="jp.assasans.narukami" level="DEBUG">
       <AppenderRef ref="DEBUG_LOG" />
     </Logger>
 

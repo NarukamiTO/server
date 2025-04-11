@@ -16,14 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.protocol
 
-repositories {
-  mavenCentral()
-}
+import io.netty.buffer.ByteBuf
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
+class ProtocolBuffer(val data: ByteBuf, val optionalMap: OptionalMap) {
 }

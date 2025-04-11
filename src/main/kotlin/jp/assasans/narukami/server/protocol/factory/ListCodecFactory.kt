@@ -16,14 +16,21 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.protocol.factory
 
-repositories {
-  mavenCentral()
-}
+import kotlin.reflect.KType
+import kotlin.reflect.full.isSubclassOf
+import jp.assasans.narukami.server.extensions.kotlinClass
+import jp.assasans.narukami.server.protocol.ICodec
+import jp.assasans.narukami.server.protocol.IProtocol
+import jp.assasans.narukami.server.protocol.container.ListCodec
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
+class ListCodecFactory : ICodecFactory<List<*>> {
+  override fun create(protocol: IProtocol, type: KType): ICodec<List<*>>? {
+    if(!type.kotlinClass.isSubclassOf(List::class)) return null
+    assert(!type.isMarkedNullable)
+
+    val elementInfo = requireNotNull(type.arguments.single().type) { "Invalid List<T> generic argument" }
+    return ListCodec(protocol.getCodec(elementInfo)) as ICodec<List<*>>
+  }
 }

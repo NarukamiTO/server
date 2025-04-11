@@ -16,14 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.core
 
-repositories {
-  mavenCentral()
-}
+import jp.assasans.narukami.server.net.SpaceChannel
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
-}
+/**
+ * Synthetic server event that is sent when a space channel opens.
+ */
+data class ChannelAddedEvent(
+  val channel: SpaceChannel
+) : IEvent

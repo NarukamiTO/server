@@ -16,14 +16,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.entrance
 
-repositories {
-  mavenCentral()
-}
+import jp.assasans.narukami.server.net.command.IProtocolEnum
+import jp.assasans.narukami.server.net.command.ProtocolEnum
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
+@ProtocolEnum
+enum class CaptchaLocation(override val value: Int) : IProtocolEnum<Int> {
+  LoginForm(0),
+  RegisterForm(1),
+  ClientStartup(2),
+  RestorePasswordForm(3),
+  EmailChangeHash(4),
+  AccountSettingsHash(5),
 }

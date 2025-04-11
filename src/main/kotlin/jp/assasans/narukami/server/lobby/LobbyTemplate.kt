@@ -16,14 +16,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.lobby
 
-repositories {
-  mavenCentral()
-}
+import jp.assasans.narukami.server.core.ITemplate
+import jp.assasans.narukami.server.net.command.ProtocolClass
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
-}
+@ProtocolClass(3)
+data class LobbyTemplate(
+  val lobbyLayoutNotify: LobbyLayoutNotifyModelCC,
+  val lobbyLayout: LobbyLayoutModelCC,
+  val panel: PanelModelCC,
+  val onceADayAction: OnceADayActionModelCC,
+) : ITemplate

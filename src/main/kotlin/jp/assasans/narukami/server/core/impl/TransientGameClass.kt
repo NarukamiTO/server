@@ -16,14 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.core.impl
 
-repositories {
-  mavenCentral()
-}
+import kotlin.reflect.KClass
+import jp.assasans.narukami.server.core.IGameClass
+import jp.assasans.narukami.server.core.IModelConstructor
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
-}
+data class TransientGameClass(
+  override val id: Long,
+  override val models: List<KClass<out IModelConstructor>>,
+) : IGameClass

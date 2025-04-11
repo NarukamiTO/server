@@ -16,14 +16,22 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.protocol.factory
 
-repositories {
-  mavenCentral()
-}
+import kotlin.reflect.KType
+import kotlin.reflect.full.hasAnnotation
+import jp.assasans.narukami.server.extensions.kotlinClass
+import jp.assasans.narukami.server.net.command.IProtocolEnum
+import jp.assasans.narukami.server.net.command.ProtocolEnum
+import jp.assasans.narukami.server.protocol.ICodec
+import jp.assasans.narukami.server.protocol.IProtocol
+import jp.assasans.narukami.server.protocol.container.AnnotatedEnumCodec
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
+class AnnotatedEnumCodecFactory : ICodecFactory<IProtocolEnum<Any>> {
+  override fun create(protocol: IProtocol, type: KType): ICodec<IProtocolEnum<Any>>? {
+    if(!type.kotlinClass.hasAnnotation<ProtocolEnum>()) return null
+    assert(!type.isMarkedNullable)
+
+    return AnnotatedEnumCodec(type)
+  }
 }

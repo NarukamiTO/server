@@ -16,14 +16,22 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.protocol.factory
 
-repositories {
-  mavenCentral()
-}
+import kotlin.reflect.KType
+import kotlin.reflect.full.isSubclassOf
+import jp.assasans.narukami.server.extensions.kotlinClass
+import jp.assasans.narukami.server.protocol.ICodec
+import jp.assasans.narukami.server.protocol.IProtocol
+import jp.assasans.narukami.server.protocol.primitive.ResourceCodec
+import jp.assasans.narukami.server.res.Resource
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
+class ResourceCodecFactory : ICodecFactory<Resource<*, *>> {
+  override fun create(protocol: IProtocol, type: KType): ICodec<Resource<*, *>>? {
+    if(!type.kotlinClass.isSubclassOf(Resource::class)) return null
+    assert(!type.isMarkedNullable)
+
+    val elementInfo = requireNotNull(type.arguments.first().type) { "Invalid Resource<T, _> generic argument" }
+    return ResourceCodec(elementInfo)
+  }
 }

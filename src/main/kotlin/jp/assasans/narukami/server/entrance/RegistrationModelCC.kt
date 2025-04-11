@@ -16,14 +16,21 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.entrance
 
-repositories {
-  mavenCentral()
-}
+import jp.assasans.narukami.server.core.IModelConstructor
+import jp.assasans.narukami.server.net.command.ProtocolModel
+import jp.assasans.narukami.server.res.ImageRes
+import jp.assasans.narukami.server.res.Resource
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
+@ProtocolModel(2474458842977623992)
+data class RegistrationModelCC(
+  val bgResource: Resource<ImageRes, *>,
+  val enableRequiredEmail: Boolean,
+  val maxPasswordLength: Int,
+  val minPasswordLength: Int,
+) : IModelConstructor {
+  override fun getResources(): List<Resource<*, *>> {
+    return listOf(bgResource)
+  }
 }

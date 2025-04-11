@@ -16,14 +16,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.dispatcher
 
-repositories {
-  mavenCentral()
-}
+import jp.assasans.narukami.server.core.IEvent
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
-}
+/**
+ * Loads contained in the event resources on the client before scheduling the actual event.
+ *
+ * Used when client event contains resources that need to be loaded beforehand,
+ * e.g. in [jp.assasans.narukami.server.entrance.EntranceAlertModelShowAlertEvent].
+ */
+data class PreloadResourcesWrappedEvent<T : IEvent>(
+  val event: T
+) : IEvent

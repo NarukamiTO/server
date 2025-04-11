@@ -16,14 +16,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.net
 
-repositories {
-  mavenCentral()
-}
+import jp.assasans.narukami.server.net.command.SpaceCommandHeader
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
+data class SpaceCommand(
+  val header: SpaceCommandHeader,
+  val body: Any
+) {
+  companion object {
+    fun new(objectId: Long, methodId: Long, body: Any) = SpaceCommand(
+      header = SpaceCommandHeader(objectId, methodId),
+      body = body
+    )
+  }
 }

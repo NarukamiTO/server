@@ -16,14 +16,22 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.entrance
 
-repositories {
-  mavenCentral()
-}
+import jp.assasans.narukami.server.core.IClientEvent
+import jp.assasans.narukami.server.core.IModelConstructor
+import jp.assasans.narukami.server.net.command.ProtocolEvent
+import jp.assasans.narukami.server.net.command.ProtocolModel
+import jp.assasans.narukami.server.res.Eager
+import jp.assasans.narukami.server.res.LocalizedImageRes
+import jp.assasans.narukami.server.res.Resource
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
-}
+@ProtocolModel(7840560143954508415)
+class EntranceAlertModelCC : IModelConstructor
+
+@ProtocolEvent(7216954482225034551)
+data class EntranceAlertModelShowAlertEvent(
+  val image: Resource<LocalizedImageRes, Eager>,
+  val header: String,
+  val text: String
+) : IClientEvent

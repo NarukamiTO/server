@@ -16,14 +16,26 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.protocol.primitive
 
-repositories {
-  mavenCentral()
-}
+import jp.assasans.narukami.server.net.session.SessionHash
+import jp.assasans.narukami.server.net.session.SessionHash.Companion.HASH_LENGTH
+import jp.assasans.narukami.server.protocol.Codec
+import jp.assasans.narukami.server.protocol.ProtocolBuffer
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
+class SessionHashCodec : Codec<SessionHash>() {
+  override fun encode(buffer: ProtocolBuffer, value: SessionHash) {
+    if(value.value.size != HASH_LENGTH) {
+      throw IllegalArgumentException("Hash length must be $HASH_LENGTH bytes, but was ${value.value.size} bytes")
+    }
+
+    buffer.data.writeBytes(value.value)
+  }
+
+  override fun decode(buffer: ProtocolBuffer): SessionHash {
+    val hash = ByteArray(HASH_LENGTH)
+    buffer.data.readBytes(hash)
+
+    return SessionHash(hash)
+  }
 }

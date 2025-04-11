@@ -1,4 +1,4 @@
-# Araumi TO: Server core
+# Narukami Server
 
 > Sunk-cost fallacy – the phenomenon whereby a person is reluctant to abandon a strategy or course of action
 > because they have invested heavily in it, even when it is clear that abandonment would be more beneficial.

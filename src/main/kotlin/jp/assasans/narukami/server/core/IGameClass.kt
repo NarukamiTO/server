@@ -16,14 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.core
 
-repositories {
-  mavenCentral()
-}
+import kotlin.reflect.KClass
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
+interface IGameClass {
+  val id: Long
+  val models: List<KClass<out IModelConstructor>>
 }

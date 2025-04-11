@@ -16,14 +16,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.protocol
 
-repositories {
-  mavenCentral()
-}
+/**
+ * A protocol codec that can encode and decode values of type [T].
+ */
+interface ICodec<T> {
+  val protocol: IProtocol
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
+  fun init(protocol: IProtocol)
+
+  fun encode(buffer: ProtocolBuffer, value: T)
+  fun decode(buffer: ProtocolBuffer): T
 }

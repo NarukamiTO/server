@@ -16,14 +16,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.protocol
 
-repositories {
-  mavenCentral()
-}
+abstract class Codec<T> : ICodec<T> {
+  private var _protocol: IProtocol? = null
+  override val protocol: IProtocol
+    get() = checkNotNull(_protocol) { "Codec is not initialized" }
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
+  override fun init(protocol: IProtocol) {
+    _protocol = protocol
+  }
 }

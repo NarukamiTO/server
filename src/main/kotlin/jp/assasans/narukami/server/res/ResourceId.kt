@@ -16,14 +16,34 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.res
 
-repositories {
-  mavenCentral()
-}
+data class ResourceId(
+  val id: Long,
+  val version: Long
+) {
+  companion object {
+    fun decode(parts: List<String>): ResourceId {
+      val id = (parts[0].toULong(8) shl 32) or
+        (parts[1].toULong(8) shl 16) or
+        (parts[2].toULong(8) shl 8) or
+        (parts[3].toULong(8) shl 0)
+      return ResourceId(
+        id = id.toLong(),
+        version = parts[4].toLong(8)
+      )
+    }
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
+    fun decode(encoded: String): ResourceId = decode(encoded.split("/"))
+  }
+
+  fun encode(): String {
+    return listOf(
+      (id shr 32 and 0xffffffff).toString(8),
+      (id shr 16 and 0xffff).toString(8),
+      (id shr 8 and 0xff).toString(8),
+      (id shr 0 and 0xff).toString(8),
+      version.toString(8)
+    ).joinToString("/")
+  }
 }

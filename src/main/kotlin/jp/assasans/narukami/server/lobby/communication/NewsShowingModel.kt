@@ -16,14 +16,30 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.lobby.communication
 
-repositories {
-  mavenCentral()
-}
+import jp.assasans.narukami.server.core.IModelConstructor
+import jp.assasans.narukami.server.net.command.ProtocolModel
+import jp.assasans.narukami.server.net.command.ProtocolStruct
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
-}
+@ProtocolModel(868364325972433765)
+data class NewsShowingModelCC(
+  val newsItems: List<NewsItemData>,
+) : IModelConstructor
+
+@ProtocolStruct
+data class NewsItemData(
+  /**
+   * UTC UNIX timestamp in seconds.
+   */
+  // TODO: DateTime codec with @DateTimeRepresentation(UTC_SECONDS)
+  val dateInSeconds: Int,
+  val description: String,
+  /**
+   * UTC UNIX timestamp in seconds, `0` if not time-limited.
+   */
+  val endDate: Int,
+  val header: String,
+  val id: Long,
+  val imageUrl: String,
+)

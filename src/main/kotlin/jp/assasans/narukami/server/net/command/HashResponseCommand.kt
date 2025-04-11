@@ -16,14 +16,19 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.net.command
 
-repositories {
-  mavenCentral()
-}
+import jp.assasans.narukami.server.net.session.SessionHash
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
-}
+/**
+ * Server-to-client command containing a session hash and encryption settings for the session.
+ *
+ * Official server sends it once as a response to the [HashRequestCommand].
+ * This command is side effect free and can be sent multiple times, latest one will be used for new channels.
+ */
+@ProtocolStruct
+@ProtocolPreserveOrder
+data class HashResponseCommand(
+  val hash: SessionHash,
+  val channelProtectionEnabled: Boolean
+) : ControlCommand

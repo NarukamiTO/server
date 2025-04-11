@@ -1,5 +1,5 @@
 /*
- * Araumi TO - a server reimplementation for a certain browser tank game.
+ * Narukami TO - a server reimplementation for a certain browser tank game.
  * Copyright (c) 2025  Daniil Pryima
  *
  * This program is free software: you can redistribute it and/or modify
@@ -23,7 +23,7 @@ plugins {
   idea
 }
 
-group = "org.araumi"
+group = "jp.assasans.narukami"
 version = "0.1.0"
 
 repositories {
@@ -115,7 +115,7 @@ tasks {
 }
 
 application {
-  mainClass.set("org.araumi.server.MainKt")
+  mainClass.set("jp.assasans.narukami.server.MainKt")
 }
 
 idea {

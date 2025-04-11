@@ -16,14 +16,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.core
 
-repositories {
-  mavenCentral()
-}
+/**
+ * Represents a pending operation that can be awaited.
+ *
+ * Used to wait for space channels to open.
+ */
+interface IPending<T> {
+  val id: Long
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
+  suspend fun await(): T
 }

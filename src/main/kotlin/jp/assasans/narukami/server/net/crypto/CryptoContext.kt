@@ -16,14 +16,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.net.crypto
 
-repositories {
-  mavenCentral()
-}
+import io.netty.buffer.ByteBuf
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
+/**
+ * Official client uses two encryption modes (also called protection contexts).
+ *
+ * `XorCryptoContext` is not implemented due to it utter uselessness, it is not suitable
+ * for any real encryption and was probably used to obfuscate the data a bit.
+ * It does not use asymmetric cryptography, so you can decrypt the data by having packet dump.
+ * The encryptor state is 8 bytes, exactly the same as the known method IDs, so you theoretically
+ * can brute-force it even without the full packet dump.
+ */
+interface CryptoContext {
+  fun encrypt(data: ByteBuf): ByteBuf
+  fun decrypt(data: ByteBuf): ByteBuf
 }

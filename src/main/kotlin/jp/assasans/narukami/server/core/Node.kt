@@ -16,14 +16,22 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
+package jp.assasans.narukami.server.core
+
+import jp.assasans.narukami.server.net.SpaceChannel
+
+open class Node {
+  lateinit var sender: SpaceChannel
+    private set
+  lateinit var gameObject: IGameObject
+    private set
+
+  fun init(sender: SpaceChannel, gameObject: IGameObject) {
+    this.sender = sender
+    this.gameObject = gameObject
+  }
 }
 
-repositories {
-  mavenCentral()
-}
-
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
-}
+data class SingleNode<T : IModelConstructor>(
+  val node: T
+) : Node()

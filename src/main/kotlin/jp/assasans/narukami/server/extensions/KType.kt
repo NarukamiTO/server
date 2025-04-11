@@ -16,14 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.extensions
 
-repositories {
-  mavenCentral()
-}
+import kotlin.reflect.KClass
+import kotlin.reflect.KType
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
-}
+val KType.kotlinClass: KClass<*>
+  get() = classifier as KClass<*>

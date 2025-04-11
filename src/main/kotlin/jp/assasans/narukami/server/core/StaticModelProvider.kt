@@ -16,14 +16,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.core
 
-repositories {
-  mavenCentral()
-}
+import jp.assasans.narukami.server.net.SpaceChannel
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
+/**
+ * Provides the same model constructor for any space channel.
+ */
+class StaticModelProvider<CC : IModelConstructor>(
+  val model: CC,
+) : IModelProvider<CC> {
+  override fun provide(gameObject: IGameObject, channel: SpaceChannel): CC {
+    return model
+  }
 }

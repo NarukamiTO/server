@@ -16,14 +16,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.lobby.communication
 
-repositories {
-  mavenCentral()
-}
+import jp.assasans.narukami.server.core.ITemplate
+import jp.assasans.narukami.server.net.command.ProtocolClass
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
-}
+@ProtocolClass(5)
+data class CommunicationTemplate(
+  val communicationPanel: CommunicationPanelModelCC,
+  val newsShowing: NewsShowingModelCC,
+  val chat: ChatModelCC,
+) : ITemplate

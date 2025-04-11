@@ -16,14 +16,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.core
 
-repositories {
-  mavenCentral()
-}
+import jp.assasans.narukami.server.net.session.ISession
+import jp.assasans.narukami.server.net.session.SessionHash
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
+interface ISessionRegistry {
+  val all: Set<ISession>
+
+  fun add(value: ISession)
+  fun remove(value: ISession)
+  fun get(hash: SessionHash): ISession?
+  fun has(hash: SessionHash): Boolean
 }

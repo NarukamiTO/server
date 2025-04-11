@@ -16,14 +16,21 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.protocol.factory
 
-repositories {
-  mavenCentral()
-}
+import kotlin.reflect.KType
+import jp.assasans.narukami.server.extensions.hasInheritedAnnotation
+import jp.assasans.narukami.server.extensions.kotlinClass
+import jp.assasans.narukami.server.net.command.ProtocolStruct
+import jp.assasans.narukami.server.protocol.ICodec
+import jp.assasans.narukami.server.protocol.IProtocol
+import jp.assasans.narukami.server.protocol.container.AnnotatedStructCodec
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
+class AnnotatedStructCodecFactory : ICodecFactory<Any> {
+  override fun create(protocol: IProtocol, type: KType): ICodec<Any>? {
+    if(!type.kotlinClass.hasInheritedAnnotation<ProtocolStruct>()) return null
+    assert(!type.isMarkedNullable)
+
+    return AnnotatedStructCodec(type)
+  }
 }

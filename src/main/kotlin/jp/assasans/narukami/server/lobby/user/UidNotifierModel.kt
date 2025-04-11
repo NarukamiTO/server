@@ -16,14 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.lobby.user
 
-repositories {
-  mavenCentral()
-}
+import jp.assasans.narukami.server.core.IModelConstructor
+import jp.assasans.narukami.server.net.command.ProtocolModel
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
-}
+@ProtocolModel(4255726087158005051)
+data class UidNotifierModelCC(
+  val uid: String,
+  val userId: Long,
+) : IModelConstructor

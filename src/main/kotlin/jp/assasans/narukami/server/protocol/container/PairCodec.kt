@@ -16,14 +16,25 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.protocol.container
 
-repositories {
-  mavenCentral()
-}
+import jp.assasans.narukami.server.protocol.Codec
+import jp.assasans.narukami.server.protocol.ICodec
+import jp.assasans.narukami.server.protocol.ProtocolBuffer
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
+class PairCodec<K, V>(
+  private val keyCodec: ICodec<K>,
+  private val valueCodec: ICodec<V>
+) : Codec<Pair<K, V>>() {
+  override fun encode(buffer: ProtocolBuffer, value: Pair<K, V>) {
+    keyCodec.encode(buffer, value.first)
+    valueCodec.encode(buffer, value.second)
+  }
+
+  override fun decode(buffer: ProtocolBuffer): Pair<K, V> {
+    val key = keyCodec.decode(buffer)
+    val value = valueCodec.decode(buffer)
+
+    return Pair(key, value)
+  }
 }

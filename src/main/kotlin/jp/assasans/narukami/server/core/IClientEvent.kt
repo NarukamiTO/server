@@ -16,14 +16,19 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.core
 
-repositories {
-  mavenCentral()
-}
+import jp.assasans.narukami.server.net.SpaceCommand
+import jp.assasans.narukami.server.net.command.SpaceCommandHeader
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
-}
+/**
+ * A server-to-client event (S2C).
+ */
+interface IClientEvent : IEvent
+
+fun IClientEvent.attach(gameObject: IGameObject) = SpaceCommand(
+  header = SpaceCommandHeader(objectId = gameObject.id, methodId = this::class.protocolId),
+  body = this
+)
+
+fun IClientEvent.attach(node: Node) = attach(node.gameObject)

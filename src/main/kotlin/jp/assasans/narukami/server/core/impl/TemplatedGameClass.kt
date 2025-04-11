@@ -16,14 +16,26 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.core.impl
 
-repositories {
-  mavenCentral()
-}
+import kotlin.reflect.KClass
+import io.github.oshai.kotlinlogging.KotlinLogging
+import jp.assasans.narukami.server.core.*
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
+data class TemplatedGameClass<T : ITemplate>(
+  override val id: Long,
+  override val models: List<KClass<out IModelConstructor>>,
+  val template: KClass<T>,
+) : IGameClass {
+  private val logger = KotlinLogging.logger { }
+
+  companion object {
+    fun <T : ITemplate> fromTemplate(template: KClass<T>): TemplatedGameClass<T> {
+      return TemplatedGameClass(
+        id = template.protocolId,
+        models = template.models.values.toList(),
+        template = template
+      )
+    }
+  }
 }

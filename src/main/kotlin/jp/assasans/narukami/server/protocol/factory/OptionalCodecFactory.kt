@@ -16,14 +16,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.protocol.factory
 
-repositories {
-  mavenCentral()
-}
+import kotlin.reflect.KType
+import kotlin.reflect.full.withNullability
+import jp.assasans.narukami.server.protocol.ICodec
+import jp.assasans.narukami.server.protocol.IProtocol
+import jp.assasans.narukami.server.protocol.container.OptionalCodec
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
+class OptionalCodecFactory : ICodecFactory<Any> {
+  override fun create(protocol: IProtocol, type: KType): ICodec<Any>? {
+    if(!type.isMarkedNullable) return null
+    return OptionalCodec(protocol.getCodec(type.withNullability(false))) as ICodec<Any>
+  }
 }

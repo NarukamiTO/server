@@ -16,14 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.net.command
 
-repositories {
-  mavenCentral()
-}
-
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
-}
+@ProtocolStruct
+@ProtocolPreserveOrder
+data class SpaceCommandHeader(
+  val objectId: Long,
+  val methodId: Long
+)

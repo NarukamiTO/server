@@ -16,14 +16,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.derive
 
-repositories {
-  mavenCentral()
-}
+import com.google.devtools.ksp.processing.SymbolProcessor
+import com.google.devtools.ksp.processing.SymbolProcessorEnvironment
+import com.google.devtools.ksp.processing.SymbolProcessorProvider
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
+class NarukamiProcessorProvider : SymbolProcessorProvider {
+  override fun create(environment: SymbolProcessorEnvironment): SymbolProcessor {
+    return NarukamiProcessor(
+      options = environment.options,
+      logger = environment.logger,
+      codeGenerator = environment.codeGenerator
+    )
+  }
 }

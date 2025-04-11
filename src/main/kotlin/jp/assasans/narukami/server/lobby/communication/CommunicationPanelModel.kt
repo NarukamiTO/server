@@ -16,14 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.lobby.communication
 
-repositories {
-  mavenCentral()
-}
+import jp.assasans.narukami.server.core.IModelConstructor
+import jp.assasans.narukami.server.net.command.ProtocolModel
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
-}
+@ProtocolModel(3650502766592528965)
+class CommunicationPanelModelCC : IModelConstructor

@@ -16,14 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.core
 
-repositories {
-  mavenCentral()
-}
+interface IRegistry<T> {
+  val all: Set<T>
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
+  fun add(value: T)
+  fun remove(value: T)
+  fun get(id: Long): T?
+  fun has(id: Long): Boolean
 }

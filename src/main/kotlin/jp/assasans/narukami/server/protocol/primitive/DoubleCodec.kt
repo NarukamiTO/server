@@ -16,14 +16,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.protocol.primitive
 
-repositories {
-  mavenCentral()
-}
+import jp.assasans.narukami.server.protocol.Codec
+import jp.assasans.narukami.server.protocol.ProtocolBuffer
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
+class DoubleCodec : Codec<Double>() {
+  override fun encode(buffer: ProtocolBuffer, value: Double) {
+    buffer.data.writeDouble(value)
+  }
+
+  override fun decode(buffer: ProtocolBuffer): Double {
+    return buffer.data.readDouble()
+  }
 }

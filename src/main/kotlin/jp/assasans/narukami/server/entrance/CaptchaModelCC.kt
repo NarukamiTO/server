@@ -16,14 +16,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.entrance
 
-repositories {
-  mavenCentral()
-}
+import jp.assasans.narukami.server.core.IModelConstructor
+import jp.assasans.narukami.server.net.command.ProtocolModel
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
-}
+@ProtocolModel(2108103923322474513)
+data class CaptchaModelCC(
+  val stateWithCaptcha: List<CaptchaLocation>,
+) : IModelConstructor

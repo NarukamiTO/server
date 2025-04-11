@@ -16,14 +16,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.entrance
 
-repositories {
-  mavenCentral()
-}
+import jp.assasans.narukami.server.core.IClientEvent
+import jp.assasans.narukami.server.core.IModelConstructor
+import jp.assasans.narukami.server.core.IServerEvent
+import jp.assasans.narukami.server.net.command.ProtocolEvent
+import jp.assasans.narukami.server.net.command.ProtocolModel
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
-}
+@ProtocolModel(7384979261462408242)
+class LoginModelCC : IModelConstructor
+
+@ProtocolEvent(108605496059850042)
+data class LoginModelLoginEvent(
+  val uidOrEmail: String,
+  val password: String,
+  val remember: Boolean
+) : IServerEvent
+
+@ProtocolEvent(6160917066910786241)
+class LoginModelWrongPasswordEvent : IClientEvent

@@ -16,14 +16,21 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.core
 
-repositories {
-  mavenCentral()
-}
+import kotlin.reflect.KClass
+import kotlin.reflect.KProperty1
+import kotlin.reflect.full.findAnnotation
+import jp.assasans.narukami.server.net.command.ProtocolClass
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
-}
+/**
+ * A template provides a set of models.
+ */
+interface ITemplate
+
+@get:JvmName("KClass_IClass_protocolId")
+val KClass<out ITemplate>.protocolId: Long
+  get() = requireNotNull(findAnnotation<ProtocolClass>()) { "$this has no @ProtocolClass annotation" }.id
+
+val KClass<out ITemplate>.models: Map<KProperty1<out ITemplate, *>, KClass<out IModelConstructor>>
+  get() = requireNotNull(jp.assasans.narukami.server.derive.templateToModels[this]) { "$this is not registered" }

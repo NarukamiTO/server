@@ -16,14 +16,25 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
+package jp.assasans.narukami.server.core
+
+import jp.assasans.narukami.server.core.impl.EventScheduler
+
+/**
+ *
+ */
+abstract class AbstractSystem {
+  val eventScheduler: IEventScheduler = EventScheduler()
 }
 
-repositories {
-  mavenCentral()
-}
+@Target(AnnotationTarget.FUNCTION)
+@Retention(AnnotationRetention.RUNTIME)
+annotation class OnEventFire
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
-}
+@Target(AnnotationTarget.FUNCTION)
+@Retention(AnnotationRetention.RUNTIME)
+annotation class Mandatory
+
+@Target(AnnotationTarget.VALUE_PARAMETER)
+@Retention(AnnotationRetention.RUNTIME)
+annotation class JoinAll

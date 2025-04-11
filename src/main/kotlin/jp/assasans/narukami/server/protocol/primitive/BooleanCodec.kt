@@ -16,14 +16,22 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.protocol.primitive
 
-repositories {
-  mavenCentral()
-}
+import jp.assasans.narukami.server.protocol.Codec
+import jp.assasans.narukami.server.protocol.ProtocolBuffer
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
+class BooleanCodec : Codec<Boolean>() {
+  override fun encode(buffer: ProtocolBuffer, value: Boolean) {
+    val representation = if(value) 1 else 0
+    buffer.data.writeByte(representation)
+  }
+
+  override fun decode(buffer: ProtocolBuffer): Boolean {
+    return when(val value = buffer.data.readByte()) {
+      0.toByte() -> false
+      1.toByte() -> true
+      else       -> throw IllegalArgumentException("Invalid boolean value: $value")
+    }
+  }
 }

@@ -16,14 +16,19 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.net.command
 
-repositories {
-  mavenCentral()
-}
+import jp.assasans.narukami.server.net.session.SessionHash
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
-}
+/**
+ * Client-to-server command sent right after the space channel is opened.
+ * Used to associate the space channel with the session.
+ * This command is always sent unencrypted.
+ *
+ * Called `SpaceOpenedCommand` in the official client.
+ */
+@ProtocolStruct
+data class InitSpaceCommand(
+  val hash: SessionHash,
+  val spaceId: Long
+) : ControlCommand

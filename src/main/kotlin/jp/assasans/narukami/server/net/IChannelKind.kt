@@ -16,14 +16,30 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
+package jp.assasans.narukami.server.net
+
+import jp.assasans.narukami.server.net.session.ISession
+import jp.assasans.narukami.server.protocol.IProtocol
+import jp.assasans.narukami.server.protocol.ProtocolBuffer
+
+sealed interface IChannelKind {
+  val socket: ISocketClient
+
+  fun process(buffer: ProtocolBuffer)
 }
 
-repositories {
-  mavenCentral()
-}
+val IChannelKind.protocol: IProtocol
+  get() = socket.protocol
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
-}
+var IChannelKind.session: ISession?
+  get() = socket.session
+  set(value) {
+    socket.session = value
+  }
+
+val IChannelKind.sessionNotNull: ISession
+  get() = checkNotNull(socket.session) { "Session is null for $socket" }
+
+abstract class ChannelKind(
+  override val socket: ISocketClient
+) : IChannelKind

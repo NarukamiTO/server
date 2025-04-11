@@ -16,14 +16,27 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.protocol.primitive
 
-repositories {
-  mavenCentral()
-}
+import kotlin.reflect.KType
+import jp.assasans.narukami.server.protocol.*
+import jp.assasans.narukami.server.res.Resource
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
+class ResourceCodec(
+  private val type: KType
+) : Codec<Resource<*, *>>() {
+  private lateinit var longCodec: ICodec<Long>
+
+  override fun init(protocol: IProtocol) {
+    super.init(protocol)
+    longCodec = protocol.getTypedCodec<Long>()
+  }
+
+  override fun encode(buffer: ProtocolBuffer, value: Resource<*, *>) {
+    longCodec.encode(buffer, value.id.id)
+  }
+
+  override fun decode(buffer: ProtocolBuffer): Resource<*, *> {
+    TODO("Unsupported")
+  }
 }

@@ -16,14 +16,29 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.core.impl
 
-repositories {
-  mavenCentral()
-}
+import io.github.oshai.kotlinlogging.KotlinLogging
+import jp.assasans.narukami.server.core.IGameObject
+import jp.assasans.narukami.server.core.IRegistry
+import jp.assasans.narukami.server.core.ISpace
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
+class Space(override val id: Long) : ISpace {
+  private val logger = KotlinLogging.logger { }
+
+  companion object {
+    val ROOT_CLASS = TransientGameClass(
+      id = 0,
+      models = listOf()
+    )
+  }
+
+  override val objects: IRegistry<IGameObject> = Registry("Game object") { id }
+
+  override val rootObject: IGameObject
+    get() = objects.get(id) ?: error("No root object for space $id")
+
+  init {
+    objects.add(TransientGameObject(id, ROOT_CLASS))
+  }
 }

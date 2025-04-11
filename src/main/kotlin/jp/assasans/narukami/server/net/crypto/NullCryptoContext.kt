@@ -16,14 +16,24 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.net.crypto
 
-repositories {
-  mavenCentral()
-}
+import io.netty.buffer.ByteBuf
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
+/**
+ * Writes data as is, without any transformations.
+ *
+ * Called `NullProtectionContext` in the official client.
+ *
+ * New control channels use this mode until server sends
+ * a `HashResponseCommand` with `channelProtectionEnabled` set to `true`.
+ */
+class NullCryptoContext : CryptoContext {
+  override fun encrypt(data: ByteBuf): ByteBuf {
+    return data
+  }
+
+  override fun decrypt(data: ByteBuf): ByteBuf {
+    return data
+  }
 }

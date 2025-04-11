@@ -16,14 +16,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.core
 
-repositories {
-  mavenCentral()
-}
+/**
+ * Spaces are used for the actual client-server communication.
+ *
+ * All spaces have a Dispatcher object with ID same as the space ID and class `0`.
+ *
+ * @see jp.assasans.narukami.server.core.ArchitectureDocs
+ */
+interface ISpace {
+  val id: Long
+  val objects: IRegistry<IGameObject>
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
+  val rootObject: IGameObject
 }

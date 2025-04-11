@@ -16,14 +16,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-  kotlin("jvm")
-}
+package jp.assasans.narukami.server.core
 
-repositories {
-  mavenCentral()
-}
+import jp.assasans.narukami.server.net.SpaceChannel
 
-dependencies {
-  implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.31")
+/**
+ * Calls a closure with the given space channel to provide a model constructor.
+ *
+ * This is useful for models that have different constructors for different sessions.
+ * For example, [jp.assasans.narukami.server.lobby.user.UserPropertiesModelCC] is completely different
+ * for different users, but the game object is the same.
+ *
+ * @see jp.assasans.narukami.server.core.ArchitectureDocs
+ */
+class ClosureModelProvider<CC : IModelConstructor>(
+  private val closure: SpaceChannel.(IGameObject) -> CC,
+) : IModelProvider<CC> {
+  override fun provide(gameObject: IGameObject, channel: SpaceChannel): CC {
+    return closure(channel, gameObject)
+  }
 }
