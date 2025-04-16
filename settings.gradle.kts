@@ -1,3 +1,3 @@
-rootProject.name = "server-core"
+rootProject.name = "narukami-server"
 
 include(":derive")

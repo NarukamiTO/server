@@ -16,6 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import java.net.InetAddress
+import java.text.SimpleDateFormat
+import java.util.*
+
 plugins {
   kotlin("jvm") version "2.1.10"
   id("com.google.devtools.ksp") version "2.1.10-1.0.31"
@@ -77,25 +81,32 @@ configurations {
   create("runtime").extendsFrom(compileClasspath.get(), runtimeOnly.get())
 }
 
+fun configureManifest(manifest: Manifest) {
+  manifest.attributes(
+    "Built-By" to System.getProperty("user.name"),
+    "Build-Host" to InetAddress.getLocalHost().hostName,
+    "Build-Time" to SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ").format(Date()),
+  )
+}
+
 tasks {
   val copyDependencies = register<Sync>("copyDependencies") {
     from(configurations.named("runtime"))
     into(layout.buildDirectory.dir("dependencies"))
   }
 
-  val packageSources = register<Zip>("packageSources") {
-    archiveFileName.set("sources.zip")
-    destinationDirectory.set(layout.buildDirectory.dir("tmp"))
+  val sourcesJar = register<Jar>("sourcesJar") {
+    archiveClassifier.set("sources")
+    from(sourceSets.main.get().allSource)
 
-    from(sourceSets.main.get().kotlin)
+    manifest(::configureManifest)
   }
 
   processResources {
-    dependsOn(packageSources)
+    dependsOn(sourcesJar)
 
-    // Include sources in the JAR
-    from(packageSources.get().archiveFile.get()) {
-      into("META-INF/")
+    from(sourcesJar.map { it.archiveFile.get().asFile }) {
+      rename { "sources.jar" }
     }
   }
 
@@ -107,11 +118,17 @@ tasks {
 
   jar {
     dependsOn(copyDependencies)
+
+    manifest(::configureManifest)
   }
 
   test {
     useJUnitPlatform()
   }
+}
+
+artifacts {
+  add("archives", tasks.named("sourcesJar"))
 }
 
 application {

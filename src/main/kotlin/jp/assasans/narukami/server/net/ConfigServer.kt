@@ -101,17 +101,17 @@ class ConfigServer {
           }
         }
 
-        get("sources.zip") {
+        get("sources.jar") {
           println(this::class.java.classLoader)
-          val resource = this::class.java.classLoader.getResource("META-INF/sources.zip")
+          val resource = this::class.java.classLoader.getResource("sources.jar")
           if(resource == null) {
-            call.respond(HttpStatusCode.NotFound, "sources.zip not found in the JAR")
+            call.respond(HttpStatusCode.NotFound, "sources.jar not found in the JAR")
             return@get
           }
 
           val inputStream = resource.openStream()
-          call.response.header(HttpHeaders.ContentDisposition, "attachment; filename=\"sources.zip\"")
-          call.respondOutputStream(ContentType.Application.Zip) {
+          call.response.header(HttpHeaders.ContentDisposition, "attachment; filename=\"sources.jar\"")
+          call.respondOutputStream(ContentType(ContentType.Application.TYPE, "java-archive")) {
             inputStream.copyTo(this)
           }
         }
