@@ -56,7 +56,7 @@ class SpaceInitializer(
           captcha = CaptchaModelCC(stateWithCaptcha = listOf()),
           login = LoginModelCC(),
           registration = RegistrationModelCC(
-            bgResource = gameResourceRepository.get("auth.registration.background-agpl", emptyMap(), ImageRes, Eager),
+            bgResource = gameResourceRepository.get("entrance.background", emptyMap(), ImageRes, Eager),
             enableRequiredEmail = false,
             minPasswordLength = 6,
             maxPasswordLength = 20

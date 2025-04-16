@@ -114,13 +114,14 @@ class ResourceServer(
           get("{file}") {
             val file = requireNotNull(call.parameters["file"])
             val name = when {
-              file.startsWith("Prelauncher")   -> "library.Prelauncher"
-              file.startsWith("TanksLauncher") -> "library.TanksLauncher"
-              file.startsWith("software")      -> "library.a3d.software"
-              file.startsWith("hardware")      -> "library.a3d.hardware"
-              file.startsWith("entrance")      -> "library.entrance"
-              file.startsWith("game")          -> "library.game"
-              else                             -> {
+              file.startsWith("Prelauncher")       -> "library.Prelauncher"
+              file.startsWith("AlternativaLoader") -> "library.AlternativaLoader"
+              file.startsWith("TanksErrorScreen")  -> "library.TanksErrorScreen"
+              file.startsWith("software")          -> "library.a3d.software"
+              file.startsWith("hardware")          -> "library.a3d.hardware"
+              file.startsWith("entrance")          -> "library.entrance"
+              file.startsWith("game")              -> "library.game"
+              else                                 -> {
                 call.respond(HttpStatusCode.NotFound, "No file $file found")
                 return@get
               }
