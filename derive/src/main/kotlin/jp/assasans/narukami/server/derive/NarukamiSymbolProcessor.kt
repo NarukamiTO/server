@@ -23,7 +23,7 @@ import com.google.devtools.ksp.processing.*
 import com.google.devtools.ksp.symbol.*
 import com.google.devtools.ksp.validate
 
-class NarukamiProcessor(
+class NarukamiSymbolProcessor(
   private val options: Map<String, String>,
   private val logger: KSPLogger,
   private val codeGenerator: CodeGenerator,

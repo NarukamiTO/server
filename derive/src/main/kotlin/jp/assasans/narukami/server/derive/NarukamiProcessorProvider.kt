@@ -24,7 +24,7 @@ import com.google.devtools.ksp.processing.SymbolProcessorProvider
 
 class NarukamiProcessorProvider : SymbolProcessorProvider {
   override fun create(environment: SymbolProcessorEnvironment): SymbolProcessor {
-    return NarukamiProcessor(
+    return NarukamiSymbolProcessor(
       options = environment.options,
       logger = environment.logger,
       codeGenerator = environment.codeGenerator
