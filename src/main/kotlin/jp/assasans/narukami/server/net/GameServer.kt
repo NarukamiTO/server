@@ -24,6 +24,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.ByteBufAllocator
+import io.netty.buffer.Unpooled
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.ChannelInboundHandlerAdapter
 import io.netty.channel.ChannelInitializer
@@ -81,10 +82,36 @@ class ProtocolDecoder(val socket: NettySocketClient) : ByteToMessageDecoder() {
   private val codec = ProtocolBufferCodec()
   private val buffer: ByteBuf = ByteBufAllocator.DEFAULT.buffer()
 
+  private val policyFileRequest = "<policy-file-request/>\u0000".toByteArray()
+
   @ExperimentalStdlibApi
   override fun decode(ctx: ChannelHandlerContext, input: ByteBuf, out: MutableList<Any>) {
     logger.trace { "Received: ${input.toHexString()}" }
     buffer.writeBytes(input)
+
+    // Adobe Flash cross-domain policy request
+    if(buffer.readableBytes() >= policyFileRequest.size) {
+      buffer.markReaderIndex()
+
+      val request = ByteArray(policyFileRequest.size)
+      buffer.readBytes(request)
+
+      if(request.contentEquals(policyFileRequest)) {
+        buffer.discardReadBytes()
+
+        logger.info { "Responded with Adobe Flash cross-domain policy" }
+        ctx.writeAndFlush(Unpooled.wrappedBuffer(buildString {
+          appendLine("<?xml version=\"1.0\"?>")
+          appendLine("<cross-domain-policy>")
+          appendLine("<allow-access-from domain=\"*\" to-ports=\"*\"/>")
+          appendLine("</cross-domain-policy>")
+        }.toByteArray())).sync()
+        ctx.close().sync()
+        return
+      } else {
+        buffer.resetReaderIndex()
+      }
+    }
 
     var packetIndex = 0
     while(true) {
