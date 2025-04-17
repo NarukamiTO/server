@@ -19,6 +19,7 @@
 package jp.assasans.narukami.server.lobby
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import jp.assasans.narukami.server.battleselect.BattleSelectModelCC
 import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.core.impl.TemplatedGameClass
 import jp.assasans.narukami.server.core.impl.TransientGameObject
@@ -30,7 +31,7 @@ import jp.assasans.narukami.server.net.NettySocketClient
 import jp.assasans.narukami.server.net.sessionNotNull
 
 data class LobbyNode(
-  val lobbyLayoutNotify: LobbyLayoutNotifyModelCC
+  val lobbyLayoutNotify: LobbyLayoutNotifyModelCC,
 ) : Node()
 
 data class UserNode(
@@ -54,6 +55,7 @@ class LobbySystem : AbstractSystem() {
     @JoinAll lobby: LobbyNode,
     @JoinAll chat: ChatNode,
     @JoinAll rankLoader: SingleNode<RankLoaderModelCC>,
+    @JoinAll battleSelect: SingleNode<BattleSelectModelCC>,
   ) {
     logger.info { "Channel added: $event" }
     logger.info { lobby.gameObject.adapt(lobby.sender) }
@@ -104,12 +106,14 @@ class LobbySystem : AbstractSystem() {
         rankLoader.gameObject,
         userObject,
         lobby.gameObject,
-        chat.gameObject
+        chat.gameObject,
+        battleSelect.gameObject,
       )
     ).schedule(dispatcher).await()
 
     // TODO: NodeAddedEvent is not yet automatically scheduled
     NodeAddedEvent().schedule(chat)
+    NodeAddedEvent().schedule(battleSelect)
 
     // Once entrance object is unloaded (or entrance space channel is closed),
     // loading screen automatically appears on the client. This event hides it.

@@ -22,6 +22,8 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.datetime.Clock
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import jp.assasans.narukami.server.battleselect.BattleSelectModelCC
+import jp.assasans.narukami.server.battleselect.BattleSelectTemplate
 import jp.assasans.narukami.server.core.IEvent
 import jp.assasans.narukami.server.core.IRegistry
 import jp.assasans.narukami.server.core.ISpace
@@ -170,6 +172,16 @@ class SpaceInitializer(
         )
       )
       objects.add(communicationObject)
+
+      val battleSelectClass = TemplatedGameClass.fromTemplate(BattleSelectTemplate::class)
+      val battleSelectObject = TransientGameObject.instantiate(
+        6,
+        battleSelectClass,
+        BattleSelectTemplate(
+          battleSelect = BattleSelectModelCC()
+        )
+      )
+      objects.add(battleSelectObject)
     })
   }
 }
