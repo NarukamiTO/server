@@ -36,6 +36,7 @@ data class UserTemplate(
   val userNotifier: UserNotifierModelCC,
   val uidNotifier: UidNotifierModelCC,
   val rankNotifier: RankNotifierModelCC,
+  val proBattleNotifier: ProBattleNotifierModelCC,
 ) : ITemplate
 
 fun <T : Node> IGameObject.adapt(sender: SpaceChannel, clazz: KClass<T>): T {

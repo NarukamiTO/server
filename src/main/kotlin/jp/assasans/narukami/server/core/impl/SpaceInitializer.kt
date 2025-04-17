@@ -18,12 +18,12 @@
 
 package jp.assasans.narukami.server.core.impl
 
+import kotlin.time.Duration.Companion.minutes
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.datetime.Clock
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
-import jp.assasans.narukami.server.battleselect.BattleSelectModelCC
-import jp.assasans.narukami.server.battleselect.BattleSelectTemplate
+import jp.assasans.narukami.server.battleselect.*
 import jp.assasans.narukami.server.core.IEvent
 import jp.assasans.narukami.server.core.IRegistry
 import jp.assasans.narukami.server.core.ISpace
@@ -36,6 +36,7 @@ import jp.assasans.narukami.server.lobby.user.RankLoaderModelCC
 import jp.assasans.narukami.server.lobby.user.RankLoaderTemplate
 import jp.assasans.narukami.server.res.Eager
 import jp.assasans.narukami.server.res.ImageRes
+import jp.assasans.narukami.server.res.Lazy
 import jp.assasans.narukami.server.res.RemoteGameResourceRepository
 
 class SpaceInitializer(
@@ -182,6 +183,102 @@ class SpaceInitializer(
         )
       )
       objects.add(battleSelectObject)
+
+      val battleCreateClass = TemplatedGameClass.fromTemplate(BattleCreateTemplate::class)
+      val battleCreateObject = TransientGameObject.instantiate(
+        10,
+        battleCreateClass,
+        BattleCreateTemplate(
+          battleCreate = BattleCreateModelCC(
+            battleCreationDisabled = false,
+            battlesLimits = BattleMode.entries.map {
+              BattleLimits(scoreLimit = 999, timeLimitInSec = 999.minutes.inWholeSeconds.toInt())
+            },
+            defaultRange = Range(min = 1, max = 31),
+            maxRange = Range(min = 1, max = 31),
+            maxRangeLength = 31,
+            ultimatesEnabled = false
+          )
+        )
+      )
+      objects.add(battleCreateObject)
+
+      val mapInfoClass = TemplatedGameClass.fromTemplate(MapInfoTemplate::class)
+      val mapInfoObject = TransientGameObject.instantiate(
+        7,
+        mapInfoClass,
+        MapInfoTemplate(
+          mapInfo = MapInfoModelCC(
+            defaultTheme = MapTheme.SUMMER_NIGHT,
+            enabled = true,
+            mapId = 7,
+            mapName = "Spawn Test",
+            matchmakingMark = false,
+            maxPeople = 32,
+            preview = gameResourceRepository.get("entrance.background", emptyMap(), ImageRes, Lazy),
+            rankLimit = Range(min = 1, max = 31),
+            supportedModes = listOf(
+              BattleMode.DM,
+              BattleMode.TDM,
+              BattleMode.CTF,
+              BattleMode.CP,
+              BattleMode.AS,
+              BattleMode.RUGBY,
+              BattleMode.SUR,
+              BattleMode.JGR,
+            ),
+            theme = MapTheme.SUMMER_NIGHT
+          )
+        )
+      )
+      objects.add(mapInfoObject)
+
+      val battleInfoClass = TemplatedGameClass.fromTemplate(DMBattleInfoTemplate::class)
+      val battleInfoObject = TransientGameObject.instantiate(
+        9,
+        battleInfoClass,
+        DMBattleInfoTemplate(
+          battleInfo = BattleInfoModelCC(
+            roundStarted = false,
+            suspicionLevel = BattleSuspicionLevel.NONE,
+            timeLeftInSec = 3600,
+          ),
+          battleParamInfo = BattleParamInfoModelCC(
+            map = mapInfoObject,
+            params = BattleCreateParameters(
+              autoBalance = false,
+              battleMode = BattleMode.DM,
+              clanBattle = false,
+              dependentCooldownEnabled = false,
+              equipmentConstraintsMode = null,
+              friendlyFire = false,
+              goldBoxesEnabled = false,
+              limits = BattleLimits(scoreLimit = 0, timeLimitInSec = 0),
+              mapId = mapInfoObject.id,
+              maxPeopleCount = 32,
+              name = null,
+              parkourMode = false,
+              privateBattle = false,
+              proBattle = true,
+              rankRange = Range(min = 1, max = 31),
+              reArmorEnabled = true,
+              theme = MapTheme.SUMMER_NIGHT,
+              ultimatesEnabled = false,
+              uniqueUsersBattle = false,
+              withoutBonuses = false,
+              withoutDevices = false,
+              withoutDrones = false,
+              withoutSupplies = false,
+              withoutUpgrades = false,
+            )
+          ),
+          battleEntrance = BattleEntranceModelCC(),
+          battleDMInfo = BattleDMInfoModelCC(
+            users = listOf()
+          )
+        )
+      )
+      objects.add(battleInfoObject)
     })
   }
 }

@@ -21,6 +21,7 @@ package jp.assasans.narukami.server.protocol
 import kotlin.reflect.KType
 import kotlin.reflect.full.createType
 import io.github.oshai.kotlinlogging.KotlinLogging
+import jp.assasans.narukami.server.core.IGameObject
 import jp.assasans.narukami.server.dispatcher.*
 import jp.assasans.narukami.server.net.command.ControlCommand
 import jp.assasans.narukami.server.net.command.ControlCommandCodec
@@ -67,6 +68,7 @@ class Protocol : IProtocol {
     register(Double::class.createType(), DoubleCodec())
     register(String::class.createType(), StringCodec())
     register(SessionHash::class.createType(), SessionHashCodec())
+    register(IGameObject::class.createType(), GameObjectCodec())
 
     /* Control channel */
     register(ControlCommand::class.createType(), ControlCommandCodec())

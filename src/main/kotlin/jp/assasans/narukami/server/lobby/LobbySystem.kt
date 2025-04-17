@@ -18,6 +18,7 @@
 
 package jp.assasans.narukami.server.lobby
 
+import kotlin.time.Duration.Companion.days
 import io.github.oshai.kotlinlogging.KotlinLogging
 import jp.assasans.narukami.server.battleselect.BattleSelectModelCC
 import jp.assasans.narukami.server.core.*
@@ -91,6 +92,7 @@ class LobbySystem : AbstractSystem() {
         userNotifier = UserNotifierModelCC(currentUserId = 30),
         uidNotifier = UidNotifierModelCC(uid = "NarukamiTO:AGPLv3+", userId = 30),
         rankNotifier = RankNotifierModelCC(rank = 1, userId = 30),
+        proBattleNotifier = ProBattleNotifierModelCC(abonementRemainingTimeInSec = 2112.days.inWholeSeconds.toInt()),
       )
     )
     userObject.addComponent(UsernameComponent("Sosal xuy"))

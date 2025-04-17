@@ -35,7 +35,7 @@ class Registry<T : Any>(
   override fun add(value: T) {
     val id = idMapper(value)
     if(items.contains(id)) {
-      throw IllegalArgumentException("$name with ID ${value.hashCode()} already exists")
+      throw IllegalArgumentException("$name with ID $id already exists")
     }
 
     items[id] = value
