@@ -20,7 +20,13 @@ package jp.assasans.narukami.server.core
 
 import jp.assasans.narukami.server.net.SpaceChannel
 
+/**
+ * Event scheduler, used to schedule events.
+ */
 interface IEventScheduler {
+  /**
+   * Schedules an event for processing.
+   */
   fun schedule(event: IEvent, sender: SpaceChannel, gameObject: IGameObject)
 
   /**

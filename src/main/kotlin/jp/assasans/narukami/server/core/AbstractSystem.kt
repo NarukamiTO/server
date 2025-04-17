@@ -22,24 +22,41 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
 /**
+ * Base class for all systems.
+ * Systems process events and contain game logic.
  *
+ * @see [jp.assasans.narukami.server.core.ArchitectureDocs]
  */
 abstract class AbstractSystem : KoinComponent {
   val eventScheduler: IEventScheduler by inject()
 }
 
+/**
+ * Marks a function within an [AbstractSystem] as an event handler.
+ */
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.RUNTIME)
 annotation class OnEventFire
 
+/**
+ * Requires that an event handler be executed for each event received,
+ * meaning that its nodes must always build successfully.
+ */
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.RUNTIME)
 annotation class Mandatory
 
+/**
+ * Allows an event handler to run in parallel with another event handlers,
+ * required when using awaiting objects or dependencies.
+ */
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.RUNTIME)
 annotation class OutOfOrderExecution
 
+/**
+ * Marks a node to be searched for in an entire object registry of the space.
+ */
 @Target(AnnotationTarget.VALUE_PARAMETER)
 @Retention(AnnotationRetention.RUNTIME)
 annotation class JoinAll

@@ -18,6 +18,9 @@
 
 package jp.assasans.narukami.server.core
 
+/**
+ * A registry of [T], basically a [MutableMap] wrapper.
+ */
 interface IRegistry<T> {
   val all: Set<T>
 
