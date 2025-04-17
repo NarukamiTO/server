@@ -18,13 +18,14 @@
 
 package jp.assasans.narukami.server.core
 
-import jp.assasans.narukami.server.core.impl.EventScheduler
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
 /**
  *
  */
-abstract class AbstractSystem {
-  val eventScheduler: IEventScheduler = EventScheduler()
+abstract class AbstractSystem : KoinComponent {
+  val eventScheduler: IEventScheduler by inject()
 }
 
 @Target(AnnotationTarget.FUNCTION)
@@ -34,6 +35,10 @@ annotation class OnEventFire
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.RUNTIME)
 annotation class Mandatory
+
+@Target(AnnotationTarget.FUNCTION)
+@Retention(AnnotationRetention.RUNTIME)
+annotation class OutOfOrderExecution
 
 @Target(AnnotationTarget.VALUE_PARAMETER)
 @Retention(AnnotationRetention.RUNTIME)

@@ -41,23 +41,23 @@ val KClass<out IEvent>.protocolId: Long
 
 context(AbstractSystem)
 fun <T : IEvent> T.schedule(node: Node): T {
-  eventScheduler.process(this, node.sender, node.gameObject)
+  eventScheduler.schedule(this, node.sender, node.gameObject)
   return this
 }
 
 context(AbstractSystem)
 fun <T : IEvent> T.schedule(sender: SpaceChannel, gameObject: IGameObject): T {
-  eventScheduler.process(this, sender, gameObject)
+  eventScheduler.schedule(this, sender, gameObject)
   return this
 }
 
 context(SpaceChannel)
 fun <T : IEvent> T.schedule(gameObject: IGameObject): T {
-  eventScheduler.process(this, this@SpaceChannel, gameObject)
+  eventScheduler.schedule(this, this@SpaceChannel, gameObject)
   return this
 }
 
 fun <T : IEvent> T.schedule(scheduler: EventScheduler, sender: SpaceChannel, gameObject: IGameObject): T {
-  scheduler.process(this, sender, gameObject)
+  scheduler.schedule(this, sender, gameObject)
   return this
 }

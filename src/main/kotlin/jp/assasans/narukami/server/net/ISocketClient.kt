@@ -22,51 +22,106 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.server.netty.*
 import io.netty.buffer.ByteBufAllocator
 import io.netty.channel.socket.SocketChannel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.onFailure
+import kotlinx.coroutines.launch
+import jp.assasans.narukami.server.extensions.toHexString
 import jp.assasans.narukami.server.net.session.ISession
 import jp.assasans.narukami.server.protocol.IProtocol
 import jp.assasans.narukami.server.protocol.Protocol
 import jp.assasans.narukami.server.protocol.ProtocolBuffer
 import jp.assasans.narukami.server.protocol.ProtocolBufferCodec
 
-interface ISocketClient {
+interface ISocketClient : CoroutineScope {
   val protocol: IProtocol
   var kind: IChannelKind
   var session: ISession?
 
+  fun process(buffer: ProtocolBuffer)
   fun send(buffer: ProtocolBuffer)
+
   suspend fun close()
 }
 
 class NettySocketClient(
-  val channel: SocketChannel
-) : ISocketClient {
+  val channel: SocketChannel,
+  private val scope: CoroutineScope
+) : ISocketClient,
+    CoroutineScope by scope {
   private val logger = KotlinLogging.logger { }
 
   override val protocol: IProtocol = Protocol()
   override var kind: IChannelKind = ControlChannel(this)
   override var session: ISession? = null
 
-  fun process(buffer: ProtocolBuffer) {
+  private val codec = ProtocolBufferCodec()
+
+  private val receiveQueue = Channel<ProtocolBuffer>(Channel.UNLIMITED)
+  private val readerJob = scope.launch {
+    for(buffer in receiveQueue) {
+      try {
+        processDirect(buffer)
+      } catch(exception: Exception) {
+        logger.error(exception) { "Error processing buffer $buffer" }
+      }
+    }
+  }
+
+  private val sendQueue = Channel<ProtocolBuffer>(Channel.UNLIMITED)
+  private val writerJob = scope.launch {
+    for(buffer in sendQueue) {
+      try {
+        sendDirect(buffer)
+      } catch(exception: Exception) {
+        logger.error(exception) { "Error sending buffer $buffer" }
+      }
+    }
+  }
+
+  private suspend fun sendDirect(buffer: ProtocolBuffer) {
+    logger.trace { "Sending ${buffer.data.readableBytes()} data bytes" }
+
+    val outBuffer = ByteBufAllocator.DEFAULT.buffer()
+
+    codec.encode(outBuffer, buffer)
+    buffer.data.release()
+
+    logger.trace { "Outgoing hex: ${outBuffer.toHexString()}" }
+
+    // Ownership of the buffer is transferred to Netty, no need to call release()
+    channel.writeAndFlush(outBuffer).suspendAwait()
+  }
+
+  override fun send(buffer: ProtocolBuffer) {
+    logger.debug { "Queueing outgoing $buffer" }
+    sendQueue.trySend(buffer).onFailure {
+      logger.error(it) { "Failed to enqueue outgoing buffer $buffer" }
+    }
+  }
+
+  override fun process(buffer: ProtocolBuffer) {
+    logger.debug { "Queueing incoming $buffer" }
+    receiveQueue.trySend(buffer).onFailure {
+      logger.error(it) { "Failed to enqueue incoming buffer $buffer" }
+    }
+  }
+
+  private suspend fun processDirect(buffer: ProtocolBuffer) {
     logger.trace { "Processing as $kind" }
     kind.process(buffer)
   }
 
-  override fun send(buffer: ProtocolBuffer) {
-    logger.trace { "Sending ${buffer.data.readableBytes()} bytes" }
-
-    val outBuffer = ByteBufAllocator.DEFAULT.buffer()
-    ProtocolBufferCodec().encode(outBuffer, buffer)
-    logger.trace { "Outgoing hex: ${outBuffer.toHexString()}" }
-
-    channel.writeAndFlush(outBuffer.copy()).sync()
-
-    // val buffer2 = ProtocolBufferCodec().decode(outBuffer)
-    // val command2 = protocol.getTypedCodec<ControlCommand>().decode(buffer2)
-    // println("decoded loopback $command2")
-  }
-
   override suspend fun close() {
     logger.debug { "Closing socket" }
+
+    receiveQueue.close()
+    sendQueue.close()
+
+    readerJob.cancelAndJoin()
+    writerJob.cancelAndJoin()
+
     channel.close().suspendAwait()
   }
 }

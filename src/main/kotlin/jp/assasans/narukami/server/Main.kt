@@ -27,6 +27,8 @@ import com.fasterxml.jackson.databind.module.SimpleModule
 import com.fasterxml.jackson.module.kotlin.KotlinFeature
 import com.fasterxml.jackson.module.kotlin.kotlinModule
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import org.apache.logging.log4j.Level
@@ -35,9 +37,11 @@ import org.koin.core.context.startKoin
 import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.module
 import org.koin.logger.SLF4JLogger
+import jp.assasans.narukami.server.core.IEventScheduler
 import jp.assasans.narukami.server.core.IRegistry
 import jp.assasans.narukami.server.core.ISessionRegistry
 import jp.assasans.narukami.server.core.ISpace
+import jp.assasans.narukami.server.core.impl.EventScheduler
 import jp.assasans.narukami.server.core.impl.Registry
 import jp.assasans.narukami.server.core.impl.SessionRegistry
 import jp.assasans.narukami.server.core.impl.SpaceInitializer
@@ -112,6 +116,8 @@ suspend fun main() {
       singleOf<ISessionRegistry>(::SessionRegistry)
       singleOf(::SpaceInitializer)
       singleOf(::SpaceEventProcessor)
+      // TODO: Probably should use a different coroutine context / dispatcher
+      single<IEventScheduler> { EventScheduler(CoroutineScope(Dispatchers.Default)) }
 
       singleOf(::ConfigServer)
       singleOf(::ResourceServer)

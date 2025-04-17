@@ -22,14 +22,11 @@ import kotlin.reflect.KClass
 import kotlin.reflect.full.createType
 import io.github.classgraph.ClassGraph
 import io.github.oshai.kotlinlogging.KotlinLogging
-import io.netty.buffer.ByteBufAllocator
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import jp.assasans.narukami.server.core.*
-import jp.assasans.narukami.server.core.impl.EventScheduler
 import jp.assasans.narukami.server.net.command.SpaceCommandHeader
 import jp.assasans.narukami.server.protocol.ICodec
-import jp.assasans.narukami.server.protocol.OptionalMap
 import jp.assasans.narukami.server.protocol.ProtocolBuffer
 import jp.assasans.narukami.server.protocol.getTypedCodec
 
@@ -65,16 +62,15 @@ class SpaceChannel(
   private val logger = KotlinLogging.logger { }
 
   private val spaceEventProcessor: SpaceEventProcessor by inject()
+  val eventScheduler: IEventScheduler by inject()
 
   private val commandHeaderCodec = protocol.getTypedCodec<SpaceCommandHeader>()
-
-  val eventScheduler: IEventScheduler = EventScheduler()
 
   suspend fun init() {
     ChannelAddedEvent(this).schedule(space.rootObject)
   }
 
-  override fun process(buffer: ProtocolBuffer) {
+  override suspend fun process(buffer: ProtocolBuffer) {
     var commandIndex = 0
     while(buffer.data.readableBytes() > 0) {
       logger.trace { "Processing command #$commandIndex" }
@@ -96,7 +92,9 @@ class SpaceChannel(
 
       val gameObject = space.objects.get(command.objectId) ?: error("Game object ${command.objectId} not found")
 
-      eventScheduler.process(event, this, gameObject)
+      // I don't know why, but using [handle] instead of [schedule] here makes some deadlock warnings not appear.
+      // It is safe to assume that [IChannelKind.process] methods must not block.
+      eventScheduler.schedule(event, this, gameObject)
     }
 
     if(buffer.data.readableBytes() > 0) {
@@ -119,7 +117,7 @@ class SpaceChannel(
    * Note: This is a low-level API, most of the time you should use [IEvent.schedule] instead.
    */
   fun sendBatched(batch: SpaceChannelOutgoingBatch) {
-    val buffer = ProtocolBuffer(ByteBufAllocator.DEFAULT.buffer(), OptionalMap())
+    val buffer = ProtocolBuffer.default()
 
     logger.trace { "Encoding batch with ${batch.commands.size} commands" }
     for(command in batch.commands) {

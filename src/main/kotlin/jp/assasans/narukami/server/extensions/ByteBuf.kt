@@ -1,5 +1,5 @@
 /*
- * Narukami TO - a server software reimplementation for a certain browser tank game.
+ * Araumi TO - a server software reimplementation for a certain browser tank game.
  * Copyright (c) 2025  Daniil Pryima
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,15 +16,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package jp.assasans.narukami.server.core
+package jp.assasans.narukami.server.extensions
 
-import jp.assasans.narukami.server.net.SpaceChannel
+import io.netty.buffer.ByteBuf
 
-interface IEventScheduler {
-  fun schedule(event: IEvent, sender: SpaceChannel, gameObject: IGameObject)
+fun ByteBuf.toHexString(): String {
+  val builder = StringBuilder()
+  val readerIndex = this.readerIndex()
+  for(index in 0 until this.readableBytes()) {
+    val byte = this.readByte()
+    builder.append(String.format("%02X", byte))
+  }
+  this.readerIndex(readerIndex)
 
-  /**
-   * Note: This is a low-level API, you should use [schedule] instead.
-   */
-  suspend fun process(event: IEvent, sender: SpaceChannel, gameObject: IGameObject)
+  return builder.toString()
 }

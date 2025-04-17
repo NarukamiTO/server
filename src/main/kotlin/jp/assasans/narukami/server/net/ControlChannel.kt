@@ -19,8 +19,6 @@
 package jp.assasans.narukami.server.net
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import io.netty.buffer.ByteBufAllocator
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -30,7 +28,6 @@ import jp.assasans.narukami.server.dispatcher.DispatcherLoadObjectsManagedEvent
 import jp.assasans.narukami.server.net.command.*
 import jp.assasans.narukami.server.net.session.Session
 import jp.assasans.narukami.server.net.session.SessionHash
-import jp.assasans.narukami.server.protocol.OptionalMap
 import jp.assasans.narukami.server.protocol.ProtocolBuffer
 import jp.assasans.narukami.server.protocol.getTypedCodec
 
@@ -48,7 +45,7 @@ class ControlChannel(socket: ISocketClient) : ChannelKind(socket), KoinComponent
 
   private val commandCodec = protocol.getTypedCodec<ControlCommand>()
 
-  override fun process(buffer: ProtocolBuffer) {
+  override suspend fun process(buffer: ProtocolBuffer) {
     var commandIndex = 0
     while(buffer.data.readableBytes() > 0) {
       logger.trace { "Decoding command #$commandIndex" }
@@ -82,9 +79,11 @@ class ControlChannel(socket: ISocketClient) : ChannelKind(socket), KoinComponent
             HashResponseCommand(hash, channelProtectionEnabled = false).enqueue()
           }
 
-          // Bootstrap the first space using low-level API,
-          // rest of the spaces should be opened using the Systems API
-          GlobalScope.launch {
+          // We start this in a separate coroutine to avoid deadlocks
+          // because [process] runs sequentially for received control commands.
+          socket.launch {
+            // Bootstrap the first space using low-level API, rest
+            // of the spaces should be opened using the Systems API.
             val channel = openSpace(0xaa55).await()
             val entranceObject = channel.space.objects.get(2) ?: error("Entrance object not found")
 
@@ -116,11 +115,11 @@ class ControlChannel(socket: ISocketClient) : ChannelKind(socket), KoinComponent
             throw IllegalStateException("Pending space channel not found for space ${command.spaceId}")
           }
 
+          // Mark pending space as opened
           (pendingSpace as DeferredPending<SpaceChannel>).complete(channel)
 
-          GlobalScope.launch {
-            (socket.kind as SpaceChannel).init()
-          }
+          // Initialize the space channel and schedule [ChannelAddedEvent]
+          (socket.kind as SpaceChannel).init()
 
           logger.info { "Initialized $socket as space channel" }
         }
@@ -152,7 +151,7 @@ class ControlChannel(socket: ISocketClient) : ChannelKind(socket), KoinComponent
   }
 
   fun send(command: ControlCommand) {
-    val buffer = ProtocolBuffer(ByteBufAllocator.DEFAULT.buffer(), OptionalMap())
+    val buffer = ProtocolBuffer.default()
     commandCodec.encode(buffer, command)
 
     logger.trace { "Sending command $command" }
@@ -163,7 +162,7 @@ class ControlChannel(socket: ISocketClient) : ChannelKind(socket), KoinComponent
     val batch = ControlChannelOutgoingBatch()
     block(batch)
 
-    val buffer = ProtocolBuffer(ByteBufAllocator.DEFAULT.buffer(), OptionalMap())
+    val buffer = ProtocolBuffer.default()
 
     logger.trace { "Encoding batch with ${batch.commands.size} commands" }
     for(command in batch.commands) {

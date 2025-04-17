@@ -47,6 +47,7 @@ class LobbySystem : AbstractSystem() {
   private val logger = KotlinLogging.logger { }
 
   @OnEventFire
+  @OutOfOrderExecution
   suspend fun channelAdded(
     event: ChannelAddedEvent,
     dispatcher: DispatcherNode,

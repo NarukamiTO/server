@@ -8,7 +8,7 @@
     <Console name="CONSOLE">
       <!-- <PatternLayout pattern="%d [%t] %p %c - %m%n" /> -->
       <PatternLayout disableAnsi="false"
-                     pattern="%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd HH:mm:ss.SSS}} %highlight{${LOG_LEVEL_PATTERN:-%5p}}{FATAL=red bold, ERROR=red, WARN=yellow bold, INFO=green, DEBUG=blue bold, TRACE=cyan} [%t] %style{%c}{cyan}: %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%xEx}" />
+                     pattern="%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd HH:mm:ss.SSS}} %highlight{${LOG_LEVEL_PATTERN:-%5p}}{FATAL=red bold, ERROR=red, WARN=yellow bold, INFO=green, DEBUG=blue bold, TRACE=cyan} [%t] %style{%c}{cyan}: %highlight{%m}{FATAL=red bold, ERROR=red bold, WARN=yellow, INFO=reset, DEBUG=reset, TRACE=reset}%n${LOG_EXCEPTION_CONVERSION_WORD:-%xEx}" />
     </Console>
     <File name="MAIN" fileName="logs/main.log">
       <JsonTemplateLayout />
@@ -24,6 +24,10 @@
     </Root>
 
     <Logger name="jp.assasans.narukami" level="DEBUG">
+      <AppenderRef ref="DEBUG_LOG" />
+    </Logger>
+
+    <Logger name="jp.assasans.narukami.server.core.impl.NodeBuilder" level="INFO">
       <AppenderRef ref="DEBUG_LOG" />
     </Logger>
 

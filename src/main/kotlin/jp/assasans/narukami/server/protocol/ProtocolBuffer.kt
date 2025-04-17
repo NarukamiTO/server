@@ -19,6 +19,10 @@
 package jp.assasans.narukami.server.protocol
 
 import io.netty.buffer.ByteBuf
+import io.netty.buffer.ByteBufAllocator
 
 class ProtocolBuffer(val data: ByteBuf, val optionalMap: OptionalMap) {
+  companion object {
+    fun default() = ProtocolBuffer(ByteBufAllocator.DEFAULT.buffer(), OptionalMap())
+  }
 }

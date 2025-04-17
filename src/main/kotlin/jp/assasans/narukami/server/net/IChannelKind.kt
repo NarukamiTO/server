@@ -25,7 +25,7 @@ import jp.assasans.narukami.server.protocol.ProtocolBuffer
 sealed interface IChannelKind {
   val socket: ISocketClient
 
-  fun process(buffer: ProtocolBuffer)
+  suspend fun process(buffer: ProtocolBuffer)
 }
 
 val IChannelKind.protocol: IProtocol

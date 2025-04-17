@@ -39,6 +39,7 @@ class LoginSystem : AbstractSystem(), KoinComponent {
 
   @OnEventFire
   @Mandatory
+  @OutOfOrderExecution
   suspend fun login(event: LoginModelLoginEvent, entrance: EntranceNode) {
     logger.info { "Login event: $event" }
 

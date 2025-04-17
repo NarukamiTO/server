@@ -116,6 +116,7 @@ class DispatcherSystem : AbstractSystem() {
 
   @OnEventFire
   @Mandatory
+  @OutOfOrderExecution
   suspend fun loadObjectsManaged(event: DispatcherLoadObjectsManagedEvent, any: DispatcherNode) {
     logger.info { "Load objects managed: $event" }
 

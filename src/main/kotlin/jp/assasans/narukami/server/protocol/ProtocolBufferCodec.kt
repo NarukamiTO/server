@@ -20,7 +20,7 @@ package jp.assasans.narukami.server.protocol
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.netty.buffer.ByteBuf
-import jp.assasans.narukami.server.net.toHexString
+import jp.assasans.narukami.server.extensions.toHexString
 
 class ProtocolBufferCodec {
   companion object {

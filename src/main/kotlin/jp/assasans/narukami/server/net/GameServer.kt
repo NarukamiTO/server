@@ -19,26 +19,23 @@
 package jp.assasans.narukami.server.net
 
 import java.net.InetSocketAddress
-import kotlin.coroutines.CoroutineContext
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.ktor.server.netty.*
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.ByteBufAllocator
 import io.netty.buffer.Unpooled
 import io.netty.channel.ChannelHandlerContext
-import io.netty.channel.ChannelInboundHandlerAdapter
 import io.netty.channel.ChannelInitializer
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.SocketChannel
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.handler.codec.ByteToMessageDecoder
-import io.netty.handler.codec.MessageToByteEncoder
-import kotlinx.coroutines.*
-import jp.assasans.narukami.server.net.command.ControlCommand
-import jp.assasans.narukami.server.protocol.Protocol
-import jp.assasans.narukami.server.protocol.ProtocolBuffer
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import jp.assasans.narukami.server.extensions.toHexString
 import jp.assasans.narukami.server.protocol.ProtocolBufferCodec
-import jp.assasans.narukami.server.protocol.getTypedCodec
 
 class GameServer {
   private val logger = KotlinLogging.logger { }
@@ -55,11 +52,10 @@ class GameServer {
         .localAddress(InetSocketAddress(port))
         .childHandler(object : ChannelInitializer<SocketChannel>() {
           override fun initChannel(channel: SocketChannel) {
-            val socket = NettySocketClient(channel)
+            // TODO: Probably should use a different coroutine context / dispatcher
+            val socket = NettySocketClient(channel, CoroutineScope(Dispatchers.IO))
 
             channel.pipeline().addLast("decoder", ProtocolDecoder(socket))
-            // channel.pipeline().addLast("encoder", ProtocolEncoder())
-            // channel.pipeline().addLast(CoroutineServerHandler())
           }
         })
 
@@ -76,7 +72,9 @@ class GameServer {
   }
 }
 
-class ProtocolDecoder(val socket: NettySocketClient) : ByteToMessageDecoder() {
+class ProtocolDecoder(
+  private val socket: NettySocketClient
+) : ByteToMessageDecoder() {
   private val logger = KotlinLogging.logger { }
 
   private val codec = ProtocolBufferCodec()
@@ -99,14 +97,16 @@ class ProtocolDecoder(val socket: NettySocketClient) : ByteToMessageDecoder() {
       if(request.contentEquals(policyFileRequest)) {
         buffer.discardReadBytes()
 
-        logger.info { "Responded with Adobe Flash cross-domain policy" }
-        ctx.writeAndFlush(Unpooled.wrappedBuffer(buildString {
-          appendLine("<?xml version=\"1.0\"?>")
-          appendLine("<cross-domain-policy>")
-          appendLine("<allow-access-from domain=\"*\" to-ports=\"*\"/>")
-          appendLine("</cross-domain-policy>")
-        }.toByteArray())).sync()
-        ctx.close().sync()
+        socket.launch {
+          logger.info { "Responded with Adobe Flash cross-domain policy" }
+          ctx.writeAndFlush(Unpooled.wrappedBuffer(buildString {
+            appendLine("<?xml version=\"1.0\"?>")
+            appendLine("<cross-domain-policy>")
+            appendLine("<allow-access-from domain=\"*\" to-ports=\"*\"/>")
+            appendLine("</cross-domain-policy>")
+          }.toByteArray())).suspendAwait()
+          socket.close()
+        }
         return
       } else {
         buffer.resetReaderIndex()
@@ -138,94 +138,12 @@ class ProtocolDecoder(val socket: NettySocketClient) : ByteToMessageDecoder() {
 
       socket.process(protocolBuffer)
     }
-
-    // val bytes = ByteArray(input.readableBytes())
-    // input.readBytes(bytes)
-    //
-    // val protocol = Protocol()
-    // // val array = ByteArray(input.readableBytes())
-    // // input.readBytes(array)
-    // // println("data: ${array.decodeToString()}")
-    // val buffer = ProtocolBufferCodec().decode(input)
-    // val command = protocol.getTypedCodec<ControlCommand>().decode(buffer)
-    // println("decoded $command")
-    //
-    // when(command) {
-    //   is HashRequestCommand -> {
-    //     val outBuffer = ProtocolBuffer(ByteBufAllocator.DEFAULT.buffer(), OptionalMap())
-    //     protocol.getTypedCodec<ControlCommand>().encode(outBuffer, HashResponseCommand(
-    //       hash = ByteArray(32) { 0xff.toByte() },
-    //       channelProtectionEnabled = false
-    //     ))
-    //     protocol.getTypedCodec<ControlCommand>().encode(outBuffer, OpenSpaceCommand(
-    //       spaceId = 0xaa55
-    //     ))
-    //
-    //     out.add(outBuffer)
-    //   }
-    //
-    //   else                  -> TODO("Unknown command: $command")
-    // }
-
-    // val data = ByteArray(buffer.data.readableBytes())
-    // buffer.data.readBytes(data)
-    // logger.info { "Encoded: ${data.toHexString()}" }
-  }
-}
-
-fun ByteBuf.toHexString(): String {
-  val builder = StringBuilder()
-  val readerIndex = this.readerIndex()
-  for(index in 0 until this.readableBytes()) {
-    val byte = this.readByte()
-    builder.append(String.format("%02X", byte))
-  }
-  this.readerIndex(readerIndex)
-
-  return builder.toString()
-}
-
-class ProtocolEncoder : MessageToByteEncoder<ProtocolBuffer>() {
-  override fun encode(ctx: ChannelHandlerContext, buffer: ProtocolBuffer, out: ByteBuf) {
-    val protocol = Protocol()
-    val codec = ProtocolBufferCodec()
-
-    val outBuffer = ByteBufAllocator.DEFAULT.buffer()
-    codec.encode(outBuffer, buffer)
-    println("response hex: ${outBuffer.toHexString()}")
-
-    out.writeBytes(outBuffer.copy())
-
-    val packetLength = checkNotNull(codec.getPacketLength(outBuffer)) { "Not enough data to decode packet length" }
-    val buffer2 = codec.decode(outBuffer, packetLength)
-    val command2 = protocol.getTypedCodec<ControlCommand>().decode(buffer2)
-    println("decoded loopback $command2")
-  }
-}
-
-class CoroutineServerHandler : ChannelInboundHandlerAdapter(), CoroutineScope {
-  private val job = SupervisorJob()
-  override val coroutineContext: CoroutineContext
-    get() = Dispatchers.Default + job
-
-  override fun channelRead(ctx: ChannelHandlerContext, message: Any) {
-    launch {
-      // Switch back to event loop thread to respond
-      withContext(ctx.executor().asCoroutineDispatcher()) {
-        ctx.writeAndFlush(message).sync()
-      }
-    }
-  }
-
-  @Suppress("OVERRIDE_DEPRECATION")
-  override fun exceptionCaught(ctx: ChannelHandlerContext, cause: Throwable) {
-    cause.printStackTrace()
-    ctx.close()
   }
 
   override fun channelInactive(ctx: ChannelHandlerContext) {
-    // Cancel all coroutines when the channel is closed
-    job.cancel()
     super.channelInactive(ctx)
+
+    logger.debug { "Channel for $socket inactive, releasing buffer" }
+    buffer.release()
   }
 }

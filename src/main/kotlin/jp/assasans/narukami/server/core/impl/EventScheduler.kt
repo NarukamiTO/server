@@ -20,8 +20,13 @@ package jp.assasans.narukami.server.core.impl
 
 import kotlin.reflect.KParameter
 import kotlin.reflect.full.*
+import kotlin.time.Duration.Companion.seconds
 import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.onFailure
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.dispatcher.DispatcherSystem
@@ -31,10 +36,36 @@ import jp.assasans.narukami.server.lobby.LobbySystem
 import jp.assasans.narukami.server.lobby.communication.ChatSystem
 import jp.assasans.narukami.server.net.SpaceChannel
 
-class EventScheduler : IEventScheduler {
+data class ScheduledEvent(
+  val event: IEvent,
+  val sender: SpaceChannel,
+  val gameObject: IGameObject
+)
+
+class EventScheduler(private val scope: CoroutineScope) : IEventScheduler {
   private val logger = KotlinLogging.logger { }
 
-  override fun process(event: IEvent, sender: SpaceChannel, gameObject: IGameObject) {
+  private val eventQueue = Channel<ScheduledEvent>(Channel.UNLIMITED)
+  private val eventJob = scope.launch {
+    for(scheduledEvent in eventQueue) {
+      try {
+        process(scheduledEvent.event, scheduledEvent.sender, scheduledEvent.gameObject)
+      } catch(exception: Exception) {
+        logger.error(exception) { "Error processing event $scheduledEvent" }
+      }
+    }
+  }
+
+  override fun schedule(event: IEvent, sender: SpaceChannel, gameObject: IGameObject) {
+    val scheduledEvent = ScheduledEvent(event, sender, gameObject)
+
+    logger.debug { "Scheduling event $scheduledEvent" }
+    eventQueue.trySend(scheduledEvent).onFailure {
+      logger.error(it) { "Failed to schedule event $scheduledEvent" }
+    }
+  }
+
+  override suspend fun process(event: IEvent, sender: SpaceChannel, gameObject: IGameObject) {
     if(event is IClientEvent) {
       sender.sendBatched {
         event.attach(gameObject).enqueue()
@@ -46,7 +77,7 @@ class EventScheduler : IEventScheduler {
 
   // Because it looks awful
   @Suppress("FoldInitializerAndIfToElvis")
-  private fun processServerEvent(event: IEvent, sender: SpaceChannel, gameObject: IGameObject) {
+  private suspend fun processServerEvent(event: IEvent, sender: SpaceChannel, gameObject: IGameObject) {
     logger.info { "Processing server event: $event" }
 
     val systems = listOf(
@@ -69,6 +100,7 @@ class EventScheduler : IEventScheduler {
           throw IllegalArgumentException("Method $method is not an instance method")
         }
 
+        val outOfOrder = method.hasAnnotation<OutOfOrderExecution>()
         val mandatory = method.hasAnnotation<Mandatory>()
         val parameters = method.valueParameters
 
@@ -142,8 +174,24 @@ class EventScheduler : IEventScheduler {
 
         logger.trace { "Invoking ${system.qualifiedName}::${method.name} with ${args.mapKeys { (parameter, _) -> "(${parameter.name}: ${parameter.type})" }}" }
         if(method.isSuspend) {
-          GlobalScope.launch {
-            method.callSuspendBy(args)
+          if(outOfOrder) {
+            sender.socket.launch {
+              method.callSuspendBy(args)
+            }
+          } else {
+            val timeout = 5.seconds
+            val job = scope.launch {
+              delay(timeout)
+              logger.error { "Method ${system.qualifiedName}::${method.name} timed out ($timeout) while processing $event" }
+              logger.error { "Possible deadlock detected, try marking event handler with @${OutOfOrderExecution::class.simpleName} to not suspend incoming command queue" }
+            }
+
+            try {
+              method.callSuspendBy(args)
+              logger.trace { "Method ${system.qualifiedName}::${method.name} processed $event" }
+            } finally {
+              job.cancelAndJoin()
+            }
           }
         } else {
           method.callBy(args)
