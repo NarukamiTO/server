@@ -22,6 +22,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import jp.assasans.narukami.server.core.*
+import jp.assasans.narukami.server.dispatcher.DispatcherNode
 import jp.assasans.narukami.server.dispatcher.DispatcherOpenSpaceEvent
 import jp.assasans.narukami.server.dispatcher.preloadResources
 import jp.assasans.narukami.server.res.Eager
@@ -40,7 +41,11 @@ class LoginSystem : AbstractSystem(), KoinComponent {
   @OnEventFire
   @Mandatory
   @OutOfOrderExecution
-  suspend fun login(event: LoginModelLoginEvent, entrance: EntranceNode) {
+  suspend fun login(
+    event: LoginModelLoginEvent,
+    entrance: EntranceNode,
+    @JoinAll dispatcher: DispatcherNode,
+  ) {
     logger.info { "Login event: $event" }
 
     if(event.password.isNotEmpty() && event.password.length % 2 == 0) {
@@ -56,7 +61,7 @@ class LoginSystem : AbstractSystem(), KoinComponent {
       return
     }
 
-    DispatcherOpenSpaceEvent(0x55aa).schedule(entrance).await()
+    DispatcherOpenSpaceEvent(0x55aa).schedule(dispatcher).await()
 
     // Close the entrance space channel to trigger loading screen on the client
     entrance.sender.close()

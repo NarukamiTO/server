@@ -1,5 +1,5 @@
 /*
- * Narukami TO - a server software reimplementation for a certain browser tank game.
+ * Araumi TO - a server software reimplementation for a certain browser tank game.
  * Copyright (c) 2025  Daniil Pryima
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,25 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package jp.assasans.narukami.server.core
+package jp.assasans.narukami.server.dispatcher
 
-import jp.assasans.narukami.server.net.SpaceChannel
+import jp.assasans.narukami.server.core.IModelConstructor
+import jp.assasans.narukami.server.net.command.ProtocolModel
 
-open class Node {
-  lateinit var sender: SpaceChannel
-    private set
-  lateinit var gameObject: IGameObject
-    private set
-
-  fun init(sender: SpaceChannel, gameObject: IGameObject) {
-    this.sender = sender
-    this.gameObject = gameObject
-  }
-}
-
-data class SingleNode<T : IModelConstructor>(
-  val node: T
-) : Node()
-
-val Iterable<Node>.gameObjects: List<IGameObject>
-  get() = map { it.gameObject }
+@ProtocolModel(821863604528384663)
+class DispatcherModelCC : IModelConstructor

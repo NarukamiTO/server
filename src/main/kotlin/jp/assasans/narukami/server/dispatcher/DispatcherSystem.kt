@@ -45,7 +45,7 @@ data class DeferredDependenciesTemplate(
 ) : ITemplate
 
 class DispatcherNode(
-  // val dispatcher: DispatcherCC
+  val dispatcher: DispatcherModelCC,
 ) : Node()
 
 class DispatcherSystem : AbstractSystem() {
@@ -53,26 +53,30 @@ class DispatcherSystem : AbstractSystem() {
 
   @OnEventFire
   @Mandatory
-  suspend fun preloadResourcesWrapped(event: PreloadResourcesWrappedEvent<*>, any: Node) {
-    val resources = event.event::class
+  suspend fun preloadResourcesWrapped(
+    event: PreloadResourcesWrappedEvent<*>,
+    any: Node,
+    @JoinAll dispatcher: DispatcherNode,
+  ) {
+    val resources = event.inner::class
       .declaredMemberProperties
       .filter { it.returnType.kotlinClass.isSubclassOf(Resource::class) }
-      .map { it.getter.call(event.event) as Resource<*, *> }
+      .map { it.getter.call(event.inner) as Resource<*, *> }
       .toList()
     logger.debug { "Preload resources: $resources" }
 
     DispatcherLoadDependenciesManagedEvent(
       classes = listOf(),
       resources = resources
-    ).schedule(any.sender, any.gameObject).await()
+    ).schedule(dispatcher).await()
     logger.debug { "Resources preloaded" }
 
-    event.event.schedule(any.sender, any.gameObject)
+    event.inner.schedule(any)
   }
 
   @OnEventFire
   @Mandatory
-  suspend fun loadDependenciesManaged(event: DispatcherLoadDependenciesManagedEvent, any: Node) {
+  suspend fun loadDependenciesManaged(event: DispatcherLoadDependenciesManagedEvent, dispatcher: DispatcherNode) {
     logger.info { "Load dependencies managed: $event" }
 
     // TODO: Use a better ID source, it is used as temporary object ID,
@@ -90,7 +94,7 @@ class DispatcherSystem : AbstractSystem() {
         )
       )
     )
-    any.sender.space.objects.add(deferredDependenciesObject)
+    dispatcher.sender.space.objects.add(deferredDependenciesObject)
 
     DispatcherModelLoadDependenciesEvent(
       dependencies = ObjectsDependencies.new(
@@ -98,26 +102,26 @@ class DispatcherSystem : AbstractSystem() {
         classes = event.classes,
         resources = event.resources
       )
-    ).schedule(any.sender, any.gameObject)
+    ).schedule(dispatcher)
   }
 
   @OnEventFire
   @Mandatory
-  suspend fun dependenciesLoaded(event: DispatcherModelDependenciesLoadedEvent, any: Node) {
+  suspend fun dependenciesLoaded(event: DispatcherModelDependenciesLoadedEvent, dispatcher: DispatcherNode) {
     logger.info { "Dependencies loaded: ${event.callbackId}" }
 
-    val deferredDependenciesObject = any.sender.space.objects.get(event.callbackId.toLong())
+    val deferredDependenciesObject = dispatcher.sender.space.objects.get(event.callbackId.toLong())
                                      ?: error("Deferred dependencies object ${event.callbackId} not found")
-    val deferredDependencies = deferredDependenciesObject.adaptSingle<DeferredDependenciesCC>(any.sender)
+    val deferredDependencies = deferredDependenciesObject.adaptSingle<DeferredDependenciesCC>(dispatcher.sender)
     deferredDependencies.deferred.complete(Unit)
-    any.sender.space.objects.remove(deferredDependenciesObject)
+    dispatcher.sender.space.objects.remove(deferredDependenciesObject)
     logger.info { "Deferred dependencies $deferredDependencies resolved" }
   }
 
   @OnEventFire
   @Mandatory
   @OutOfOrderExecution
-  suspend fun loadObjectsManaged(event: DispatcherLoadObjectsManagedEvent, any: DispatcherNode) {
+  suspend fun loadObjectsManaged(event: DispatcherLoadObjectsManagedEvent, dispatcher: DispatcherNode) {
     logger.info { "Load objects managed: $event" }
 
     // TODO: Use a better ID source, it is used as temporary object ID,
@@ -128,14 +132,14 @@ class DispatcherSystem : AbstractSystem() {
       classes = event.objects.map { it.parent },
       resources = event.objects.flatMap { gameObject ->
         gameObject.models.values.flatMap { model ->
-          model.provide(gameObject, any.sender).getResources()
+          model.provide(gameObject, dispatcher.sender).getResources()
         }
       }
-    ).schedule(any).await()
+    ).schedule(dispatcher).await()
 
     DispatcherModelLoadObjectsDataEvent(
-      objectsData = ObjectsData.new(event.objects, any.sender)
-    ).schedule(any)
+      objectsData = ObjectsData.new(event.objects, dispatcher.sender)
+    ).schedule(dispatcher)
 
     logger.info { "Objects loaded: $event" }
     event.deferred.complete(Unit)
@@ -143,12 +147,12 @@ class DispatcherSystem : AbstractSystem() {
 
   @OnEventFire
   @Mandatory
-  suspend fun openSpace(event: DispatcherOpenSpaceEvent, any: Node) {
+  suspend fun openSpace(event: DispatcherOpenSpaceEvent, dispatcher: DispatcherNode) {
     logger.info { "Open space channel: $event" }
 
     // Space management is too low-level for the Systems API,
     // we just bridge event to control channel API.
-    val session = any.sender.sessionNotNull
+    val session = dispatcher.sender.sessionNotNull
     val channel = session.controlChannel.openSpace(event.id).await()
     event.deferred.complete(channel)
 

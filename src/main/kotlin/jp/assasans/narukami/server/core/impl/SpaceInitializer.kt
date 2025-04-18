@@ -230,8 +230,28 @@ class SpaceInitializer(
             theme = MapTheme.SUMMER_NIGHT
           )
         )
-      )
-      objects.add(mapInfoObject)
+      ).also { objects.add(it) }
+
+      TransientGameObject.instantiate(
+        11,
+        mapInfoClass,
+        MapInfoTemplate(
+          mapInfo = MapInfoModelCC(
+            defaultTheme = MapTheme.SUMMER_NIGHT,
+            enabled = true,
+            mapId = 11,
+            mapName = "Spawn Test 2",
+            matchmakingMark = false,
+            maxPeople = 32,
+            preview = gameResourceRepository.get("entrance.background", emptyMap(), ImageRes, Lazy),
+            rankLimit = Range(min = 1, max = 31),
+            supportedModes = listOf(
+              BattleMode.DM,
+            ),
+            theme = MapTheme.SUMMER_NIGHT
+          )
+        )
+      ).also { objects.add(it) }
 
       val battleInfoClass = TemplatedGameClass.fromTemplate(DMBattleInfoTemplate::class)
       val battleInfoObject = TransientGameObject.instantiate(

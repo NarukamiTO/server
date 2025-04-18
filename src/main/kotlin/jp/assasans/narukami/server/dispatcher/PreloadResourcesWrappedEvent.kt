@@ -27,5 +27,5 @@ import jp.assasans.narukami.server.core.IEvent
  * e.g. in [jp.assasans.narukami.server.entrance.EntranceAlertModelShowAlertEvent].
  */
 data class PreloadResourcesWrappedEvent<T : IEvent>(
-  val event: T
+  val inner: T
 ) : IEvent

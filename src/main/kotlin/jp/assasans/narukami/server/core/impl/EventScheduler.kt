@@ -78,11 +78,17 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler {
     }
   }
 
+  data class NodeParameterDefinition(
+    val parameter: KParameter,
+    val nodeDefinition: NodeDefinition,
+    val isList: Boolean,
+  )
+
   data class EventHandlerDefinition(
     val event: KClass<out IEvent>,
     val system: KClass<out AbstractSystem>,
     val function: KFunction<*>,
-    val nodes: Map<KParameter, NodeDefinition>
+    val nodes: List<NodeParameterDefinition>,
   ) {
     val mandatory = function.hasAnnotation<Mandatory>()
     val outOfOrder = function.hasAnnotation<OutOfOrderExecution>()
@@ -112,12 +118,21 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler {
           }
 
           val nodeParameters = parameters.drop(1)
-          val nodes = nodeParameters.associateWith { parameter ->
-            val type = parameter.type
+          val nodes = nodeParameters.map { parameter ->
+            var type = parameter.type
+            var isList = false
+            if(type.kotlinClass.isSubclassOf(List::class)) {
+              type = requireNotNull(type.arguments[0].type) {
+                "${system.qualifiedName}::${function.name} parameter ${parameter.name} has an illegal List<T> type argument"
+              }
+              isList = true
+            }
             if(!type.kotlinClass.isSubclassOf(Node::class)) {
               throw IllegalArgumentException("${system.qualifiedName}::${function.name} parameter ${parameter.name} illegal type $type")
             }
-            nodeBuilder.getNodeDefinition(type)
+
+            val nodeDefinition = nodeBuilder.getNodeDefinition(type)
+            NodeParameterDefinition(parameter, nodeDefinition, isList)
           }
 
           @Suppress("UNCHECKED_CAST")
@@ -131,7 +146,7 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler {
     }
 
     for(handler in handlers) {
-      logger.info { "Discovered event handler: ${handler.system.qualifiedName}::${handler.function.name} for ${handler.event.qualifiedName} with ${handler.nodes.values}" }
+      logger.info { "Discovered event handler: ${handler.system.qualifiedName}::${handler.function.name} for ${handler.event.qualifiedName} with ${handler.nodes.map { it.nodeDefinition }}" }
     }
   }
 
@@ -180,32 +195,55 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler {
    */
   private fun buildNodes(
     sender: SpaceChannel,
-    gameObject: IGameObject,
+    contextGameObject: IGameObject,
     handler: EventHandlerDefinition,
     args: MutableMap<KParameter, Any?>
   ): Boolean {
-    for((parameter, nodeDefinition) in handler.nodes) {
+    for(nodeParameter in handler.nodes) {
+      val (parameter, nodeDefinition) = nodeParameter
+
       val joinAll = parameter.hasAnnotation<JoinAll>()
-      var node: Node? = null
-      if(!joinAll) {
-        node = tryProvideNode(sender, nodeDefinition, gameObject)
-      } else {
+      if(joinAll) {
         val objects = sender.space.objects.all
+        val nodes = mutableListOf<Node>()
         for(nodeGameObject in objects) {
-          node = tryProvideNode(sender, nodeDefinition, nodeGameObject)
-          if(node != null) break
+          val node = tryProvideNode(sender, nodeDefinition, nodeGameObject)
+          if(node != null) {
+            nodes.add(node)
+          }
         }
+
+        if(nodeParameter.isList) {
+          args[parameter] = nodes
+          logger.trace { "Built @JoinAll nodes $nodes for ${parameter.name}" }
+        } else {
+          val node = when(nodes.size) {
+            0    -> {
+              if(handler.mandatory) throw IllegalArgumentException("Failed to build node $nodeDefinition for ${handler.system.qualifiedName}::${handler.function.name}")
+
+              logger.trace { "Failed to build node $nodeDefinition" }
+              return false
+            }
+
+            1    -> nodes[0]
+            else -> throw IllegalArgumentException("Expected one game object for ${parameter.name} of ${handler.system.qualifiedName}::${handler.function.name}, got ${nodes.size}")
+          }
+
+          args[parameter] = node
+          logger.trace { "Built @JoinAll node $node for ${parameter.name}" }
+        }
+      } else {
+        val node = tryProvideNode(sender, nodeDefinition, contextGameObject)
+        if(node == null) {
+          if(handler.mandatory) throw IllegalArgumentException("Failed to build context node $nodeDefinition for ${handler.system.qualifiedName}::${handler.function.name}, got $contextGameObject")
+
+          logger.trace { "Failed to build context node $nodeDefinition" }
+          return false
+        }
+
+        args[parameter] = node
+        logger.trace { "Built context node $node for ${parameter.name}" }
       }
-
-      if(node == null) {
-        if(handler.mandatory) throw IllegalArgumentException("Failed to build node $nodeDefinition")
-
-        logger.trace { "Failed to build node $nodeDefinition" }
-        return false
-      }
-
-      args[parameter] = node
-      logger.trace { "Built node $node for ${parameter.name}" }
     }
 
     return true

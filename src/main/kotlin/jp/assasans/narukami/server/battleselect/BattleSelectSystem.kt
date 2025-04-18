@@ -42,16 +42,16 @@ class BattleSelectSystem : AbstractSystem() {
     event: NodeAddedEvent,
     battleSelect: SingleNode<BattleSelectModelCC>,
     @JoinAll dispatcher: DispatcherNode,
-    @JoinAll mapInfo: MapInfoNode,
-    @JoinAll battleInfo: BattleInfoNode,
+    @JoinAll mapInfo: List<MapInfoNode>,
+    @JoinAll battleInfo: List<BattleInfoNode>,
     @JoinAll battleCreate: SingleNode<BattleCreateModelCC>,
   ) {
     // The order of loading objects is important, map info objects must be loaded
     // before battle create object, otherwise the client won't see any maps in battle create.
-    DispatcherLoadObjectsManagedEvent(listOf(mapInfo.gameObject, battleCreate.gameObject)).schedule(dispatcher).await()
+    DispatcherLoadObjectsManagedEvent(mapInfo.gameObjects + listOf(battleCreate.gameObject)).schedule(dispatcher).await()
     logger.info { "Loaded map objects" }
 
-    DispatcherLoadObjectsManagedEvent(listOf(battleInfo.gameObject)).schedule(dispatcher).await()
+    DispatcherLoadObjectsManagedEvent(battleInfo.gameObjects).schedule(dispatcher).await()
     logger.info { "Loaded battle objects" }
 
     // Update battle list on the client

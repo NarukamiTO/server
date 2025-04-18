@@ -22,6 +22,8 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import jp.assasans.narukami.server.core.IGameObject
 import jp.assasans.narukami.server.core.IRegistry
 import jp.assasans.narukami.server.core.ISpace
+import jp.assasans.narukami.server.core.StaticModelProvider
+import jp.assasans.narukami.server.dispatcher.DispatcherModelCC
 
 class Space(override val id: Long) : ISpace {
   private val logger = KotlinLogging.logger { }
@@ -29,7 +31,7 @@ class Space(override val id: Long) : ISpace {
   companion object {
     val ROOT_CLASS = TransientGameClass(
       id = 0,
-      models = listOf()
+      models = listOf(DispatcherModelCC::class)
     )
   }
 
@@ -39,6 +41,8 @@ class Space(override val id: Long) : ISpace {
     get() = objects.get(id) ?: error("No root object for space $id")
 
   init {
-    objects.add(TransientGameObject(id, ROOT_CLASS))
+    val rootObject = TransientGameObject(id, ROOT_CLASS)
+    rootObject.models[DispatcherModelCC::class] = StaticModelProvider(DispatcherModelCC())
+    objects.add(rootObject)
   }
 }
