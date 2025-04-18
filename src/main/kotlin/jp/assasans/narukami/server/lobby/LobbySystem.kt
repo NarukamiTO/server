@@ -121,4 +121,36 @@ class LobbySystem : AbstractSystem() {
     // loading screen automatically appears on the client. This event hides it.
     LobbyLayoutNotifyModelCancelPredictedLayoutSwitchEvent().schedule(lobby)
   }
+
+  @OnEventFire
+  @Mandatory
+  fun showMatchmaking(
+    event: LobbyLayoutModelShowMatchmakingEvent,
+    lobby: LobbyNode,
+  ) {
+    logger.warn { "Show matchmaking is not implemented" }
+    LobbyLayoutNotifyModelBeginLayoutSwitchEvent(LayoutState.MATCHMAKING).schedule(lobby)
+    LobbyLayoutNotifyModelEndLayoutSwitchEvent(LayoutState.MATCHMAKING, LayoutState.BATTLE_SELECT).schedule(lobby)
+  }
+
+  @OnEventFire
+  @Mandatory
+  fun showGarage(
+    event: LobbyLayoutModelShowGarageEvent,
+    lobby: LobbyNode,
+  ) {
+    logger.warn { "Show garage is not implemented" }
+    LobbyLayoutNotifyModelBeginLayoutSwitchEvent(LayoutState.GARAGE).schedule(lobby)
+    LobbyLayoutNotifyModelEndLayoutSwitchEvent(LayoutState.GARAGE, LayoutState.BATTLE_SELECT).schedule(lobby)
+  }
+
+  @OnEventFire
+  @Mandatory
+  fun showGarage(
+    event: LobbyLayoutModelShowBattleSelectEvent,
+    lobby: LobbyNode,
+  ) {
+    logger.warn { "Show battle select is not implemented" }
+    LobbyLayoutNotifyModelCancelPredictedLayoutSwitchEvent().schedule(lobby)
+  }
 }

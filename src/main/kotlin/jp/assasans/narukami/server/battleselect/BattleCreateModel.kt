@@ -18,7 +18,10 @@
 
 package jp.assasans.narukami.server.battleselect
 
+import jp.assasans.narukami.server.core.IClientEvent
 import jp.assasans.narukami.server.core.IModelConstructor
+import jp.assasans.narukami.server.core.IServerEvent
+import jp.assasans.narukami.server.net.command.ProtocolEvent
 import jp.assasans.narukami.server.net.command.ProtocolModel
 
 @ProtocolModel(8618289906968528240)
@@ -30,3 +33,27 @@ data class BattleCreateModelCC(
   val maxRangeLength: Int,
   val ultimatesEnabled: Boolean,
 ) : IModelConstructor
+
+@ProtocolEvent(8492555063055567877)
+data class BattleCreateModelCheckBattleNameForForbiddenWordsEvent(val battleName: String) : IServerEvent
+
+@ProtocolEvent(9127975309708990143)
+data class BattleCreateModelCreateBattleEvent(val params: BattleCreateParameters) : IServerEvent
+
+/**
+ * Does nothing in the official client.
+ */
+@ProtocolEvent(849912474669372210)
+class BattleCreateModelCreateFailedBattleCreateDisabledEvent : IClientEvent
+
+@ProtocolEvent(7542085633816094294)
+class BattleCreateModelCreateFailedServerIsHaltingEvent : IClientEvent
+
+@ProtocolEvent(3748490273709739281)
+class BattleCreateModelCreateFailedTooManyBattlesFromYouEvent : IClientEvent
+
+@ProtocolEvent(4735121264368139887)
+class BattleCreateModelCreateFailedYouAreBannedEvent : IClientEvent
+
+@ProtocolEvent(5425510324539583895)
+data class BattleCreateModelSetFilteredBattleNameEvent(val filteredName: String) : IClientEvent

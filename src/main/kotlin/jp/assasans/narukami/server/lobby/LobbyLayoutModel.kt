@@ -19,7 +19,33 @@
 package jp.assasans.narukami.server.lobby
 
 import jp.assasans.narukami.server.core.IModelConstructor
+import jp.assasans.narukami.server.core.IServerEvent
+import jp.assasans.narukami.server.net.command.ProtocolEvent
 import jp.assasans.narukami.server.net.command.ProtocolModel
 
 @ProtocolModel(5255782026414758079)
 class LobbyLayoutModelCC : IModelConstructor
+
+@ProtocolEvent(5959324075159807966)
+data class LobbyLayoutModelExitFromBattleEvent(val destinationState: LayoutState) : IServerEvent
+
+@ProtocolEvent(317093744711721659)
+class LobbyLayoutModelExitFromBattleToBattleLobbyEvent : IServerEvent
+
+@ProtocolEvent(4891344138206681215)
+class LobbyLayoutModelReturnToBattleEvent : IServerEvent
+
+@ProtocolEvent(4349186924909218012)
+data class LobbyLayoutModelSetBattleLobbyLayoutEvent(val showBattleSelect: Boolean) : IServerEvent
+
+@ProtocolEvent(4837515384098060529)
+class LobbyLayoutModelShowBattleSelectEvent : IServerEvent
+
+@ProtocolEvent(8557174978097640303)
+class LobbyLayoutModelShowClanEvent : IServerEvent
+
+@ProtocolEvent(3802702922732544674)
+class LobbyLayoutModelShowGarageEvent : IServerEvent
+
+@ProtocolEvent(7882764828972695915)
+class LobbyLayoutModelShowMatchmakingEvent : IServerEvent

@@ -30,6 +30,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.onFailure
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import jp.assasans.narukami.server.battleselect.BattleCreateSystem
 import jp.assasans.narukami.server.battleselect.BattleSelectSystem
 import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.dispatcher.DispatcherSystem
@@ -105,6 +106,7 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler {
       LobbySystem::class,
       ChatSystem::class,
       BattleSelectSystem::class,
+      BattleCreateSystem::class,
     )
 
     handlers = systems.flatMap { system ->
