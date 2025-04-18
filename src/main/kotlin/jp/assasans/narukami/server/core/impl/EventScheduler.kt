@@ -183,7 +183,13 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler {
     gameObject: IGameObject
   ): Node? {
     logger.trace { "Trying to build node $nodeDefinition" }
-    val node = nodeBuilder.tryBuild(nodeDefinition, gameObject.models.values.map { it.provide(gameObject, sender) }.toSet())
+    val node = nodeBuilder.tryBuildLazy(
+      nodeDefinition,
+      gameObject.models.mapValues { (_, model) ->
+        { model.provide(gameObject, sender) }
+      },
+      gameObject.components
+    )
     if(node == null) return null
 
     node.init(sender, gameObject)

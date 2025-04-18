@@ -113,6 +113,7 @@ class NodeBuilder {
     return nodeDefinitions
   }
 
+  @Deprecated("Use tryBuildLazy instead", ReplaceWith("tryBuildLazy"))
   fun tryBuild(nodeDefinition: NodeDefinition, components: Set<IModelConstructor>): Node? {
     val constructor = nodeDefinition.type.kotlinClass.primaryConstructor ?: return null
     val parameters = constructor.parameters

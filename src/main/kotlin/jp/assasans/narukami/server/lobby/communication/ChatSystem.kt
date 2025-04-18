@@ -20,6 +20,7 @@ package jp.assasans.narukami.server.lobby.communication
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import jp.assasans.narukami.server.core.*
+import jp.assasans.narukami.server.lobby.UserNode
 
 data class ChatNode(
   val chat: ChatModelCC,
@@ -48,14 +49,24 @@ class ChatSystem : AbstractSystem() {
   }
 
   @OnEventFire
-  fun sendMessage(event: ChatModelSendMessageEvent, chat: ChatNode) {
+  fun sendMessage(
+    event: ChatModelSendMessageEvent,
+    chat: ChatNode,
+    @JoinAll user: UserNode,
+  ) {
     val message = ChatMessage(
       addressMode = event.addressMode,
       battleLinks = emptyList(),
       channel = event.channel,
       links = null,
       messageType = MessageType.USER,
-      sourceUser = null,
+      sourceUser = UserStatus(
+        chatModeratorLevel = ChatModeratorLevel.ADMINISTRATOR,
+        ip = "",
+        rankIndex = 1,
+        uid = user.username.username,
+        userId = user.gameObject.id
+      ),
       targetUser = null,
       text = event.text,
       timePassedInSec = 0
