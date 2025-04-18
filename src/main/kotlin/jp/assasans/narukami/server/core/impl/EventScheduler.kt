@@ -18,6 +18,8 @@
 
 package jp.assasans.narukami.server.core.impl
 
+import kotlin.reflect.KClass
+import kotlin.reflect.KFunction
 import kotlin.reflect.KParameter
 import kotlin.reflect.full.*
 import kotlin.time.Duration.Companion.seconds
@@ -76,12 +78,22 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler {
     }
   }
 
-  // Because it looks awful
-  @Suppress("FoldInitializerAndIfToElvis")
-  private suspend fun processServerEvent(event: IEvent, sender: SpaceChannel, gameObject: IGameObject) {
-    logger.info { "Processing server event: $event" }
+  data class EventHandlerDefinition(
+    val event: KClass<out IEvent>,
+    val system: KClass<out AbstractSystem>,
+    val function: KFunction<*>,
+    val nodes: Map<KParameter, NodeDefinition>
+  ) {
+    val mandatory = function.hasAnnotation<Mandatory>()
+    val outOfOrder = function.hasAnnotation<OutOfOrderExecution>()
+  }
 
-    val systems = listOf(
+  private val nodeBuilder = NodeBuilder()
+  private val systems: List<KClass<out AbstractSystem>>
+  private val handlers: List<EventHandlerDefinition>
+
+  init {
+    systems = listOf(
       DispatcherSystem::class,
       LoginSystem::class,
       LobbySystem::class,
@@ -89,116 +101,145 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler {
       BattleSelectSystem::class,
     )
 
-    for(system in systems) {
-      val methods = system.declaredFunctions
-      method@ for(method in methods) {
-        if(!method.hasAnnotation<OnEventFire>()) {
-          logger.trace { "Method $method is not annotated with @OnEventFire" }
-          continue
-        }
-
-        val instanceParameter = method.instanceParameter
-        if(instanceParameter == null) {
-          throw IllegalArgumentException("Method $method is not an instance method")
-        }
-
-        val outOfOrder = method.hasAnnotation<OutOfOrderExecution>()
-        val mandatory = method.hasAnnotation<Mandatory>()
-        val parameters = method.valueParameters
-
-        val eventClass = parameters[0].type.kotlinClass
-        if(eventClass != event::class) {
-          logger.trace { "Method $method expects event of type ${eventClass.qualifiedName}, but received event is of type ${event::class.qualifiedName}" }
-          continue
-        }
-
-        logger.info { "parameters[1]: ${parameters[1].type}" }
-
-        val nodeType = parameters[1].type
-        if(!nodeType.kotlinClass.isSubclassOf(Node::class)) {
-          throw IllegalArgumentException("Method $method expects second parameter to be ${Node::class.qualifiedName}, but declared type is $nodeType")
-        }
-
-        val nodeBuilder = NodeBuilder()
-        val nodeDefinition = nodeBuilder.getNodeDefinition(nodeType)
-
-        logger.trace { "Trying to build node $nodeDefinition" }
-        val node = nodeBuilder.tryBuild(nodeDefinition, gameObject.models.values.map { it.provide(gameObject, sender) }.toSet())
-        if(node == null) {
-          if(mandatory) {
-            throw IllegalArgumentException("Failed to build node $nodeDefinition")
-          } else {
-            logger.trace { "Failed to build node $nodeDefinition" }
-            continue
-          }
-        }
-
-        node.init(sender, gameObject)
-        logger.trace { "Built node $node" }
-
-        val args = mutableMapOf<KParameter, Any?>()
-        args[parameters[0]] = event
-        args[parameters[1]] = node
-
-        for(parameter in parameters.filter { it.hasAnnotation<JoinAll>() }) {
-          val nodeType = parameter.type
-          if(!nodeType.kotlinClass.isSubclassOf(Node::class)) {
-            throw IllegalArgumentException("Method $method expects $parameter to be ${Node::class.qualifiedName}, but declared type is $nodeType")
+    handlers = systems.flatMap { system ->
+      system.declaredFunctions
+        .filter { function -> function.hasAnnotation<OnEventFire>() }
+        .map { function ->
+          val parameters = function.valueParameters
+          val eventClass = parameters[0].type.kotlinClass
+          if(!eventClass.isSubclassOf(IEvent::class)) {
+            throw IllegalArgumentException("${system.qualifiedName}::${function.name} first parameter is not an event type, got $eventClass")
           }
 
-          val nodeDefinition = nodeBuilder.getNodeDefinition(nodeType)
-          var node: Node? = null
-          for(gameObject in sender.space.objects.all) {
-            logger.trace { "Trying to build @JoinAll node $nodeDefinition for $gameObject" }
-
-            node = nodeBuilder.tryBuild(nodeDefinition, gameObject.models.values.map { it.provide(gameObject, sender) }.toSet())
-            if(node != null) {
-              node.init(sender, gameObject)
-              logger.trace { "Built @JoinAll node $node" }
-              break
+          val nodeParameters = parameters.drop(1)
+          val nodes = nodeParameters.associateWith { parameter ->
+            val type = parameter.type
+            if(!type.kotlinClass.isSubclassOf(Node::class)) {
+              throw IllegalArgumentException("${system.qualifiedName}::${function.name} parameter ${parameter.name} illegal type $type")
             }
+            nodeBuilder.getNodeDefinition(type)
           }
 
-          if(node == null) {
-            if(mandatory) {
-              throw IllegalArgumentException("Failed to build @JoinAll node $nodeDefinition")
-            } else {
-              logger.trace { "Failed to build @JoinAll node $nodeDefinition" }
-              continue@method
-            }
-          }
-
-          args[parameter] = node
+          @Suppress("UNCHECKED_CAST")
+          EventHandlerDefinition(
+            event = eventClass as KClass<out IEvent>,
+            system,
+            function,
+            nodes,
+          )
         }
+    }
 
-        val instance = system.createInstance()
-        args[instanceParameter] = instance
+    for(handler in handlers) {
+      logger.info { "Discovered event handler: ${handler.system.qualifiedName}::${handler.function.name} for ${handler.event.qualifiedName} with ${handler.nodes.values}" }
+    }
+  }
 
-        logger.trace { "Invoking ${system.qualifiedName}::${method.name} with ${args.mapKeys { (parameter, _) -> "(${parameter.name}: ${parameter.type})" }}" }
-        if(method.isSuspend) {
-          if(outOfOrder) {
-            sender.socket.launch {
-              method.callSuspendBy(args)
-            }
-          } else {
-            val timeout = 5.seconds
-            val job = scope.launch {
-              delay(timeout)
-              logger.error { "Method ${system.qualifiedName}::${method.name} timed out ($timeout) while processing $event" }
-              logger.error { "Possible deadlock detected, try marking event handler with @${OutOfOrderExecution::class.simpleName} to not suspend incoming command queue" }
-            }
+  private suspend fun processServerEvent(event: IEvent, sender: SpaceChannel, gameObject: IGameObject) {
+    logger.info { "Processing server event: $event" }
 
-            try {
-              method.callSuspendBy(args)
-              logger.trace { "Method ${system.qualifiedName}::${method.name} processed $event" }
-            } finally {
-              job.cancelAndJoin()
-            }
-          }
-        } else {
-          method.callBy(args)
+    for(handler in handlers) {
+      if(!event::class.isSubclassOf(handler.event)) continue
+      logger.info { "Trying handler ${handler.system.qualifiedName}::${handler.function.name} for $event" }
+
+      val args = mutableMapOf<KParameter, Any?>()
+      args[handler.function.valueParameters[0]] = event
+
+      if(!buildNodes(sender, gameObject, handler, args)) {
+        continue
+      }
+
+      val instanceParameter = requireNotNull(handler.function.instanceParameter) {
+        "${handler.system.qualifiedName}::${handler.function.name} is not an instance method"
+      }
+      val instance = handler.system.createInstance()
+      args[instanceParameter] = instance
+
+      invokeHandler(event, sender, handler, args)
+    }
+  }
+
+  /**
+   * @return `null` if node was not built
+   */
+  private fun tryProvideNode(
+    sender: SpaceChannel,
+    nodeDefinition: NodeDefinition,
+    gameObject: IGameObject
+  ): Node? {
+    logger.trace { "Trying to build node $nodeDefinition" }
+    val node = nodeBuilder.tryBuild(nodeDefinition, gameObject.models.values.map { it.provide(gameObject, sender) }.toSet())
+    if(node == null) return null
+
+    node.init(sender, gameObject)
+    return node
+  }
+
+  /**
+   * @return `true` if all nodes were built successfully
+   */
+  private fun buildNodes(
+    sender: SpaceChannel,
+    gameObject: IGameObject,
+    handler: EventHandlerDefinition,
+    args: MutableMap<KParameter, Any?>
+  ): Boolean {
+    for((parameter, nodeDefinition) in handler.nodes) {
+      val joinAll = parameter.hasAnnotation<JoinAll>()
+      var node: Node? = null
+      if(!joinAll) {
+        node = tryProvideNode(sender, nodeDefinition, gameObject)
+      } else {
+        val objects = sender.space.objects.all
+        for(nodeGameObject in objects) {
+          node = tryProvideNode(sender, nodeDefinition, nodeGameObject)
+          if(node != null) break
         }
       }
+
+      if(node == null) {
+        if(handler.mandatory) throw IllegalArgumentException("Failed to build node $nodeDefinition")
+
+        logger.trace { "Failed to build node $nodeDefinition" }
+        return false
+      }
+
+      args[parameter] = node
+      logger.trace { "Built node $node for ${parameter.name}" }
+    }
+
+    return true
+  }
+
+  private suspend fun invokeHandler(
+    event: IEvent,
+    sender: SpaceChannel,
+    handler: EventHandlerDefinition,
+    args: Map<KParameter, Any?>,
+  ) {
+    logger.trace { "Invoking ${handler.system.qualifiedName}::${handler.function.name} with ${args.mapKeys { (parameter, _) -> parameter.name }}" }
+    if(handler.function.isSuspend) {
+      if(handler.outOfOrder) {
+        sender.socket.launch {
+          handler.function.callSuspendBy(args)
+        }
+      } else {
+        val timeout = 5.seconds
+        val job = scope.launch {
+          delay(timeout)
+          logger.error { "${handler.system.qualifiedName}::${handler.function.name} timed out ($timeout) while processing $event" }
+          logger.error { "Possible deadlock detected, try marking event handler with @${OutOfOrderExecution::class.simpleName} to not suspend incoming command queue" }
+        }
+
+        try {
+          handler.function.callSuspendBy(args)
+          logger.trace { "${handler.system.qualifiedName}::${handler.function.name} processed $event" }
+        } finally {
+          job.cancelAndJoin()
+        }
+      }
+    } else {
+      handler.function.callBy(args)
     }
   }
 }

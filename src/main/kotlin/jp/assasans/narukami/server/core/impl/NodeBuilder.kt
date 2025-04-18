@@ -119,9 +119,10 @@ class NodeBuilder {
 
     val args = mutableMapOf<KParameter, IModelConstructor>()
     for(parameter in parameters) {
-      val component = components.firstOrNull { it::class == normalizeParameterType(parameter, nodeDefinition.type) }
+      val type = normalizeParameterType(parameter, nodeDefinition.type)
+      val component = components.firstOrNull { it::class == type }
       if(component == null) {
-        logger.warn { "Component $parameter not found" }
+        logger.warn { "Component $type (for ${parameter.name}) not found in $components" }
         return null
       }
 

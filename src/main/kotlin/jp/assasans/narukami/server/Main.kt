@@ -131,6 +131,7 @@ suspend fun main() {
 
   koin.koin.get<SpaceInitializer>().init()
   koin.koin.get<SpaceEventProcessor>()
+  koin.koin.get<IEventScheduler>()
 
   coroutineScope {
     launch { koin.koin.get<ConfigServer>().start() }
