@@ -1,5 +1,5 @@
 /*
- * Narukami TO - a server software reimplementation for a certain browser tank game.
+ * Araumi TO - a server software reimplementation for a certain browser tank game.
  * Copyright (c) 2025  Daniil Pryima
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,15 +18,11 @@
 
 package jp.assasans.narukami.server.lobby
 
-import jp.assasans.narukami.server.core.ITemplate
-import jp.assasans.narukami.server.net.command.ProtocolClass
+import jp.assasans.narukami.server.core.IModelConstructor
+import jp.assasans.narukami.server.net.command.ProtocolModel
 
-@ProtocolClass(3)
-data class LobbyTemplate(
-  val lobbyLayoutNotify: LobbyLayoutNotifyModelCC,
-  val lobbyLayout: LobbyLayoutModelCC,
-  val panel: PanelModelCC,
-  val onceADayAction: OnceADayActionModelCC,
-  val reconnect: ReconnectModelCC,
-  val gpuDetector: GPUDetectorModelCC,
-) : ITemplate
+@ProtocolModel(6492191529573968679)
+data class ReconnectModelCC(
+  val configUrlTemplate: String,
+  val serverNumber: Int,
+) : IModelConstructor

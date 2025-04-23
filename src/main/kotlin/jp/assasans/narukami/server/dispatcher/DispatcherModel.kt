@@ -23,7 +23,11 @@ import kotlinx.coroutines.CompletableDeferred
 import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.net.SpaceChannel
 import jp.assasans.narukami.server.net.command.ProtocolEvent
+import jp.assasans.narukami.server.net.command.ProtocolModel
 import jp.assasans.narukami.server.res.Resource
+
+@ProtocolModel(821863604528384663)
+class DispatcherModelCC : IModelConstructor
 
 /**
  * Note: This is a low-level API, most of the time you should use
@@ -37,6 +41,11 @@ data class DispatcherModelLoadDependenciesEvent(
 @ProtocolEvent(7640916300855664666)
 data class DispatcherModelLoadObjectsDataEvent(
   val objectsData: ObjectsData
+) : IClientEvent
+
+@ProtocolEvent(9038756763225879447)
+data class DispatcherModelUnloadObjectsEvent(
+  val objects: List<IGameObject>
 ) : IClientEvent
 
 @ProtocolEvent(1816792453857564692)

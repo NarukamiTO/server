@@ -81,9 +81,14 @@ class SpaceInitializer(
           lobbyLayout = LobbyLayoutModelCC(),
           panel = PanelModelCC(),
           onceADayAction = OnceADayActionModelCC(todayRestartTime = 0),
+          reconnect = ReconnectModelCC(
+            // TODO: Take this from hash request command
+            configUrlTemplate = "127.0.0.1:8081/config.xml",
+            serverNumber = 1,
+          ),
+          gpuDetector = GPUDetectorModelCC(),
         )
       )
-
       objects.add(lobbyObject)
 
       val rankLoaderObject = TransientGameObject.instantiate(

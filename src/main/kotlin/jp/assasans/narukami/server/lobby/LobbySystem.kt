@@ -53,6 +53,7 @@ class LobbySystem : AbstractSystem() {
   suspend fun channelAdded(
     event: ChannelAddedEvent,
     dispatcher: DispatcherNode,
+    @JoinAll gpuDetector: SingleNode<GPUDetectorModelCC>,
     @JoinAll lobby: LobbyNode,
     @JoinAll chat: ChatNode,
     @JoinAll rankLoader: SingleNode<RankLoaderModelCC>,
@@ -103,6 +104,11 @@ class LobbySystem : AbstractSystem() {
     // The order of loading objects is important, user object must be loaded
     // before lobby object, otherwise user properties will not load on the client.
     // Rank loader object is a dependency of user object, so it must be loaded first.
+    //
+    // By loading [ReconnectModel] with [GPUDetectorModel], we start the hardware detection
+    // process on the client. After that, the client loads either software.swf or hardware.swf,
+    // followed by game.swf, which contains garage and battles.
+    // Client notifies server when loading is complete in [onGpuDetectionComplete].
     DispatcherLoadObjectsManagedEvent(
       listOf(
         rankLoader.gameObject,
@@ -116,7 +122,14 @@ class LobbySystem : AbstractSystem() {
     // TODO: NodeAddedEvent is not yet automatically scheduled
     NodeAddedEvent().schedule(chat)
     NodeAddedEvent().schedule(battleSelect)
+  }
 
+  @OnEventFire
+  @Mandatory
+  fun onGpuDetectionComplete(
+    event: GPUDetectorModelDetectionGpuCompletedEvent,
+    lobby: LobbyNode,
+  ) {
     // Once entrance object is unloaded (or entrance space channel is closed),
     // loading screen automatically appears on the client. This event hides it.
     LobbyLayoutNotifyModelCancelPredictedLayoutSwitchEvent().schedule(lobby)

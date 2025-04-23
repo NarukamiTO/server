@@ -16,10 +16,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package jp.assasans.narukami.server.dispatcher
+package jp.assasans.narukami.server.lobby
 
 import jp.assasans.narukami.server.core.IModelConstructor
+import jp.assasans.narukami.server.core.IServerEvent
+import jp.assasans.narukami.server.net.command.ProtocolEvent
 import jp.assasans.narukami.server.net.command.ProtocolModel
 
-@ProtocolModel(821863604528384663)
-class DispatcherModelCC : IModelConstructor
+@ProtocolModel(4973822383205755163)
+class GPUDetectorModelCC : IModelConstructor
+
+@ProtocolEvent(3250762871408753730)
+data class GPUDetectorModelDetectionGpuCompletedEvent(val gpuEnabled: Boolean) : IServerEvent
