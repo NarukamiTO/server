@@ -18,10 +18,14 @@
 
 package jp.assasans.narukami.server.battleselect
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import io.github.oshai.kotlinlogging.KotlinLogging
 import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.dispatcher.DispatcherLoadObjectsManagedEvent
+import jp.assasans.narukami.server.dispatcher.DispatcherModelUnloadObjectsEvent
 import jp.assasans.narukami.server.dispatcher.DispatcherNode
+import jp.assasans.narukami.server.dispatcher.DispatcherOpenSpaceEvent
+import jp.assasans.narukami.server.lobby.communication.ChatNode
 
 data class MapInfoNode(
   val model: MapInfoModelCC,
@@ -60,7 +64,30 @@ class BattleSelectSystem : AbstractSystem() {
 
   @OnEventFire
   @Mandatory
-  fun fight(event: BattleEntranceModelFightEvent, battleInfo: BattleInfoNode) {
-    BattleEntranceModelEquipmentNotMatchConstraintsEvent().schedule(battleInfo)
+  @OutOfOrderExecution
+  suspend fun fight(
+    event: BattleEntranceModelFightEvent,
+    battleInfo: BattleInfoNode,
+    @JoinAll chat: ChatNode,
+    @JoinAll battleSelect: SingleNode<BattleSelectModelCC>,
+    @JoinAll dispatcher: DispatcherNode,
+  ) {
+    DispatcherModelUnloadObjectsEvent(
+      objects = listOf(chat.gameObject, battleSelect.gameObject)
+    ).schedule(dispatcher)
+
+    DispatcherOpenSpaceEvent(4242).schedule(dispatcher).await()
   }
 }
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class PrivateMapDataEntity(
+  val proplibs: List<MapProplib>
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class MapProplib(
+  val name: String,
+  val id: Long,
+  val version: Long
+)

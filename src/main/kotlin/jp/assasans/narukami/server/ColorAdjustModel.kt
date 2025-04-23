@@ -16,28 +16,28 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package jp.assasans.narukami.server.battleselect
+package jp.assasans.narukami.server
 
 import jp.assasans.narukami.server.core.IModelConstructor
 import jp.assasans.narukami.server.net.command.ProtocolModel
-import jp.assasans.narukami.server.res.ImageRes
-import jp.assasans.narukami.server.res.Lazy
-import jp.assasans.narukami.server.res.Resource
+import jp.assasans.narukami.server.net.command.ProtocolStruct
 
-@ProtocolModel(5412538083071671358)
-data class MapInfoModelCC(
-  val defaultTheme: MapTheme,
-  val enabled: Boolean,
-  val mapId: Long,
-  val mapName: String,
-  val matchmakingMark: Boolean,
-  val maxPeople: Short,
-  val preview: Resource<ImageRes, Lazy>,
-  val rankLimit: Range,
-  val supportedModes: List<BattleMode>,
-  val theme: MapTheme,
-) : IModelConstructor {
-  override fun getResources(): List<Resource<*, *>> {
-    return listOf(preview)
-  }
-}
+@ProtocolModel(5968651969329902265)
+data class ColorAdjustModelCC(
+  val frostParamsHW: ColorAdjustParams,
+  val frostParamsSoft: ColorAdjustParams,
+  val heatParamsHW: ColorAdjustParams,
+  val heatParamsSoft: ColorAdjustParams,
+) : IModelConstructor
+
+@ProtocolStruct
+data class ColorAdjustParams(
+  val alphaMultiplier: Float,
+  val alphaOffset: Float,
+  val blueMultiplier: Float,
+  val blueOffset: Float,
+  val greenMultiplier: Float,
+  val greenOffset: Float,
+  val redMultiplier: Float,
+  val redOffset: Float,
+)

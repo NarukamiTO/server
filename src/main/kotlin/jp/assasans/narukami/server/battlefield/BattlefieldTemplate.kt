@@ -16,28 +16,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package jp.assasans.narukami.server.battleselect
+package jp.assasans.narukami.server.battlefield
 
-import jp.assasans.narukami.server.core.IModelConstructor
-import jp.assasans.narukami.server.net.command.ProtocolModel
-import jp.assasans.narukami.server.res.ImageRes
-import jp.assasans.narukami.server.res.Lazy
-import jp.assasans.narukami.server.res.Resource
+import jp.assasans.narukami.server.core.ITemplate
+import jp.assasans.narukami.server.net.command.ProtocolClass
 
-@ProtocolModel(5412538083071671358)
-data class MapInfoModelCC(
-  val defaultTheme: MapTheme,
-  val enabled: Boolean,
-  val mapId: Long,
-  val mapName: String,
-  val matchmakingMark: Boolean,
-  val maxPeople: Short,
-  val preview: Resource<ImageRes, Lazy>,
-  val rankLimit: Range,
-  val supportedModes: List<BattleMode>,
-  val theme: MapTheme,
-) : IModelConstructor {
-  override fun getResources(): List<Resource<*, *>> {
-    return listOf(preview)
-  }
-}
+@ProtocolClass(42)
+data class BattlefieldTemplate(
+  val battlefield: BattlefieldModelCC,
+  val battlefieldBonuses: BattlefieldBonusesModelCC,
+  val battleFacilities: BattleFacilitiesModelCC,
+  val battleChat: BattleChatModelCC,
+  // val inventory: InventoryModelCC,
+  // val inventorySfx: InventorySfxModelCC,
+  // val continueBattle: ContinueBattleModelCC,
+) : ITemplate

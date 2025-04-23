@@ -16,28 +16,26 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package jp.assasans.narukami.server.battleselect
+package jp.assasans.narukami.server.battleservice
 
+import jp.assasans.narukami.server.battleselect.BattleLimits
 import jp.assasans.narukami.server.core.IModelConstructor
 import jp.assasans.narukami.server.net.command.ProtocolModel
-import jp.assasans.narukami.server.res.ImageRes
-import jp.assasans.narukami.server.res.Lazy
-import jp.assasans.narukami.server.res.Resource
 
-@ProtocolModel(5412538083071671358)
-data class MapInfoModelCC(
-  val defaultTheme: MapTheme,
-  val enabled: Boolean,
-  val mapId: Long,
+@ProtocolModel(2085529474881905981)
+data class StatisticsModelCC(
+  val battleName: String?,
+  val equipmentConstraintsMode: String?,
+  val fund: Int,
+  val limits: BattleLimits,
   val mapName: String,
-  val matchmakingMark: Boolean,
-  val maxPeople: Short,
-  val preview: Resource<ImageRes, Lazy>,
-  val rankLimit: Range,
-  val supportedModes: List<BattleMode>,
-  val theme: MapTheme,
-) : IModelConstructor {
-  override fun getResources(): List<Resource<*, *>> {
-    return listOf(preview)
-  }
-}
+  val matchBattle: Boolean,
+  val maxPeopleCount: Int,
+  val modeName: String,
+  val parkourMode: Boolean,
+  val running: Boolean,
+  val spectator: Boolean,
+  val suspiciousUserIds: List<Long>,
+  val timeLeft: Int,
+  val valuableRound: Boolean,
+) : IModelConstructor

@@ -23,21 +23,19 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.datetime.Clock
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import jp.assasans.narukami.server.ColorAdjustModelCC
+import jp.assasans.narukami.server.ColorAdjustParams
+import jp.assasans.narukami.server.battlefield.*
 import jp.assasans.narukami.server.battleselect.*
-import jp.assasans.narukami.server.core.IEvent
-import jp.assasans.narukami.server.core.IRegistry
-import jp.assasans.narukami.server.core.ISpace
-import jp.assasans.narukami.server.core.models
+import jp.assasans.narukami.server.core.*
+import jp.assasans.narukami.server.dispatcher.DispatcherModelCC
 import jp.assasans.narukami.server.entrance.*
 import jp.assasans.narukami.server.lobby.*
 import jp.assasans.narukami.server.lobby.communication.*
 import jp.assasans.narukami.server.lobby.user.RankInfo
 import jp.assasans.narukami.server.lobby.user.RankLoaderModelCC
 import jp.assasans.narukami.server.lobby.user.RankLoaderTemplate
-import jp.assasans.narukami.server.res.Eager
-import jp.assasans.narukami.server.res.ImageRes
-import jp.assasans.narukami.server.res.Lazy
-import jp.assasans.narukami.server.res.RemoteGameResourceRepository
+import jp.assasans.narukami.server.res.*
 
 class SpaceInitializer(
   private val spaces: IRegistry<ISpace>
@@ -220,7 +218,17 @@ class SpaceInitializer(
             mapName = "Spawn Test",
             matchmakingMark = false,
             maxPeople = 32,
-            preview = gameResourceRepository.get("entrance.background", emptyMap(), ImageRes, Lazy),
+            preview = gameResourceRepository.get(
+              "map.spawn-test.preview",
+              mapOf(
+                "gen" to "2.1",
+                "variant" to "default",
+                "theme" to "summer",
+                "time" to "day"
+              ),
+              ImageRes,
+              Lazy
+            ),
             rankLimit = Range(min = 1, max = 31),
             supportedModes = listOf(
               BattleMode.DM,
@@ -304,6 +312,102 @@ class SpaceInitializer(
         )
       )
       objects.add(battleInfoObject)
+    })
+
+    spaces.add(Space(4242).apply {
+      objects.remove(rootObject)
+
+      val battleMapClass = TemplatedGameClass.fromTemplate(BattleMapTemplate::class)
+      val battleMapObject = TransientGameObject.instantiate(
+        4200,
+        battleMapClass,
+        BattleMapTemplate(
+          battleMap = BattleMapModelCC(
+            dustParams = DustParams(
+              alpha = 0.75f,
+              density = 0.15f,
+              dustFarDistance = 7000.0f,
+              dustNearDistance = 5000.0f,
+              dustParticle = gameResourceRepository.get("battle.dust", mapOf("theme" to "summer"), MultiframeTextureRes, Eager),
+              dustSize = 180.0f
+            ),
+            dynamicShadowParams = DynamicShadowParams(angleX = -1.0f, angleZ = 0.5f, lightColor = 13090219, shadowColor = 5530735),
+            environmentSound = gameResourceRepository.get("battle.sound.ambience", mapOf(), SoundRes, Eager),
+            fogParams = FogParams(alpha = 0.25f, color = 14545407, farLimit = 10000.0f, nearLimit = 5000.0f),
+            gravity = 1000.0f,
+            mapResource = gameResourceRepository.get(
+              "map.spawn-test",
+              mapOf(
+                "gen" to "2.1",
+                "variant" to "default",
+              ),
+              MapRes,
+              Eager
+            ),
+            skyBoxRevolutionAxis = Vector3d(x = 0.0f, y = 0.0f, z = 0.0f),
+            skyBoxRevolutionSpeed = 0.0f,
+            skyboxSides = SkyboxSides(
+              back = gameResourceRepository.get("skybox.mountains.back", mapOf("gen" to "1.0"), TextureRes, Eager),
+              bottom = gameResourceRepository.get("skybox.mountains.bottom", mapOf("gen" to "1.0"), TextureRes, Eager),
+              front = gameResourceRepository.get("skybox.mountains.front", mapOf("gen" to "1.0"), TextureRes, Eager),
+              left = gameResourceRepository.get("skybox.mountains.left", mapOf("gen" to "1.0"), TextureRes, Eager),
+              right = gameResourceRepository.get("skybox.mountains.right", mapOf("gen" to "1.0"), TextureRes, Eager),
+              top = gameResourceRepository.get("skybox.mountains.top", mapOf("gen" to "1.0"), TextureRes, Eager),
+            ),
+            ssaoColor = 3025184
+          ),
+          colorAdjust = ColorAdjustModelCC(
+            frostParamsHW = ColorAdjustParams(1f, 0f, 1.5f, 100f, 1f, 80f, 1f, 20f),
+            frostParamsSoft = ColorAdjustParams(1f, 0f, 1.5f, 100f, 1f, 80f, 1f, 20f),
+            heatParamsHW = ColorAdjustParams(1f, 0f, 0.6f, -40f, 0.6f, -20f, 1.5f, 40f),
+            heatParamsSoft = ColorAdjustParams(1f, 0f, 0.6f, -40f, 0.6f, -20f, 1.5f, 40f),
+          ),
+          mapBonusLight = MapBonusLightModelCC(
+            bonusLightIntensity = 0f,
+            hwColorAdjust = ColorAdjustParams(1f, 0f, 1f, 0f, 1f, 0f, 1f, 0f),
+            softColorAdjust = ColorAdjustParams(1f, 0f, 1f, 0f, 1f, 0f, 1f, 0f),
+          )
+        )
+      )
+      objects.add(battleMapObject)
+
+      val battlefieldClass = TemplatedGameClass.fromTemplate(BattlefieldTemplate::class)
+      val battlefieldObject = TransientGameObject.instantiate(
+        4242,
+        battlefieldClass,
+        BattlefieldTemplate(
+          battlefield = BattlefieldModelCC(
+            active = true,
+            battleId = 0,
+            battlefieldSounds = BattlefieldSounds(
+              battleFinishSound = gameResourceRepository.get("battle.sound.finish", mapOf(), SoundRes, Eager),
+              killSound = gameResourceRepository.get("tank.sound.destroy", mapOf(), SoundRes, Eager)
+            ),
+            colorTransformMultiplier = 0.0f,
+            idleKickPeriodMsec = 0,
+            map = battleMapObject,
+            mineExplosionLighting = LightingSFXEntity(effects = listOf()),
+            proBattle = false,
+            range = Range(min = 0, max = 0),
+            reArmorEnabled = false,
+            respawnDuration = 0,
+            shadowMapCorrectionFactor = 0.0f,
+            showAddressLink = false,
+            spectator = true,
+            withoutBonuses = false,
+            withoutDrones = false,
+            withoutSupplies = false
+          ),
+          battlefieldBonuses = BattlefieldBonusesModelCC(
+            bonusFallSpeed = 0.0f,
+            bonuses = listOf()
+          ),
+          battleFacilities = BattleFacilitiesModelCC(),
+          battleChat = BattleChatModelCC()
+        )
+      )
+      battlefieldObject.models[DispatcherModelCC::class] = StaticModelProvider(DispatcherModelCC())
+      objects.add(battlefieldObject)
     })
   }
 }

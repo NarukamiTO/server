@@ -93,12 +93,12 @@ object ResourceTypeConverter {
 private fun ResourceType.intoMarker(): Res {
   return when(this) {
     ResourceType.SwfLibrary        -> SwfRes
-    ResourceType.Sound             -> UnknownRes
+    ResourceType.Sound             -> SoundRes
     ResourceType.Map               -> MapRes
-    ResourceType.Proplib           -> UnknownRes
-    ResourceType.Texture           -> UnknownRes
+    ResourceType.Proplib           -> ProplibRes
+    ResourceType.Texture           -> TextureRes
     ResourceType.Image             -> ImageRes
-    ResourceType.MultiframeTexture -> UnknownRes
+    ResourceType.MultiframeTexture -> MultiframeTextureRes
     ResourceType.LocalizedImage    -> LocalizedImageRes
     ResourceType.Object3D          -> UnknownRes
     ResourceType.Localization      -> LocalizationRes
@@ -108,12 +108,16 @@ private fun ResourceType.intoMarker(): Res {
 
 val Res.type: ResourceType
   get() = when(this) {
-    is SwfRes            -> ResourceType.SwfLibrary
-    is MapRes            -> ResourceType.Map
-    is ImageRes          -> ResourceType.Image
-    is LocalizedImageRes -> ResourceType.LocalizedImage
-    is LocalizationRes   -> ResourceType.Localization
-    is UnknownRes        -> throw IllegalArgumentException("Resource type $this is not supported")
+    is SwfRes               -> ResourceType.SwfLibrary
+    is MapRes               -> ResourceType.Map
+    is ProplibRes           -> ResourceType.Proplib
+    is SoundRes             -> ResourceType.Sound
+    is TextureRes           -> ResourceType.Texture
+    is ImageRes             -> ResourceType.Image
+    is MultiframeTextureRes -> ResourceType.MultiframeTexture
+    is LocalizedImageRes    -> ResourceType.LocalizedImage
+    is LocalizationRes      -> ResourceType.Localization
+    is UnknownRes           -> throw IllegalArgumentException("Resource type $this is not supported")
   }
 
 /**
@@ -153,9 +157,13 @@ val Laziness.isLazy: Boolean
 
 sealed interface Res
 data object UnknownRes : Res
+data object SoundRes : Res
 data object SwfRes : Res
 data object MapRes : Res
+data object ProplibRes : Res
+data object TextureRes : Res
 data object ImageRes : Res
+data object MultiframeTextureRes : Res
 data object LocalizedImageRes : Res
 data object LocalizationRes : Res
 
