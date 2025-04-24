@@ -123,7 +123,7 @@ class NodeBuilder {
       val type = normalizeParameterType(parameter, nodeDefinition.type)
       val component = components.firstOrNull { it::class == type }
       if(component == null) {
-        logger.warn { "Component $type (for ${parameter.name}) not found in $components" }
+        logger.trace { "Component $type (for ${parameter.name}) not found in $components" }
         return null
       }
 
@@ -147,7 +147,7 @@ class NodeBuilder {
       val value = if(type.isSubclassOf(IModelConstructor::class)) {
         val provider = models[type]
         if(provider == null) {
-          logger.warn { "Model $type not found" }
+          logger.trace { "Model $type not found" }
           return null
         }
 
@@ -155,7 +155,7 @@ class NodeBuilder {
       } else if(type.isSubclassOf(IComponent::class)) {
         val component = components[type]
         if(component == null) {
-          logger.warn { "Component $type not found" }
+          logger.trace { "Component $type not found" }
           return null
         }
 

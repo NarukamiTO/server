@@ -81,14 +81,14 @@ class SpaceChannel(
 
       val eventClass = spaceEventProcessor.getClass(command.methodId)
       if(eventClass == null) {
-        logger.error { "Unknown method: $command" }
+        logger.error { "Unknown server event: $command" }
         return
       }
 
       @Suppress("UNCHECKED_CAST")
       val codec = protocol.getCodec(eventClass.createType()) as ICodec<IServerEvent>
       val event = codec.decode(buffer)
-      logger.info { "Received server event: $event" }
+      logger.debug { "Received server event: $event" }
 
       val gameObject = space.objects.get(command.objectId) ?: error("Game object ${command.objectId} not found")
 

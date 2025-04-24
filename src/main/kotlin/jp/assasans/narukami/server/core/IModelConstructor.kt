@@ -19,7 +19,11 @@
 package jp.assasans.narukami.server.core
 
 import kotlin.reflect.KClass
+import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.full.findAnnotation
+import kotlin.reflect.full.hasAnnotation
+import kotlin.reflect.full.isSubclassOf
+import jp.assasans.narukami.server.extensions.kotlinClass
 import jp.assasans.narukami.server.net.command.ProtocolModel
 import jp.assasans.narukami.server.net.command.ProtocolStruct
 import jp.assasans.narukami.server.res.Resource
@@ -36,10 +40,28 @@ interface IModelConstructor : IDataUnit {
    * Returns a list of resources to load with this model.
    */
   fun getResources(): List<Resource<*, *>> {
-    return emptyList()
+    return collectResources(this)
   }
 }
 
 @get:JvmName("KClass_IModelConstructor_protocolId")
 val KClass<out IModelConstructor>.protocolId: Long
   get() = requireNotNull(findAnnotation<ProtocolModel>()) { "$this has no @ProtocolModel annotation" }.id
+
+fun collectResources(root: Any): List<Resource<*, *>> {
+  fun collect(instance: Any?, visited: MutableSet<Any> = mutableSetOf()): List<Resource<*, *>> {
+    if(instance == null || instance in visited) return emptyList()
+    visited.add(instance)
+
+    return instance::class.declaredMemberProperties.flatMap { property ->
+      val value = property.getter.call(instance)
+      when {
+        value is Resource<*, *>                                       -> listOf(value)
+        value != null && value::class.hasAnnotation<ProtocolStruct>() -> collect(value, visited)
+        else                                                          -> emptyList()
+      }
+    }
+  }
+
+  return collect(root)
+}

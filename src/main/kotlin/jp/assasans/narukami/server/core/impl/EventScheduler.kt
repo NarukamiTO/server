@@ -157,9 +157,10 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler {
   private suspend fun processServerEvent(event: IEvent, sender: SpaceChannel, gameObject: IGameObject) {
     logger.info { "Processing server event: $event" }
 
+    var handled = false;
     for(handler in handlers) {
       if(!event::class.isSubclassOf(handler.event)) continue
-      logger.info { "Trying handler ${handler.system.qualifiedName}::${handler.function.name} for $event" }
+      logger.debug { "Trying handler ${handler.system.qualifiedName}::${handler.function.name} for $event" }
 
       val args = mutableMapOf<KParameter, Any?>()
       args[handler.function.valueParameters[0]] = event
@@ -175,6 +176,11 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler {
       args[instanceParameter] = instance
 
       invokeHandler(event, sender, handler, args)
+      handled = true
+    }
+
+    if(!handled) {
+      logger.warn { "Unhandled $event" }
     }
   }
 

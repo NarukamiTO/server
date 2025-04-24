@@ -95,14 +95,14 @@ class NettySocketClient(
   }
 
   override fun send(buffer: ProtocolBuffer) {
-    logger.debug { "Queueing outgoing $buffer" }
+    logger.trace { "Queueing outgoing $buffer" }
     sendQueue.trySend(buffer).onFailure {
       logger.error(it) { "Failed to enqueue outgoing buffer $buffer" }
     }
   }
 
   override fun process(buffer: ProtocolBuffer) {
-    logger.debug { "Queueing incoming $buffer" }
+    logger.trace { "Queueing incoming $buffer" }
     receiveQueue.trySend(buffer).onFailure {
       logger.error(it) { "Failed to enqueue incoming buffer $buffer" }
     }
@@ -114,7 +114,7 @@ class NettySocketClient(
   }
 
   override suspend fun close() {
-    logger.debug { "Closing socket" }
+    logger.debug { "Closing socket $this" }
 
     receiveQueue.close()
     sendQueue.close()
