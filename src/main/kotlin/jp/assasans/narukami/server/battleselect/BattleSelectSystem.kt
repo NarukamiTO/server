@@ -89,5 +89,6 @@ data class PrivateMapDataEntity(
 data class MapProplib(
   val name: String,
   val id: Long,
-  val version: Long
+  val version: Long,
+  val namespaces: Map<String, String>,
 )

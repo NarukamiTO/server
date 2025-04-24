@@ -80,10 +80,7 @@ class BattlefieldSystem : AbstractSystem() {
       resources = data.proplibs.map {
         gameResourceRepository.get(
           it.name,
-          mapOf(
-            "gen" to "1.0-redefined",
-            "theme" to "summer"
-          ),
+          it.namespaces,
           ProplibRes,
           Eager
         )
