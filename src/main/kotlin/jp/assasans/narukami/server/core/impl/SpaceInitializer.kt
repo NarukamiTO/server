@@ -125,10 +125,20 @@ class SpaceInitializer(
             defaultTheme = MapTheme.SUMMER_NIGHT,
             enabled = true,
             mapId = 11,
-            mapName = "Spawn Test 2",
+            mapName = "Spawn Test",
             matchmakingMark = false,
             maxPeople = 32,
-            preview = gameResourceRepository.get("entrance.background", emptyMap(), ImageRes, Lazy),
+            preview = gameResourceRepository.get(
+              "map.spawn-test.preview",
+              mapOf(
+                "gen" to "2.1",
+                "variant" to "default",
+                "theme" to "summer",
+                "time" to "day"
+              ),
+              ImageRes,
+              Lazy
+            ),
             rankLimit = Range(min = 1, max = 31),
             supportedModes = listOf(
               BattleMode.DM,
@@ -210,7 +220,7 @@ class SpaceInitializer(
             fogParams = FogParams(alpha = 0.25f, color = 14545407, farLimit = 10000.0f, nearLimit = 5000.0f),
             gravity = 1000.0f,
             mapResource = gameResourceRepository.get(
-              "map.spawn-test",
+              "map.test-ground-7",
               mapOf(
                 "gen" to "2.1",
                 "variant" to "default",

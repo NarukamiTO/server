@@ -61,7 +61,7 @@ class BattlefieldSystem : AbstractSystem() {
     @JoinAll battlefield: SingleNode<BattlefieldModelCC>,
   ) {
     val mapResource = gameResourceRepository.get(
-      "map.spawn-test",
+      "map.test-ground-7",
       mapOf(
         "gen" to "2.1",
         "variant" to "default",

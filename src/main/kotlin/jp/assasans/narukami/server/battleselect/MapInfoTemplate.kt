@@ -40,11 +40,11 @@ data class MapInfoTemplate(
           defaultTheme = MapTheme.SUMMER_NIGHT,
           enabled = true,
           mapId = 7,
-          mapName = "Spawn Test",
+          mapName = "Testing Ground 7",
           matchmakingMark = false,
           maxPeople = 32,
           preview = gameResourceRepository.get(
-            "map.spawn-test.preview",
+            "map.test-ground-7.preview",
             mapOf(
               "gen" to "2.1",
               "variant" to "default",
