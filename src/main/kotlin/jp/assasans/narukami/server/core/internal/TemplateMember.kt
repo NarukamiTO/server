@@ -16,20 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package jp.assasans.narukami.server.battleselect
+package jp.assasans.narukami.server.core.internal
 
+import kotlin.reflect.KClass
+import jp.assasans.narukami.server.core.IModelConstructor
 import jp.assasans.narukami.server.core.ITemplate
-import jp.assasans.narukami.server.net.command.ProtocolClass
 
-@ProtocolClass(8)
-data class BattleInfoTemplate(
-  val battleInfo: BattleInfoModelCC,
-  val battleParamInfo: BattleParamInfoModelCC,
-  val battleEntrance: BattleEntranceModelCC,
-) : ITemplate
-
-@ProtocolClass(88)
-data class DMBattleInfoTemplate(
-  val common: BattleInfoTemplate,
-  val battleDMInfo: BattleDMInfoModelCC,
-) : ITemplate
+sealed interface TemplateMember {
+  data class Model(val model: KClass<out IModelConstructor>) : TemplateMember
+  data class Template(val template: KClass<out ITemplate>) : TemplateMember
+}

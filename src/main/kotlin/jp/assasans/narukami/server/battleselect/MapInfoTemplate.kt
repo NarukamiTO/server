@@ -18,10 +18,56 @@
 
 package jp.assasans.narukami.server.battleselect
 
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import jp.assasans.narukami.server.core.ITemplate
+import jp.assasans.narukami.server.core.ITemplateProvider
 import jp.assasans.narukami.server.net.command.ProtocolClass
+import jp.assasans.narukami.server.res.ImageRes
+import jp.assasans.narukami.server.res.Lazy
+import jp.assasans.narukami.server.res.RemoteGameResourceRepository
 
 @ProtocolClass(9)
 data class MapInfoTemplate(
   val mapInfo: MapInfoModelCC,
-) : ITemplate
+) : ITemplate {
+  companion object : KoinComponent {
+    private val gameResourceRepository: RemoteGameResourceRepository by inject()
+
+    val Provider = ITemplateProvider {
+      MapInfoTemplate(
+        mapInfo = MapInfoModelCC(
+          defaultTheme = MapTheme.SUMMER_NIGHT,
+          enabled = true,
+          mapId = 7,
+          mapName = "Spawn Test",
+          matchmakingMark = false,
+          maxPeople = 32,
+          preview = gameResourceRepository.get(
+            "map.spawn-test.preview",
+            mapOf(
+              "gen" to "2.1",
+              "variant" to "default",
+              "theme" to "summer",
+              "time" to "day"
+            ),
+            ImageRes,
+            Lazy
+          ),
+          rankLimit = Range(min = 1, max = 31),
+          supportedModes = listOf(
+            BattleMode.DM,
+            BattleMode.TDM,
+            BattleMode.CTF,
+            BattleMode.CP,
+            BattleMode.AS,
+            BattleMode.RUGBY,
+            BattleMode.SUR,
+            BattleMode.JGR,
+          ),
+          theme = MapTheme.SUMMER_NIGHT
+        )
+      )
+    }
+  }
+}

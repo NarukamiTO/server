@@ -20,8 +20,10 @@ package jp.assasans.narukami.server.core.impl
 
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.reflect.KClass
+import kotlin.reflect.KProperty1
 import io.github.oshai.kotlinlogging.KotlinLogging
 import jp.assasans.narukami.server.core.*
+import jp.assasans.narukami.server.core.internal.TemplateMember
 
 class TransientGameObject(
   override val id: Long,
@@ -41,23 +43,27 @@ class TransientGameObject(
       return lastId.getAndDecrement()
     }
 
-    fun <T : ITemplate> instantiate(id: Long, parent: TemplatedGameClass<T>, template: T): IGameObject {
+    fun <T : ITemplate> instantiate(
+      id: Long,
+      parent: TemplatedGameClass<T>,
+      template: T,
+      components: Set<IComponent> = emptySet(),
+    ): IGameObject {
       val gameObject = TransientGameObject(id, parent)
 
-      parent.models.forEach { clazz ->
-        try {
-          val (property, _) = template::class.models.entries.single { it.value == clazz }
-          val provider = when(val value = property.call(template)) {
-            is IModelProvider<*> -> value
-            is IModelConstructor -> StaticModelProvider(value)
-            else                 -> throw IllegalArgumentException("$value (for $clazz) is not a valid model or model provider")
-          }
-
-          gameObject.models[clazz] = provider
-          logger.trace { "Instantiated $provider from $template" }
-        } catch(exception: Exception) {
-          logger.error(exception) { "Failed to instantiate model $clazz from template $template" }
+      collectModels(template).forEach { (clazz, value) ->
+        val provider = when(value) {
+          is IModelProvider<*> -> value
+          is IModelConstructor -> StaticModelProvider(value)
+          else                 -> throw IllegalArgumentException("$value (for $clazz) is not a valid model or model provider")
         }
+
+        gameObject.models[clazz] = provider
+        logger.trace { "Instantiated $provider from $template" }
+      }
+
+      for(component in components) {
+        gameObject.addComponent(component)
       }
 
       return gameObject
@@ -70,4 +76,33 @@ class TransientGameObject(
   override fun toString(): String {
     return "TransientGameObject(id=$id, parent=$parent, models=$models)"
   }
+}
+
+private fun collectModels(template: ITemplate): Map<KClass<out IModelConstructor>, Any?> {
+  val result = mutableMapOf<KClass<out IModelConstructor>, Any?>()
+
+  val templateClass = template::class
+  val members = requireNotNull(jp.assasans.narukami.server.derive.templateToMembers[templateClass]) {
+    "$templateClass is not registered"
+  }
+
+  for((property, member) in members) {
+    @Suppress("UNCHECKED_CAST")
+    property as KProperty1<ITemplate, *>
+
+    when(member) {
+      is TemplateMember.Model    -> {
+        result[member.model] = property.get(template)
+      }
+
+      is TemplateMember.Template -> {
+        val nestedTemplate = property.get(template)
+        if(nestedTemplate is ITemplate) {
+          result.putAll(collectModels(nestedTemplate))
+        }
+      }
+    }
+  }
+
+  return result
 }

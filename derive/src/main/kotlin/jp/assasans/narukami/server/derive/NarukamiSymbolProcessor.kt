@@ -37,6 +37,10 @@ class NarukamiSymbolProcessor(
       .getSymbolsWithAnnotation("jp.assasans.narukami.server.net.command.ProtocolClass")
       .filterIsInstance<KSClassDeclaration>()
 
+    val templateTypeName = resolver.getKSNameFromString("jp.assasans.narukami.server.core.ITemplate")
+    val templateType = resolver.getClassDeclarationByName(templateTypeName)
+                       ?: throw IllegalStateException("Unable to find ${templateTypeName.asString()}")
+
     // Exit from the processor in case nothing is annotated
     if(!symbols.iterator().hasNext()) return emptyList()
 
@@ -55,11 +59,15 @@ class NarukamiSymbolProcessor(
       file += "// This file is @generated. Do not edit.\n\n"
 
       file += "package jp.assasans.narukami.server.derive\n"
+      file += "\n"
       file += "import kotlin.reflect.KClass\n"
       file += "import kotlin.reflect.KProperty1\n"
-      file += "val templateToModels: Map<KClass<out jp.assasans.narukami.server.core.ITemplate>, Map<KProperty1<out jp.assasans.narukami.server.core.ITemplate, *>, KClass<out jp.assasans.narukami.server.core.IModelConstructor>>> = mapOf(\n"
+      file += "import jp.assasans.narukami.server.core.ITemplate\n"
+      file += "import jp.assasans.narukami.server.core.internal.TemplateMember\n"
+      file += "\n"
+      file += "val templateToMembers: Map<KClass<out ITemplate>, Map<KProperty1<out ITemplate, *>, TemplateMember>> = mapOf(\n"
 
-      symbols.forEach { it.accept(Visitor(file), Unit) }
+      symbols.forEach { it.accept(Visitor(file, templateType), Unit) }
 
       file += ")\n"
     }
@@ -68,7 +76,10 @@ class NarukamiSymbolProcessor(
     return unableToProcess
   }
 
-  inner class Visitor(private val file: OutputStream) : KSVisitorVoid() {
+  inner class Visitor(
+    private val file: OutputStream,
+    private val templateType: KSClassDeclaration,
+  ) : KSVisitorVoid() {
     override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: Unit) {
       if(classDeclaration.classKind != ClassKind.CLASS) {
         logger.error("Only classes can be annotated with @ProtocolClass", classDeclaration)
@@ -98,8 +109,12 @@ class NarukamiSymbolProcessor(
       val type = valueParameter.type.resolve()
       val typeName = type.declaration.qualifiedName?.asString()
       if(!typeName.equals("jp.assasans.narukami.server.core.IModelProvider")) {
-        // logger.error("Only IModelProvider can be used as a parameter type, got ${type.declaration.qualifiedName?.asString()}", valueParameter)
-        file += "    ${clazz.qualifiedName?.asString()}::${valueParameter.name?.asString()} to $typeName::class,\n"
+        // Check for composite template
+        if(templateType.asStarProjectedType().isAssignableFrom(type)) {
+          file += "    ${clazz.qualifiedName?.asString()}::${valueParameter.name?.asString()} to TemplateMember.Template($typeName::class),\n"
+        } else {
+          file += "    ${clazz.qualifiedName?.asString()}::${valueParameter.name?.asString()} to TemplateMember.Model($typeName::class),\n"
+        }
         return
       }
 
@@ -116,7 +131,7 @@ class NarukamiSymbolProcessor(
       }
 
       val typeArgument = typeArgumentType.resolve()
-      file += "    ${clazz.qualifiedName?.asString()}::${valueParameter.name?.asString()} to ${typeArgument.declaration.qualifiedName?.asString()}::class,\n"
+      file += "    ${clazz.qualifiedName?.asString()}::${valueParameter.name?.asString()} to TemplateMember.Model(${typeArgument.declaration.qualifiedName?.asString()}::class), // extracted from model provider\n"
     }
   }
 }

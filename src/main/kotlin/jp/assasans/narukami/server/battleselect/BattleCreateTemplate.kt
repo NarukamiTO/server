@@ -18,10 +18,29 @@
 
 package jp.assasans.narukami.server.battleselect
 
+import kotlin.time.Duration.Companion.minutes
 import jp.assasans.narukami.server.core.ITemplate
+import jp.assasans.narukami.server.core.ITemplateProvider
 import jp.assasans.narukami.server.net.command.ProtocolClass
 
 @ProtocolClass(10)
 data class BattleCreateTemplate(
   val battleCreate: BattleCreateModelCC
-) : ITemplate
+) : ITemplate {
+  companion object {
+    val Provider = ITemplateProvider {
+      BattleCreateTemplate(
+        battleCreate = BattleCreateModelCC(
+          battleCreationDisabled = false,
+          battlesLimits = BattleMode.entries.map {
+            BattleLimits(scoreLimit = 999, timeLimitInSec = 999.minutes.inWholeSeconds.toInt())
+          },
+          defaultRange = Range(min = 1, max = 31),
+          maxRange = Range(min = 1, max = 31),
+          maxRangeLength = 31,
+          ultimatesEnabled = false
+        )
+      )
+    }
+  }
+}

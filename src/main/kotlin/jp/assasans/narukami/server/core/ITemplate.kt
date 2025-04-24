@@ -21,6 +21,7 @@ package jp.assasans.narukami.server.core
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.findAnnotation
+import jp.assasans.narukami.server.core.internal.TemplateMember
 import jp.assasans.narukami.server.net.command.ProtocolClass
 
 /**
@@ -33,4 +34,15 @@ val KClass<out ITemplate>.protocolId: Long
   get() = requireNotNull(findAnnotation<ProtocolClass>()) { "$this has no @ProtocolClass annotation" }.id
 
 val KClass<out ITemplate>.models: Map<KProperty1<out ITemplate, *>, KClass<out IModelConstructor>>
-  get() = requireNotNull(jp.assasans.narukami.server.derive.templateToModels[this]) { "$this is not registered" }
+  get() {
+    val members = requireNotNull(jp.assasans.narukami.server.derive.templateToMembers[this]) {
+      "$this is not registered"
+    }
+
+    return members.flatMap { (property, member) ->
+      when(member) {
+        is TemplateMember.Model    -> listOf(property to member.model)
+        is TemplateMember.Template -> member.template.models.toList()
+      }
+    }.toMap()
+  }

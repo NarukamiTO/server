@@ -19,9 +19,18 @@
 package jp.assasans.narukami.server.battleselect
 
 import jp.assasans.narukami.server.core.ITemplate
+import jp.assasans.narukami.server.core.ITemplateProvider
 import jp.assasans.narukami.server.net.command.ProtocolClass
 
 @ProtocolClass(7)
 data class BattleSelectTemplate(
   val battleSelect: BattleSelectModelCC,
-) : ITemplate
+) : ITemplate {
+  companion object {
+    val Provider = ITemplateProvider {
+      BattleSelectTemplate(
+        battleSelect = BattleSelectModelCC()
+      )
+    }
+  }
+}

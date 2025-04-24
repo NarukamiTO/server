@@ -28,9 +28,9 @@ import kotlin.reflect.full.primaryConstructor
 import io.github.classgraph.ClassGraph
 import io.github.oshai.kotlinlogging.KotlinLogging
 import jp.assasans.narukami.server.core.IComponent
-import jp.assasans.narukami.server.core.IDataUnit
 import jp.assasans.narukami.server.core.IModelConstructor
 import jp.assasans.narukami.server.core.Node
+import jp.assasans.narukami.server.core.internal.IDataUnit
 import jp.assasans.narukami.server.extensions.kotlinClass
 
 class NodeBuilder {

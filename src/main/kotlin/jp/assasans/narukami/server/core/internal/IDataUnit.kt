@@ -16,20 +16,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package jp.assasans.narukami.server.battleselect
+package jp.assasans.narukami.server.core.internal
 
-import jp.assasans.narukami.server.core.ITemplate
-import jp.assasans.narukami.server.net.command.ProtocolClass
+import jp.assasans.narukami.server.core.IComponent
+import jp.assasans.narukami.server.core.IModelConstructor
 
-@ProtocolClass(8)
-data class BattleInfoTemplate(
-  val battleInfo: BattleInfoModelCC,
-  val battleParamInfo: BattleParamInfoModelCC,
-  val battleEntrance: BattleEntranceModelCC,
-) : ITemplate
-
-@ProtocolClass(88)
-data class DMBattleInfoTemplate(
-  val common: BattleInfoTemplate,
-  val battleDMInfo: BattleDMInfoModelCC,
-) : ITemplate
+/**
+ * Shared root for [IModelConstructor] and [IComponent], not used directly.
+ */
+interface IDataUnit

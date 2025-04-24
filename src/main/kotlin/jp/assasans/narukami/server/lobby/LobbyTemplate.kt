@@ -19,6 +19,7 @@
 package jp.assasans.narukami.server.lobby
 
 import jp.assasans.narukami.server.core.ITemplate
+import jp.assasans.narukami.server.core.ITemplateProvider
 import jp.assasans.narukami.server.net.command.ProtocolClass
 
 @ProtocolClass(3)
@@ -29,4 +30,21 @@ data class LobbyTemplate(
   val onceADayAction: OnceADayActionModelCC,
   val reconnect: ReconnectModelCC,
   val gpuDetector: GPUDetectorModelCC,
-) : ITemplate
+) : ITemplate {
+  companion object {
+    val Provider = ITemplateProvider {
+      LobbyTemplate(
+        lobbyLayoutNotify = LobbyLayoutNotifyModelCC(),
+        lobbyLayout = LobbyLayoutModelCC(),
+        panel = PanelModelCC(),
+        onceADayAction = OnceADayActionModelCC(todayRestartTime = 0),
+        reconnect = ReconnectModelCC(
+          // TODO: Take this from hash request command
+          configUrlTemplate = "127.0.0.1:8081/config.xml",
+          serverNumber = 1,
+        ),
+        gpuDetector = GPUDetectorModelCC(),
+      )
+    }
+  }
+}

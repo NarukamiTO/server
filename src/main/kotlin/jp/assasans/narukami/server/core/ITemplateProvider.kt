@@ -19,6 +19,10 @@
 package jp.assasans.narukami.server.core
 
 /**
- * Shared root for [IModelConstructor] and [IComponent], not used directly.
+ * Provides a template.
+ *
+ * @see ITemplate
  */
-interface IDataUnit
+fun interface ITemplateProvider<T : ITemplate> {
+  fun create(): T
+}

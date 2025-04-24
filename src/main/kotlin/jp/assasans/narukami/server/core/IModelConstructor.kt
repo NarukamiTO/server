@@ -22,8 +22,7 @@ import kotlin.reflect.KClass
 import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.hasAnnotation
-import kotlin.reflect.full.isSubclassOf
-import jp.assasans.narukami.server.extensions.kotlinClass
+import jp.assasans.narukami.server.core.internal.IDataUnit
 import jp.assasans.narukami.server.net.command.ProtocolModel
 import jp.assasans.narukami.server.net.command.ProtocolStruct
 import jp.assasans.narukami.server.res.Resource

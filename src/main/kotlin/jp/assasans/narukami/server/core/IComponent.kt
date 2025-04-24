@@ -18,6 +18,8 @@
 
 package jp.assasans.narukami.server.core
 
+import jp.assasans.narukami.server.core.internal.IDataUnit
+
 /**
  * Components provide persistent and serializable data to game objects.
  */

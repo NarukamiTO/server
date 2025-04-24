@@ -18,7 +18,9 @@
 
 package jp.assasans.narukami.server.lobby.communication
 
+import kotlinx.datetime.Clock
 import jp.assasans.narukami.server.core.ITemplate
+import jp.assasans.narukami.server.core.ITemplateProvider
 import jp.assasans.narukami.server.net.command.ProtocolClass
 
 @ProtocolClass(5)
@@ -26,4 +28,47 @@ data class CommunicationTemplate(
   val communicationPanel: CommunicationPanelModelCC,
   val newsShowing: NewsShowingModelCC,
   val chat: ChatModelCC,
-) : ITemplate
+) : ITemplate {
+  companion object {
+    val Provider = ITemplateProvider {
+      CommunicationTemplate(
+        communicationPanel = CommunicationPanelModelCC(),
+        newsShowing = NewsShowingModelCC(
+          newsItems = listOf(
+            NewsItemData(
+              dateInSeconds = Clock.System.now().epochSeconds.toInt(),
+              description = """
+                Все всё равно знают, что Пэдди Мориарти, который жил в Австралии в деревне из 11 человек,
+                пропал вместе со своей собакой. Все знают, что Пэдди часто ссорился с бабкой. Она, кстати,
+                пекла пирожки из крокодила и могла сделать из Пэдди Мориарти пирог. Также большинство догадываются,
+                что Пэдди умер из-за пива, ведь он пил его В ПРОЗРАЧНОМ СТАКАНЕ СО ШРЕКОМ!!!
+              """.trimIndent(),
+              endDate = 0,
+              header = "Не нужно это скрывать!",
+              id = 1,
+              imageUrl = "https://files.catbox.moe/99m151.png"
+            )
+          )
+        ),
+        chat = ChatModelCC(
+          admin = true,
+          antifloodEnabled = false,
+          bufferSize = 100,
+          channels = listOf(
+            "General",
+            "Logs",
+          ),
+          chatEnabled = true,
+          chatModeratorLevel = ChatModeratorLevel.ADMINISTRATOR,
+          linksWhiteList = listOf("github.com"),
+          minChar = 0,
+          minWord = 0,
+          privateMessagesEnabled = false,
+          selfName = "",
+          showLinks = true,
+          typingSpeedAntifloodEnabled = false
+        ),
+      )
+    }
+  }
+}

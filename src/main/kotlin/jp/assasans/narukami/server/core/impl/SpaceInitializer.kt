@@ -21,7 +21,6 @@ package jp.assasans.narukami.server.core.impl
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlinx.datetime.Clock
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import jp.assasans.narukami.server.ColorAdjustModelCC
@@ -33,13 +32,18 @@ import jp.assasans.narukami.server.battleservice.StatisticsModelCC
 import jp.assasans.narukami.server.battleservice.UserInfo
 import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.dispatcher.DispatcherModelCC
-import jp.assasans.narukami.server.entrance.*
-import jp.assasans.narukami.server.lobby.*
-import jp.assasans.narukami.server.lobby.communication.*
-import jp.assasans.narukami.server.lobby.user.RankInfo
-import jp.assasans.narukami.server.lobby.user.RankLoaderModelCC
+import jp.assasans.narukami.server.entrance.EntranceTemplate
+import jp.assasans.narukami.server.lobby.LobbyTemplate
+import jp.assasans.narukami.server.lobby.communication.ChatModeratorLevel
+import jp.assasans.narukami.server.lobby.communication.CommunicationTemplate
 import jp.assasans.narukami.server.lobby.user.RankLoaderTemplate
 import jp.assasans.narukami.server.res.*
+
+data class RegistrationBackgroundComponent(val resource: Resource<ImageRes, *>) : IComponent
+data class RegistrationPasswordLimitsComponent(
+  val minPasswordLength: Int,
+  val maxPasswordLength: Int,
+) : IComponent
 
 class SpaceInitializer(
   private val spaces: IRegistry<ISpace>
@@ -56,17 +60,10 @@ class SpaceInitializer(
       val entranceObject = TransientGameObject.instantiate(
         id = 2,
         entranceClass,
-        EntranceTemplate(
-          entrance = EntranceModelCC(antiAddictionEnabled = false),
-          captcha = CaptchaModelCC(stateWithCaptcha = listOf()),
-          login = LoginModelCC(),
-          registration = RegistrationModelCC(
-            bgResource = gameResourceRepository.get("entrance.background", emptyMap(), ImageRes, Eager),
-            enableRequiredEmail = false,
-            minPasswordLength = 6,
-            maxPasswordLength = 20
-          ),
-          entranceAlert = EntranceAlertModelCC()
+        EntranceTemplate.Provider.create(),
+        setOf(
+          RegistrationBackgroundComponent(gameResourceRepository.get("entrance.background", emptyMap(), ImageRes, Eager)),
+          RegistrationPasswordLimitsComponent(minPasswordLength = 6, maxPasswordLength = 20)
         )
       )
 
@@ -78,61 +75,14 @@ class SpaceInitializer(
       val lobbyObject = TransientGameObject.instantiate(
         id = 2,
         lobbyClass,
-        LobbyTemplate(
-          lobbyLayoutNotify = LobbyLayoutNotifyModelCC(),
-          lobbyLayout = LobbyLayoutModelCC(),
-          panel = PanelModelCC(),
-          onceADayAction = OnceADayActionModelCC(todayRestartTime = 0),
-          reconnect = ReconnectModelCC(
-            // TODO: Take this from hash request command
-            configUrlTemplate = "127.0.0.1:8081/config.xml",
-            serverNumber = 1,
-          ),
-          gpuDetector = GPUDetectorModelCC(),
-        )
+        LobbyTemplate.Provider.create()
       )
       objects.add(lobbyObject)
 
       val rankLoaderObject = TransientGameObject.instantiate(
         id = 8,
         parent = TemplatedGameClass.fromTemplate(RankLoaderTemplate::class),
-        RankLoaderTemplate(
-          rankLoader = RankLoaderModelCC(
-            ranks = listOf(
-              RankInfo(index = 1, name = "Новобранец"),
-              RankInfo(index = 2, name = "Рядовой"),
-              RankInfo(index = 3, name = "Ефрейтор"),
-              RankInfo(index = 4, name = "Капрал"),
-              RankInfo(index = 5, name = "Мастер-капрал"),
-              RankInfo(index = 6, name = "Сержант"),
-              RankInfo(index = 7, name = "Штаб-сержант"),
-              RankInfo(index = 8, name = "Мастер-сержант"),
-              RankInfo(index = 9, name = "Первый сержант"),
-              RankInfo(index = 10, name = "Сержант-майор"),
-              RankInfo(index = 11, name = "Уорэнт-офицер 1"),
-              RankInfo(index = 12, name = "Уорэнт-офицер 2"),
-              RankInfo(index = 13, name = "Уорэнт-офицер 3"),
-              RankInfo(index = 14, name = "Уорэнт-офицер 4"),
-              RankInfo(index = 15, name = "Уорэнт-офицер 5"),
-              RankInfo(index = 16, name = "Младший лейтенант"),
-              RankInfo(index = 17, name = "Лейтенант"),
-              RankInfo(index = 18, name = "Старший лейтенант"),
-              RankInfo(index = 19, name = "Капитан"),
-              RankInfo(index = 20, name = "Майор"),
-              RankInfo(index = 21, name = "Подполковник"),
-              RankInfo(index = 22, name = "Полковник"),
-              RankInfo(index = 23, name = "Бригадир"),
-              RankInfo(index = 24, name = "Генерал-майор"),
-              RankInfo(index = 25, name = "Генерал-лейтенант"),
-              RankInfo(index = 26, name = "Генерал"),
-              RankInfo(index = 27, name = "Маршал"),
-              RankInfo(index = 28, name = "Фельдмаршал"),
-              RankInfo(index = 29, name = "Командор"),
-              RankInfo(index = 30, name = "Генералиссимус"),
-              RankInfo(index = 31, name = "Легенда")
-            )
-          )
-        )
+        RankLoaderTemplate.Provider.create()
       )
       objects.add(rankLoaderObject)
 
@@ -140,44 +90,7 @@ class SpaceInitializer(
       val communicationObject = TransientGameObject.instantiate(
         5,
         communicationClass,
-        CommunicationTemplate(
-          communicationPanel = CommunicationPanelModelCC(),
-          newsShowing = NewsShowingModelCC(
-            newsItems = listOf(
-              NewsItemData(
-                dateInSeconds = Clock.System.now().epochSeconds.toInt(),
-                description = """
-                Все всё равно знают, что Пэдди Мориарти, который жил в Австралии в деревне из 11 человек,
-                пропал вместе со своей собакой. Все знают, что Пэдди часто ссорился с бабкой. Она, кстати,
-                пекла пирожки из крокодила и могла сделать из Пэдди Мориарти пирог. Также большинство догадываются,
-                что Пэдди умер из-за пива, ведь он пил его В ПРОЗРАЧНОМ СТАКАНЕ СО ШРЕКОМ!!!
-              """.trimIndent(),
-                endDate = 0,
-                header = "Не нужно это скрывать!",
-                id = 1,
-                imageUrl = "https://files.catbox.moe/99m151.png"
-              )
-            )
-          ),
-          chat = ChatModelCC(
-            admin = true,
-            antifloodEnabled = false,
-            bufferSize = 100,
-            channels = listOf(
-              "General",
-              "Logs",
-            ),
-            chatEnabled = true,
-            chatModeratorLevel = ChatModeratorLevel.ADMINISTRATOR,
-            linksWhiteList = listOf("github.com"),
-            minChar = 0,
-            minWord = 0,
-            privateMessagesEnabled = false,
-            selfName = "",
-            showLinks = true,
-            typingSpeedAntifloodEnabled = false
-          ),
-        )
+        CommunicationTemplate.Provider.create()
       )
       objects.add(communicationObject)
 
@@ -185,9 +98,7 @@ class SpaceInitializer(
       val battleSelectObject = TransientGameObject.instantiate(
         6,
         battleSelectClass,
-        BattleSelectTemplate(
-          battleSelect = BattleSelectModelCC()
-        )
+        BattleSelectTemplate.Provider.create()
       )
       objects.add(battleSelectObject)
 
@@ -195,18 +106,7 @@ class SpaceInitializer(
       val battleCreateObject = TransientGameObject.instantiate(
         10,
         battleCreateClass,
-        BattleCreateTemplate(
-          battleCreate = BattleCreateModelCC(
-            battleCreationDisabled = false,
-            battlesLimits = BattleMode.entries.map {
-              BattleLimits(scoreLimit = 999, timeLimitInSec = 999.minutes.inWholeSeconds.toInt())
-            },
-            defaultRange = Range(min = 1, max = 31),
-            maxRange = Range(min = 1, max = 31),
-            maxRangeLength = 31,
-            ultimatesEnabled = false
-          )
-        )
+        BattleCreateTemplate.Provider.create()
       )
       objects.add(battleCreateObject)
 
@@ -214,39 +114,7 @@ class SpaceInitializer(
       val mapInfoObject = TransientGameObject.instantiate(
         7,
         mapInfoClass,
-        MapInfoTemplate(
-          mapInfo = MapInfoModelCC(
-            defaultTheme = MapTheme.SUMMER_NIGHT,
-            enabled = true,
-            mapId = 7,
-            mapName = "Spawn Test",
-            matchmakingMark = false,
-            maxPeople = 32,
-            preview = gameResourceRepository.get(
-              "map.spawn-test.preview",
-              mapOf(
-                "gen" to "2.1",
-                "variant" to "default",
-                "theme" to "summer",
-                "time" to "day"
-              ),
-              ImageRes,
-              Lazy
-            ),
-            rankLimit = Range(min = 1, max = 31),
-            supportedModes = listOf(
-              BattleMode.DM,
-              BattleMode.TDM,
-              BattleMode.CTF,
-              BattleMode.CP,
-              BattleMode.AS,
-              BattleMode.RUGBY,
-              BattleMode.SUR,
-              BattleMode.JGR,
-            ),
-            theme = MapTheme.SUMMER_NIGHT
-          )
-        )
+        MapInfoTemplate.Provider.create()
       ).also { objects.add(it) }
 
       TransientGameObject.instantiate(
@@ -275,41 +143,43 @@ class SpaceInitializer(
         9,
         battleInfoClass,
         DMBattleInfoTemplate(
-          battleInfo = BattleInfoModelCC(
-            roundStarted = false,
-            suspicionLevel = BattleSuspicionLevel.NONE,
-            timeLeftInSec = 3600,
+          common = BattleInfoTemplate(
+            battleInfo = BattleInfoModelCC(
+              roundStarted = false,
+              suspicionLevel = BattleSuspicionLevel.NONE,
+              timeLeftInSec = 3600,
+            ),
+            battleParamInfo = BattleParamInfoModelCC(
+              map = mapInfoObject,
+              params = BattleCreateParameters(
+                autoBalance = false,
+                battleMode = BattleMode.DM,
+                clanBattle = false,
+                dependentCooldownEnabled = false,
+                equipmentConstraintsMode = null,
+                friendlyFire = false,
+                goldBoxesEnabled = false,
+                limits = BattleLimits(scoreLimit = 0, timeLimitInSec = 0),
+                mapId = mapInfoObject.id,
+                maxPeopleCount = 32,
+                name = null,
+                parkourMode = false,
+                privateBattle = false,
+                proBattle = true,
+                rankRange = Range(min = 1, max = 31),
+                reArmorEnabled = true,
+                theme = MapTheme.SUMMER_NIGHT,
+                ultimatesEnabled = false,
+                uniqueUsersBattle = false,
+                withoutBonuses = false,
+                withoutDevices = false,
+                withoutDrones = false,
+                withoutSupplies = false,
+                withoutUpgrades = false,
+              )
+            ),
+            battleEntrance = BattleEntranceModelCC(),
           ),
-          battleParamInfo = BattleParamInfoModelCC(
-            map = mapInfoObject,
-            params = BattleCreateParameters(
-              autoBalance = false,
-              battleMode = BattleMode.DM,
-              clanBattle = false,
-              dependentCooldownEnabled = false,
-              equipmentConstraintsMode = null,
-              friendlyFire = false,
-              goldBoxesEnabled = false,
-              limits = BattleLimits(scoreLimit = 0, timeLimitInSec = 0),
-              mapId = mapInfoObject.id,
-              maxPeopleCount = 32,
-              name = null,
-              parkourMode = false,
-              privateBattle = false,
-              proBattle = true,
-              rankRange = Range(min = 1, max = 31),
-              reArmorEnabled = true,
-              theme = MapTheme.SUMMER_NIGHT,
-              ultimatesEnabled = false,
-              uniqueUsersBattle = false,
-              withoutBonuses = false,
-              withoutDevices = false,
-              withoutDrones = false,
-              withoutSupplies = false,
-              withoutUpgrades = false,
-            )
-          ),
-          battleEntrance = BattleEntranceModelCC(),
           battleDMInfo = BattleDMInfoModelCC(
             users = listOf()
           )
