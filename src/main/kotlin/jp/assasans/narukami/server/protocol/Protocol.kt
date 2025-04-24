@@ -25,6 +25,7 @@ import jp.assasans.narukami.server.battlefield.tank.MoveCommand
 import jp.assasans.narukami.server.battlefield.tank.MoveCommandCodec
 import jp.assasans.narukami.server.core.IGameObject
 import jp.assasans.narukami.server.dispatcher.*
+import jp.assasans.narukami.server.net.ISocketClient
 import jp.assasans.narukami.server.net.command.ControlCommand
 import jp.assasans.narukami.server.net.command.ControlCommandCodec
 import jp.assasans.narukami.server.net.command.HashRequestCommand
@@ -34,6 +35,7 @@ import jp.assasans.narukami.server.protocol.factory.*
 import jp.assasans.narukami.server.protocol.primitive.*
 
 interface IProtocol {
+  val socket: ISocketClient
   val varIntCodec: ICodec<Int>
 
   fun getCodec(info: KType): ICodec<*>
@@ -43,7 +45,9 @@ inline fun <reified T> IProtocol.getTypedCodec(): ICodec<T> {
   return getCodec(T::class.createType()) as ICodec<T>
 }
 
-class Protocol : IProtocol {
+class Protocol(
+  override val socket: ISocketClient
+) : IProtocol {
   private val logger = KotlinLogging.logger { }
 
   private val codecs: MutableMap<KType, ICodec<*>> = mutableMapOf()

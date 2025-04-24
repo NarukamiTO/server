@@ -52,7 +52,7 @@ class NettySocketClient(
     CoroutineScope by scope {
   private val logger = KotlinLogging.logger { }
 
-  override val protocol: IProtocol = Protocol()
+  override val protocol: IProtocol = Protocol(this)
   override var kind: IChannelKind = ControlChannel(this)
   override var session: ISession? = null
 

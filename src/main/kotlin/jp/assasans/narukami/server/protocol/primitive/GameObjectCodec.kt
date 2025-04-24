@@ -19,6 +19,7 @@
 package jp.assasans.narukami.server.protocol.primitive
 
 import jp.assasans.narukami.server.core.IGameObject
+import jp.assasans.narukami.server.net.SpaceChannel
 import jp.assasans.narukami.server.protocol.*
 
 class GameObjectCodec : Codec<IGameObject>() {
@@ -34,7 +35,10 @@ class GameObjectCodec : Codec<IGameObject>() {
   }
 
   override fun decode(buffer: ProtocolBuffer): IGameObject {
-    // We need to somehow pass space to the codec
-    error("Not yet implemented")
+    val channel = protocol.socket.kind
+    if(channel !is SpaceChannel) throw IllegalStateException("GameObjectCodec can only be used in space channel")
+
+    val id = longCodec.decode(buffer)
+    return channel.space.objects.get(id) ?: throw IllegalStateException("Object with ID $id not found in space ${channel.space.id}")
   }
 }
