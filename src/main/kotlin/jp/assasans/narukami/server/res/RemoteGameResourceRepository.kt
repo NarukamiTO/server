@@ -100,7 +100,7 @@ private fun ResourceType.intoMarker(): Res {
     ResourceType.Image             -> ImageRes
     ResourceType.MultiframeTexture -> MultiframeTextureRes
     ResourceType.LocalizedImage    -> LocalizedImageRes
-    ResourceType.Object3D          -> UnknownRes
+    ResourceType.Object3D          -> Object3DRes
     ResourceType.Localization      -> LocalizationRes
     else                           -> throw IllegalArgumentException("Resource type $this is not supported")
   }
@@ -116,6 +116,7 @@ val Res.type: ResourceType
     is ImageRes             -> ResourceType.Image
     is MultiframeTextureRes -> ResourceType.MultiframeTexture
     is LocalizedImageRes    -> ResourceType.LocalizedImage
+    is Object3DRes          -> ResourceType.Object3D
     is LocalizationRes      -> ResourceType.Localization
     is UnknownRes           -> throw IllegalArgumentException("Resource type $this is not supported")
   }
@@ -165,6 +166,7 @@ data object TextureRes : Res
 data object ImageRes : Res
 data object MultiframeTextureRes : Res
 data object LocalizedImageRes : Res
+data object Object3DRes : Res
 data object LocalizationRes : Res
 
 class RemoteGameResourceRepository(

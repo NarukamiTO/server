@@ -21,6 +21,8 @@ package jp.assasans.narukami.server.protocol
 import kotlin.reflect.KType
 import kotlin.reflect.full.createType
 import io.github.oshai.kotlinlogging.KotlinLogging
+import jp.assasans.narukami.server.battlefield.tank.MoveCommand
+import jp.assasans.narukami.server.battlefield.tank.MoveCommandCodec
 import jp.assasans.narukami.server.core.IGameObject
 import jp.assasans.narukami.server.dispatcher.*
 import jp.assasans.narukami.server.net.command.ControlCommand
@@ -78,6 +80,9 @@ class Protocol : IProtocol {
     register(ModelData::class.createType(), ModelDataCodec())
     register(ObjectsData::class.createType(), ObjectsDataCodec())
     register(ObjectsDependencies::class.createType(), ObjectsDependenciesCodec())
+
+    /* Optimized structs */
+    register(MoveCommand::class.createType(), MoveCommandCodec())
   }
 
   fun register(info: KType, codec: ICodec<*>) {

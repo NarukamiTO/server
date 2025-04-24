@@ -16,25 +16,22 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package jp.assasans.narukami.server.battlefield
+package jp.assasans.narukami.server.battlefield.tank
 
-import jp.assasans.narukami.server.battleservice.StatisticsDMModel
-import jp.assasans.narukami.server.battleservice.StatisticsModelCC
 import jp.assasans.narukami.server.core.ITemplate
 import jp.assasans.narukami.server.net.command.ProtocolClass
 
-@ProtocolClass(42)
-data class BattlefieldTemplate(
-  val battlefield: BattlefieldModelCC,
-  val battlefieldBonuses: BattlefieldBonusesModelCC,
-  val battleFacilities: BattleFacilitiesModelCC,
-  val battleChat: BattleChatModelCC,
-  // Absence of [StatisticsModel] causes an unhelpful error, pointing to [TankModel#registerUser].
-  val statistics: StatisticsModelCC,
-  val statisticsDM: StatisticsDMModel,
-  // Absence of [InventoryModel] causes an unhelpful error, pointing to [DroneIndicatorModel#updateBatteryIndicator].
-  val inventory: InventoryModelCC,
-  // val inventorySfx: InventorySfxModelCC,
-  // val continueBattle: ContinueBattleModelCC,
-  val battleDM: BattleDMModelCC,
+@ProtocolClass(53)
+data class TankTemplate(
+  val tankSpawner: TankSpawnerModelCC,
+  val tankConfiguration: TankConfigurationModelCC,
+  val tank: TankModelCC,
+  val tankResistances: TankResistancesModelCC,
+  val tankPause: TankPauseModelCC,
+  val speedCharacteristics: SpeedCharacteristicsModelCC,
+  val ultimate: UltimateModelCC,
+  val droneIndicator: DroneIndicatorModelCC,
+  val tankDevice: TankDeviceModelCC,
+  val suicide: SuicideModelCC,
+  val tankTemperature: TankTemperatureModelCC,
 ) : ITemplate

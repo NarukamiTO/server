@@ -79,7 +79,7 @@ class LobbySystem : AbstractSystem() {
             gearScore = 0,
             goldsTakenRating = 0,
             hasSpectatorPermissions = false,
-            id = it.id,
+            id = 30,
             rank = 1,
             rankBounds = RankBounds(lowBound = 123456, topBound = 2456789),
             registrationTimestamp = 10,

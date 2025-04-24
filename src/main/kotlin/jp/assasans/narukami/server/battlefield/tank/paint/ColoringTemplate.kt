@@ -16,25 +16,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package jp.assasans.narukami.server.battlefield
+package jp.assasans.narukami.server.battlefield.tank.paint
 
-import jp.assasans.narukami.server.battleservice.StatisticsDMModel
-import jp.assasans.narukami.server.battleservice.StatisticsModelCC
 import jp.assasans.narukami.server.core.ITemplate
 import jp.assasans.narukami.server.net.command.ProtocolClass
 
-@ProtocolClass(42)
-data class BattlefieldTemplate(
-  val battlefield: BattlefieldModelCC,
-  val battlefieldBonuses: BattlefieldBonusesModelCC,
-  val battleFacilities: BattleFacilitiesModelCC,
-  val battleChat: BattleChatModelCC,
-  // Absence of [StatisticsModel] causes an unhelpful error, pointing to [TankModel#registerUser].
-  val statistics: StatisticsModelCC,
-  val statisticsDM: StatisticsDMModel,
-  // Absence of [InventoryModel] causes an unhelpful error, pointing to [DroneIndicatorModel#updateBatteryIndicator].
-  val inventory: InventoryModelCC,
-  // val inventorySfx: InventorySfxModelCC,
-  // val continueBattle: ContinueBattleModelCC,
-  val battleDM: BattleDMModelCC,
+@ProtocolClass(51)
+data class ColoringTemplate(
+  val coloring: ColoringModelCC,
 ) : ITemplate

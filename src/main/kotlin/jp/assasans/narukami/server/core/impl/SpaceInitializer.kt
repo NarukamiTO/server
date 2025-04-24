@@ -19,6 +19,7 @@
 package jp.assasans.narukami.server.core.impl
 
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.datetime.Clock
 import org.koin.core.component.KoinComponent
@@ -27,6 +28,9 @@ import jp.assasans.narukami.server.ColorAdjustModelCC
 import jp.assasans.narukami.server.ColorAdjustParams
 import jp.assasans.narukami.server.battlefield.*
 import jp.assasans.narukami.server.battleselect.*
+import jp.assasans.narukami.server.battleservice.StatisticsDMModel
+import jp.assasans.narukami.server.battleservice.StatisticsModelCC
+import jp.assasans.narukami.server.battleservice.UserInfo
 import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.dispatcher.DispatcherModelCC
 import jp.assasans.narukami.server.entrance.*
@@ -378,7 +382,7 @@ class SpaceInitializer(
         BattlefieldTemplate(
           battlefield = BattlefieldModelCC(
             active = true,
-            battleId = 0,
+            battleId = 4242,
             battlefieldSounds = BattlefieldSounds(
               battleFinishSound = gameResourceRepository.get("battle.sound.finish", mapOf(), SoundRes, Eager),
               killSound = gameResourceRepository.get("tank.sound.destroy", mapOf(), SoundRes, Eager)
@@ -388,12 +392,12 @@ class SpaceInitializer(
             map = battleMapObject,
             mineExplosionLighting = LightingSFXEntity(effects = listOf()),
             proBattle = false,
-            range = Range(min = 0, max = 0),
+            range = Range(min = 1, max = 31),
             reArmorEnabled = false,
-            respawnDuration = 0,
+            respawnDuration = 1000,
             shadowMapCorrectionFactor = 0.0f,
             showAddressLink = false,
-            spectator = true,
+            spectator = false,
             withoutBonuses = false,
             withoutDrones = false,
             withoutSupplies = false
@@ -403,7 +407,39 @@ class SpaceInitializer(
             bonuses = listOf()
           ),
           battleFacilities = BattleFacilitiesModelCC(),
-          battleChat = BattleChatModelCC()
+          battleChat = BattleChatModelCC(),
+          statistics = StatisticsModelCC(
+            battleName = null,
+            equipmentConstraintsMode = null,
+            fund = 42,
+            limits = BattleLimits(scoreLimit = 0, timeLimitInSec = 0),
+            mapName = "BattlefieldTemplate",
+            matchBattle = false,
+            maxPeopleCount = 0,
+            modeName = "DM",
+            parkourMode = false,
+            running = true,
+            spectator = false,
+            suspiciousUserIds = listOf(),
+            timeLeft = (21.minutes + 12.seconds).inWholeSeconds.toInt(),
+            valuableRound = true
+          ),
+          statisticsDM = StatisticsDMModel(
+            usersInfo = listOf(
+              UserInfo(
+                chatModeratorLevel = ChatModeratorLevel.ADMINISTRATOR,
+                deaths = 0,
+                hasPremium = false,
+                kills = 0,
+                rank = 1,
+                score = 0,
+                uid = "Player",
+                user = 30,
+              )
+            )
+          ),
+          inventory = InventoryModelCC(ultimateEnabled = false),
+          battleDM = BattleDMModelCC(),
         )
       )
       battlefieldObject.models[DispatcherModelCC::class] = StaticModelProvider(DispatcherModelCC())
