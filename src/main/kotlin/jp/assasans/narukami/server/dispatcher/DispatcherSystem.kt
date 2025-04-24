@@ -100,7 +100,9 @@ class DispatcherSystem : AbstractSystem() {
       dependencies = ObjectsDependencies.new(
         callbackId = event.callbackId,
         classes = event.classes,
-        resources = event.resources
+        // Loading more than one resource with the same ID will cause a deadlock on the client.
+        // TODO: This may cause bugs when same resource loaded in both Lazy and Eager modes, we should prefer Eager.
+        resources = event.resources.distinctBy { it.id }
       )
     ).schedule(dispatcher)
   }
