@@ -1,0 +1,38 @@
+template "jp.assasans.narukami.server.lobby.user.RankLoaderTemplate::Provider"
+components {
+  jp.assasans.narukami.server.lobby.user.RankLoaderComponent {
+    ranks {
+      - index=1 name="Новобранец"
+      - index=2 name="Рядовой"
+      - index=3 name="Ефрейтор"
+      - index=4 name="Капрал"
+      - index=5 name="Мастер-капрал"
+      - index=6 name="Сержант"
+      - index=7 name="Штаб-сержант"
+      - index=8 name="Мастер-сержант"
+      - index=9 name="Первый сержант"
+      - index=10 name="Сержант-майор"
+      - index=11 name="Уорэнт-офицер 1"
+      - index=12 name="Уорэнт-офицер 2"
+      - index=13 name="Уорэнт-офицер 3"
+      - index=14 name="Уорэнт-офицер 4"
+      - index=15 name="Уорэнт-офицер 5"
+      - index=16 name="Младший лейтенант"
+      - index=17 name="Лейтенант"
+      - index=18 name="Старший лейтенант"
+      - index=19 name="Капитан"
+      - index=20 name="Майор"
+      - index=21 name="Подполковник"
+      - index=22 name="Полковник"
+      - index=23 name="Бригадир"
+      - index=24 name="Генерал-майор"
+      - index=25 name="Генерал-лейтенант"
+      - index=26 name="Генерал"
+      - index=27 name="Маршал"
+      - index=28 name="Фельдмаршал"
+      - index=29 name="Командор"
+      - index=30 name="Генералиссимус"
+      - index=31 name="Легенда"
+    }
+  }
+}

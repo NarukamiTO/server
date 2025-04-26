@@ -23,24 +23,12 @@
       <AppenderRef ref="MAIN" />
     </Root>
 
-    <Logger name="jp.assasans.narukami" level="DEBUG">
-      <AppenderRef ref="DEBUG_LOG" />
-    </Logger>
-
-    <Logger name="jp.assasans.narukami.server.net.SpaceChannel" level="INFO">
-      <AppenderRef ref="DEBUG_LOG" />
-    </Logger>
-
-    <Logger name="jp.assasans.narukami.server.core.impl.EventScheduler" level="INFO">
-      <AppenderRef ref="DEBUG_LOG" />
-    </Logger>
-
-    <Logger name="jp.assasans.narukami.server.core.impl.NodeBuilder" level="INFO">
-      <AppenderRef ref="DEBUG_LOG" />
-    </Logger>
-
-    <Logger name="io.netty" level="INFO">
-      <AppenderRef ref="CONSOLE" />
-    </Logger>
+    <Logger name="jp.assasans.narukami" level="DEBUG" />
+    <Logger name="jp.assasans.narukami.server.kdl" level="INFO" />
+    <Logger name="jp.assasans.narukami.server.protocol" level="INFO" />
+    <Logger name="jp.assasans.narukami.server.net.SpaceChannel" level="INFO" />
+    <Logger name="jp.assasans.narukami.server.core.impl.EventScheduler" level="INFO" />
+    <Logger name="jp.assasans.narukami.server.core.impl.NodeBuilder" level="INFO" />
+    <Logger name="io.netty" level="INFO" />
   </Loggers>
 </Configuration>

@@ -18,14 +18,17 @@
 
 package jp.assasans.narukami.server.entrance
 
-import jp.assasans.narukami.server.core.ClosureModelProvider
-import jp.assasans.narukami.server.core.IModelProvider
-import jp.assasans.narukami.server.core.ITemplate
-import jp.assasans.narukami.server.core.ITemplateProvider
-import jp.assasans.narukami.server.core.impl.RegistrationBackgroundComponent
-import jp.assasans.narukami.server.core.impl.RegistrationPasswordLimitsComponent
+import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.lobby.user.adaptSingle
 import jp.assasans.narukami.server.net.command.ProtocolClass
+import jp.assasans.narukami.server.res.ImageRes
+import jp.assasans.narukami.server.res.Resource
+
+data class RegistrationBackgroundComponent(val resource: Resource<ImageRes, *>) : IComponent
+data class RegistrationPasswordLimitsComponent(
+  val minPasswordLength: Int,
+  val maxPasswordLength: Int,
+) : IComponent
 
 @ProtocolClass(2)
 data class EntranceTemplate(

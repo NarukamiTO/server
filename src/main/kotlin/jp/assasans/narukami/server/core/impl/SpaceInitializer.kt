@@ -23,27 +23,18 @@ import kotlin.time.Duration.Companion.seconds
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
-import jp.assasans.narukami.server.ColorAdjustModelCC
-import jp.assasans.narukami.server.ColorAdjustParams
 import jp.assasans.narukami.server.battlefield.*
 import jp.assasans.narukami.server.battleselect.*
 import jp.assasans.narukami.server.battleservice.StatisticsDMModel
 import jp.assasans.narukami.server.battleservice.StatisticsModelCC
 import jp.assasans.narukami.server.battleservice.UserInfo
-import jp.assasans.narukami.server.core.*
+import jp.assasans.narukami.server.core.IEvent
+import jp.assasans.narukami.server.core.IRegistry
+import jp.assasans.narukami.server.core.ISpace
+import jp.assasans.narukami.server.core.StaticModelProvider
 import jp.assasans.narukami.server.dispatcher.DispatcherModelCC
-import jp.assasans.narukami.server.entrance.EntranceTemplate
-import jp.assasans.narukami.server.lobby.LobbyTemplate
 import jp.assasans.narukami.server.lobby.communication.ChatModeratorLevel
-import jp.assasans.narukami.server.lobby.communication.CommunicationTemplate
-import jp.assasans.narukami.server.lobby.user.RankLoaderTemplate
 import jp.assasans.narukami.server.res.*
-
-data class RegistrationBackgroundComponent(val resource: Resource<ImageRes, *>) : IComponent
-data class RegistrationPasswordLimitsComponent(
-  val minPasswordLength: Int,
-  val maxPasswordLength: Int,
-) : IComponent
 
 class SpaceInitializer(
   private val spaces: IRegistry<ISpace>
@@ -53,63 +44,9 @@ class SpaceInitializer(
   private val gameResourceRepository: RemoteGameResourceRepository by inject()
 
   fun init() {
-    spaces.add(Space(0xaa55).apply {
-      logger.info { "EntranceClass models: ${EntranceTemplate::class.models}" }
+    spaces.add(Space(Space.stableId("entrance")))
 
-      val entranceClass = TemplatedGameClass.fromTemplate(EntranceTemplate::class)
-      val entranceObject = TransientGameObject.instantiate(
-        id = 2,
-        entranceClass,
-        EntranceTemplate.Provider.create(),
-        setOf(
-          RegistrationBackgroundComponent(gameResourceRepository.get("entrance.background", emptyMap(), ImageRes, Eager)),
-          RegistrationPasswordLimitsComponent(minPasswordLength = 6, maxPasswordLength = 20)
-        )
-      )
-
-      objects.add(entranceObject)
-    })
-
-    spaces.add(Space(0x55aa).apply {
-      val lobbyClass = TemplatedGameClass.fromTemplate(LobbyTemplate::class)
-      val lobbyObject = TransientGameObject.instantiate(
-        id = 2,
-        lobbyClass,
-        LobbyTemplate.Provider.create()
-      )
-      objects.add(lobbyObject)
-
-      val rankLoaderObject = TransientGameObject.instantiate(
-        id = 8,
-        parent = TemplatedGameClass.fromTemplate(RankLoaderTemplate::class),
-        RankLoaderTemplate.Provider.create()
-      )
-      objects.add(rankLoaderObject)
-
-      val communicationClass = TemplatedGameClass.fromTemplate(CommunicationTemplate::class)
-      val communicationObject = TransientGameObject.instantiate(
-        5,
-        communicationClass,
-        CommunicationTemplate.Provider.create()
-      )
-      objects.add(communicationObject)
-
-      val battleSelectClass = TemplatedGameClass.fromTemplate(BattleSelectTemplate::class)
-      val battleSelectObject = TransientGameObject.instantiate(
-        6,
-        battleSelectClass,
-        BattleSelectTemplate.Provider.create()
-      )
-      objects.add(battleSelectObject)
-
-      val battleCreateClass = TemplatedGameClass.fromTemplate(BattleCreateTemplate::class)
-      val battleCreateObject = TransientGameObject.instantiate(
-        10,
-        battleCreateClass,
-        BattleCreateTemplate.Provider.create()
-      )
-      objects.add(battleCreateObject)
-
+    spaces.add(Space(Space.stableId("lobby")).apply {
       val mapInfoClass = TemplatedGameClass.fromTemplate(MapInfoTemplate::class)
       val mapInfoObject = TransientGameObject.instantiate(
         7,

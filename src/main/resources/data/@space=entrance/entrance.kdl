@@ -1,0 +1,11 @@
+template "jp.assasans.narukami.server.entrance.EntranceTemplate::Provider"
+components {
+  jp.assasans.narukami.server.entrance.RegistrationBackgroundComponent {
+    resource "entrance.background" type="Image" laziness="Eager"
+  }
+
+  jp.assasans.narukami.server.entrance.RegistrationPasswordLimitsComponent {
+    minPasswordLength 6
+    maxPasswordLength 20
+  }
+}

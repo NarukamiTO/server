@@ -16,14 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package jp.assasans.narukami.server.battlefield
+package jp.assasans.narukami.server.kdl
 
-import jp.assasans.narukami.server.core.IModelConstructor
-import jp.assasans.narukami.server.net.command.ProtocolModel
+import dev.kdl.KdlNode
 
-@ProtocolModel(1688856467034284073)
-data class MapBonusLightModelCC(
-  val bonusLightIntensity: Float,
-  val hwColorAdjust: ColorAdjustParams,
-  val softColorAdjust: ColorAdjustParams,
-) : IModelConstructor
+interface IKdlCodec<T> {
+  fun decode(reader: KdlReader, node: KdlNode): T
+}

@@ -16,14 +16,25 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package jp.assasans.narukami.server.battlefield
+package jp.assasans.narukami.server.kdl
 
-import jp.assasans.narukami.server.core.IModelConstructor
-import jp.assasans.narukami.server.net.command.ProtocolModel
+import kotlin.reflect.KType
+import dev.kdl.KdlNode
+import jp.assasans.narukami.server.extensions.kotlinClass
 
-@ProtocolModel(1688856467034284073)
-data class MapBonusLightModelCC(
-  val bonusLightIntensity: Float,
-  val hwColorAdjust: ColorAdjustParams,
-  val softColorAdjust: ColorAdjustParams,
-) : IModelConstructor
+class KdlStringCodec : IKdlCodec<String> {
+  companion object {
+    val Factory = object : IKdlCodecFactory<String> {
+      override fun create(reader: KdlReader, type: KType): IKdlCodec<String>? {
+        if(type.kotlinClass != String::class) return null
+        assert(!type.isMarkedNullable)
+
+        return KdlStringCodec()
+      }
+    }
+  }
+
+  override fun decode(reader: KdlReader, node: KdlNode): String {
+    return node.arguments.single().value() as String
+  }
+}

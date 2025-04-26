@@ -20,10 +20,24 @@ package jp.assasans.narukami.server.battlefield
 
 import jp.assasans.narukami.server.core.IModelConstructor
 import jp.assasans.narukami.server.net.command.ProtocolModel
+import jp.assasans.narukami.server.net.command.ProtocolStruct
 
-@ProtocolModel(1688856467034284073)
-data class MapBonusLightModelCC(
-  val bonusLightIntensity: Float,
-  val hwColorAdjust: ColorAdjustParams,
-  val softColorAdjust: ColorAdjustParams,
+@ProtocolModel(5968651969329902265)
+data class ColorAdjustModelCC(
+  val frostParamsHW: ColorAdjustParams,
+  val frostParamsSoft: ColorAdjustParams,
+  val heatParamsHW: ColorAdjustParams,
+  val heatParamsSoft: ColorAdjustParams,
 ) : IModelConstructor
+
+@ProtocolStruct
+data class ColorAdjustParams(
+  val alphaMultiplier: Float,
+  val alphaOffset: Float,
+  val blueMultiplier: Float,
+  val blueOffset: Float,
+  val greenMultiplier: Float,
+  val greenOffset: Float,
+  val redMultiplier: Float,
+  val redOffset: Float,
+)

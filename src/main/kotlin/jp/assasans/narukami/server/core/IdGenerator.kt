@@ -16,28 +16,24 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package jp.assasans.narukami.server
+package jp.assasans.narukami.server.core
 
-import jp.assasans.narukami.server.core.IModelConstructor
-import jp.assasans.narukami.server.net.command.ProtocolModel
-import jp.assasans.narukami.server.net.command.ProtocolStruct
+import io.github.oshai.kotlinlogging.KotlinLogging
+import jp.assasans.narukami.server.HighwayHash
 
-@ProtocolModel(5968651969329902265)
-data class ColorAdjustModelCC(
-  val frostParamsHW: ColorAdjustParams,
-  val frostParamsSoft: ColorAdjustParams,
-  val heatParamsHW: ColorAdjustParams,
-  val heatParamsSoft: ColorAdjustParams,
-) : IModelConstructor
+fun makeStableId(identifier: String): Long {
+  val logger = KotlinLogging.logger { }
 
-@ProtocolStruct
-data class ColorAdjustParams(
-  val alphaMultiplier: Float,
-  val alphaOffset: Float,
-  val blueMultiplier: Float,
-  val blueOffset: Float,
-  val greenMultiplier: Float,
-  val greenOffset: Float,
-  val redMultiplier: Float,
-  val redOffset: Float,
-)
+  val key = longArrayOf(
+    0x21122019_21122019,
+    0x42424242_42424242,
+    0x21122019_21122019,
+    0x42424242_42424242,
+  )
+  val data = identifier.toByteArray()
+  val hash = HighwayHash.hash64(data, 0, data.size, key)
+  val id = hash and 0xffffffe
+  logger.trace { "Generated stable ID $id for $identifier" }
+
+  return id
+}

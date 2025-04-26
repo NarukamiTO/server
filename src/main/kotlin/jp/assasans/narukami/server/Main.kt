@@ -45,10 +45,12 @@ import jp.assasans.narukami.server.core.impl.EventScheduler
 import jp.assasans.narukami.server.core.impl.Registry
 import jp.assasans.narukami.server.core.impl.SessionRegistry
 import jp.assasans.narukami.server.core.impl.SpaceInitializer
+import jp.assasans.narukami.server.kdl.KdlReader
 import jp.assasans.narukami.server.net.ConfigServer
 import jp.assasans.narukami.server.net.GameServer
 import jp.assasans.narukami.server.net.ResourceServer
 import jp.assasans.narukami.server.net.SpaceEventProcessor
+import jp.assasans.narukami.server.res.LocalGameResourceRepository
 import jp.assasans.narukami.server.res.RemoteGameResourceRepository
 import jp.assasans.narukami.server.res.ResourceType
 import jp.assasans.narukami.server.res.ResourceTypeConverter
@@ -108,8 +110,11 @@ suspend fun main() {
   val koin = startKoin {
     logger(SLF4JLogger())
     modules(module {
+      /* Serialization */
       single { provideObjectMapper() }
+      singleOf(::KdlReader)
 
+      singleOf(::LocalGameResourceRepository)
       singleOf(::RemoteGameResourceRepository)
 
       single<IRegistry<ISpace>> { Registry("Space") { id } }
@@ -132,6 +137,9 @@ suspend fun main() {
   koin.koin.get<SpaceInitializer>().init()
   koin.koin.get<SpaceEventProcessor>()
   koin.koin.get<IEventScheduler>()
+
+  // Local game objects depend on remote resources and spaces
+  koin.koin.get<LocalGameResourceRepository>().fetch()
 
   coroutineScope {
     launch { koin.koin.get<ConfigServer>().start() }

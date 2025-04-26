@@ -18,11 +18,9 @@
 
 package jp.assasans.narukami.server.core.impl
 
+import java.util.concurrent.atomic.AtomicLong
 import io.github.oshai.kotlinlogging.KotlinLogging
-import jp.assasans.narukami.server.core.IGameObject
-import jp.assasans.narukami.server.core.IRegistry
-import jp.assasans.narukami.server.core.ISpace
-import jp.assasans.narukami.server.core.StaticModelProvider
+import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.dispatcher.DispatcherModelCC
 
 class Space(override val id: Long) : ISpace {
@@ -33,6 +31,24 @@ class Space(override val id: Long) : ISpace {
       id = 0,
       models = listOf(DispatcherModelCC::class)
     )
+
+    private val lastId = AtomicLong(-2112)
+
+    /**
+     * Generates a new transient ID for a space.
+     *
+     * Transient IDs are negative, as opposed to stable IDs, which are positive.
+     */
+    fun freeId(): Long {
+      return lastId.getAndDecrement()
+    }
+
+    /**
+     * Generates a stable ID for a space.
+     *
+     * Stable IDs are positive and always the same for the same identifier.
+     */
+    fun stableId(identifier: String): Long = makeStableId("Space:$identifier")
   }
 
   override val objects: IRegistry<IGameObject> = Registry("Game object") { id }

@@ -24,6 +24,8 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.core.impl.DeferredPending
+import jp.assasans.narukami.server.core.impl.Space
+import jp.assasans.narukami.server.core.impl.TransientGameObject
 import jp.assasans.narukami.server.dispatcher.DispatcherLoadObjectsManagedEvent
 import jp.assasans.narukami.server.net.command.*
 import jp.assasans.narukami.server.net.session.Session
@@ -84,8 +86,10 @@ class ControlChannel(socket: ISocketClient) : ChannelKind(socket), KoinComponent
           socket.launch {
             // Bootstrap the first space using low-level API, rest
             // of the spaces should be opened using the Systems API.
-            val channel = openSpace(0xaa55).await()
-            val entranceObject = channel.space.objects.get(2) ?: error("Entrance object not found")
+            val channel = openSpace(Space.stableId("entrance")).await()
+            // TODO: Use Node API
+            val entranceObject = channel.space.objects.get(TransientGameObject.stableId("entrance"))
+                                 ?: error("Entrance object not found")
 
             channel.apply {
               DispatcherLoadObjectsManagedEvent(

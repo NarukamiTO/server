@@ -169,9 +169,14 @@ data object LocalizedImageRes : Res
 data object Object3DRes : Res
 data object LocalizationRes : Res
 
+interface IGameResourceRepository {
+  fun getAll(): List<Resource<*, *>>
+  fun <T : Res, L : Laziness> get(name: String, namespaces: Map<String, String>, type: T, laziness: L): Resource<T, L>
+}
+
 class RemoteGameResourceRepository(
   private val objectMapper: ObjectMapper
-) {
+) : IGameResourceRepository {
   private val logger = KotlinLogging.logger { }
 
   // private val scope = CoroutineScope(coroutineContext + SupervisorJob())
@@ -222,9 +227,9 @@ class RemoteGameResourceRepository(
     logger.debug { "Fetched ${fetched.size} remote resources" }
   }
 
-  fun getAll(): List<Resource<*, *>> = resources.values.flatten().toList()
+  override fun getAll(): List<Resource<*, *>> = resources.values.flatten().toList()
 
-  fun <T : Res, L : Laziness> get(name: String, namespaces: Map<String, String>, type: T, laziness: L): Resource<T, L> {
+  override fun <T : Res, L : Laziness> get(name: String, namespaces: Map<String, String>, type: T, laziness: L): Resource<T, L> {
     logger.trace { "Get resource $name with namespaces $namespaces" }
     val resources = requireNotNull(resources[name]) { "Resource $name not found" }
     logger.trace { "Resources: $resources" }

@@ -43,6 +43,13 @@ class TransientGameObject(
       return lastId.getAndDecrement()
     }
 
+    /**
+     * Generates a stable ID for a game object.
+     *
+     * Stable IDs are positive and always the same for the same identifier.
+     */
+    fun stableId(identifier: String): Long = makeStableId("GameObject:$identifier")
+
     fun <T : ITemplate> instantiate(
       id: Long,
       parent: TemplatedGameClass<T>,

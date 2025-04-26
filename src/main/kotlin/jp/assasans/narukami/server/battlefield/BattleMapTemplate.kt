@@ -18,7 +18,6 @@
 
 package jp.assasans.narukami.server.battlefield
 
-import jp.assasans.narukami.server.ColorAdjustModelCC
 import jp.assasans.narukami.server.core.ITemplate
 import jp.assasans.narukami.server.net.command.ProtocolClass
 

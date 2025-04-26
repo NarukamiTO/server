@@ -32,6 +32,7 @@ version = "0.1.0"
 
 repositories {
   mavenCentral()
+  maven { url = uri("https://jitpack.io") }
 }
 
 dependencies {
@@ -52,6 +53,7 @@ dependencies {
   /* Serialization */
   implementation("com.fasterxml.jackson.core:jackson-core:2.18.3")
   implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.18.3")
+  implementation("com.github.kdl-org:kdl4j:kdl-v2-SNAPSHOT")
   implementation("javax.xml.bind:jaxb-api:2.3.1")
   implementation("org.glassfish.jaxb:jaxb-runtime:2.3.1")
 
@@ -95,6 +97,11 @@ tasks {
     into(layout.buildDirectory.dir("dependencies"))
   }
 
+  val copyRuntimeResources = register<Sync>("copyRuntimeResources") {
+    from(projectDir.resolve("src/main/resources/data"))
+    into(layout.buildDirectory.dir("data"))
+  }
+
   val sourcesJar = register<Jar>("sourcesJar") {
     archiveClassifier.set("sources")
     from(sourceSets.main.get().allSource)
@@ -118,12 +125,31 @@ tasks {
 
   jar {
     dependsOn(copyDependencies)
+    dependsOn(copyRuntimeResources)
 
     manifest(::configureManifest)
   }
 
   test {
     useJUnitPlatform()
+  }
+}
+
+sourceSets {
+  main {
+    resources {
+      exclude("data")
+    }
+  }
+}
+
+distributions {
+  all {
+    contents {
+      from("src/main/resources/data") {
+        into("data")
+      }
+    }
   }
 }
 
