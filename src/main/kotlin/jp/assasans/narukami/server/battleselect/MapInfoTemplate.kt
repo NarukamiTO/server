@@ -19,54 +19,50 @@
 package jp.assasans.narukami.server.battleselect
 
 import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
-import jp.assasans.narukami.server.core.ITemplate
-import jp.assasans.narukami.server.core.ITemplateProvider
+import jp.assasans.narukami.server.core.*
+import jp.assasans.narukami.server.lobby.user.adaptSingle
 import jp.assasans.narukami.server.net.command.ProtocolClass
 import jp.assasans.narukami.server.res.ImageRes
 import jp.assasans.narukami.server.res.Lazy
-import jp.assasans.narukami.server.res.RemoteGameResourceRepository
+import jp.assasans.narukami.server.res.Resource
+
+data class MapInfoComponent(
+  val name: String,
+  val theme: MapTheme,
+  val defaultTheme: MapTheme,
+  val preview: Resource<ImageRes, Lazy>,
+) : IComponent
+
+data class MapLimitsComponent(
+  val maxPeople: Short,
+  val rank: Range,
+  val modes: List<BattleMode>,
+) : IComponent
 
 @ProtocolClass(9)
 data class MapInfoTemplate(
-  val mapInfo: MapInfoModelCC,
+  val mapInfo: IModelProvider<MapInfoModelCC>,
 ) : ITemplate {
   companion object : KoinComponent {
-    private val gameResourceRepository: RemoteGameResourceRepository by inject()
-
     val Provider = ITemplateProvider {
       MapInfoTemplate(
-        mapInfo = MapInfoModelCC(
-          defaultTheme = MapTheme.SUMMER_NIGHT,
-          enabled = true,
-          mapId = 7,
-          mapName = "Testing Ground 7",
-          matchmakingMark = false,
-          maxPeople = 32,
-          preview = gameResourceRepository.get(
-            "map.test-ground-7.preview",
-            mapOf(
-              "gen" to "2.1",
-              "variant" to "default",
-              "theme" to "summer",
-              "time" to "day"
-            ),
-            ImageRes,
-            Lazy
-          ),
-          rankLimit = Range(min = 1, max = 31),
-          supportedModes = listOf(
-            BattleMode.DM,
-            BattleMode.TDM,
-            BattleMode.CTF,
-            BattleMode.CP,
-            BattleMode.AS,
-            BattleMode.RUGBY,
-            BattleMode.SUR,
-            BattleMode.JGR,
-          ),
-          theme = MapTheme.SUMMER_NIGHT
-        )
+        mapInfo = ClosureModelProvider {
+          val mapInfo = it.adaptSingle<MapInfoComponent>()
+          val mapLimits = it.adaptSingle<MapLimitsComponent>()
+
+          MapInfoModelCC(
+            defaultTheme = mapInfo.defaultTheme,
+            enabled = true,
+            mapId = it.id,
+            mapName = mapInfo.name,
+            matchmakingMark = false,
+            maxPeople = mapLimits.maxPeople,
+            preview = mapInfo.preview,
+            rankLimit = mapLimits.rank,
+            supportedModes = mapLimits.modes,
+            theme = mapInfo.theme,
+          )
+        }
       )
     }
   }

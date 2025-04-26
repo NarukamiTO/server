@@ -52,6 +52,7 @@ class KdlReader {
     factories.add(KdlTemplateCodec.Factory)
 
     /* Catch-all */
+    factories.add(KdlEnumCodec.Factory)
     factories.add(KdlStructCodec.Factory)
   }
 

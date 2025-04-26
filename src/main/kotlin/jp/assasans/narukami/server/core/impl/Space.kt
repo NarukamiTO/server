@@ -20,10 +20,12 @@ package jp.assasans.narukami.server.core.impl
 
 import java.util.concurrent.atomic.AtomicLong
 import io.github.oshai.kotlinlogging.KotlinLogging
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.dispatcher.DispatcherModelCC
 
-class Space(override val id: Long) : ISpace {
+class Space(override val id: Long) : ISpace, KoinComponent {
   private val logger = KotlinLogging.logger { }
 
   companion object {
@@ -51,6 +53,8 @@ class Space(override val id: Long) : ISpace {
     fun stableId(identifier: String): Long = makeStableId("Space:$identifier")
   }
 
+  private val eventScheduler: IEventScheduler by inject()
+
   override val objects: IRegistry<IGameObject> = Registry("Game object") { id }
 
   override val rootObject: IGameObject
@@ -60,5 +64,8 @@ class Space(override val id: Long) : ISpace {
     val rootObject = TransientGameObject(id, ROOT_CLASS)
     rootObject.models[DispatcherModelCC::class] = StaticModelProvider(DispatcherModelCC())
     objects.add(rootObject)
+
+    // TODO: Blocked by the requirement of SpaceChannel
+    // SpaceCreatedEvent().schedule(rootObject).await()
   }
 }

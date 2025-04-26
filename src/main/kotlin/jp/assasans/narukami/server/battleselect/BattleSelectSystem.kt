@@ -21,6 +21,8 @@ package jp.assasans.narukami.server.battleselect
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import io.github.oshai.kotlinlogging.KotlinLogging
 import jp.assasans.narukami.server.core.*
+import jp.assasans.narukami.server.core.impl.TemplatedGameClass
+import jp.assasans.narukami.server.core.impl.TransientGameObject
 import jp.assasans.narukami.server.dispatcher.DispatcherLoadObjectsManagedEvent
 import jp.assasans.narukami.server.dispatcher.DispatcherModelUnloadObjectsEvent
 import jp.assasans.narukami.server.dispatcher.DispatcherNode
@@ -39,6 +41,65 @@ data class BattleInfoNode(
 
 class BattleSelectSystem : AbstractSystem() {
   private val logger = KotlinLogging.logger { }
+
+  @OnEventFire
+  fun spaceCreated(
+    event: SpaceCreatedEvent,
+    dispatcher: DispatcherNode,
+    @JoinAll battleSelect: SingleNode<BattleSelectModelCC>,
+    @JoinAll maps: List<MapInfoNode>,
+  ) {
+    for(mapInfo in maps) {
+      val battleInfoClass = TemplatedGameClass.fromTemplate(DMBattleInfoTemplate::class)
+      val battleInfoObject = TransientGameObject.instantiate(
+        TransientGameObject.freeId(),
+        battleInfoClass,
+        DMBattleInfoTemplate(
+          common = BattleInfoTemplate(
+            battleInfo = BattleInfoModelCC(
+              roundStarted = false,
+              suspicionLevel = BattleSuspicionLevel.NONE,
+              timeLeftInSec = 3600,
+            ),
+            battleParamInfo = BattleParamInfoModelCC(
+              map = mapInfo.gameObject,
+              params = BattleCreateParameters(
+                autoBalance = false,
+                battleMode = BattleMode.DM,
+                clanBattle = false,
+                dependentCooldownEnabled = false,
+                equipmentConstraintsMode = null,
+                friendlyFire = false,
+                goldBoxesEnabled = false,
+                limits = BattleLimits(scoreLimit = 0, timeLimitInSec = 0),
+                mapId = mapInfo.gameObject.id,
+                maxPeopleCount = 32,
+                name = null,
+                parkourMode = false,
+                privateBattle = false,
+                proBattle = true,
+                rankRange = Range(min = 1, max = 31),
+                reArmorEnabled = true,
+                theme = MapTheme.SUMMER_NIGHT,
+                ultimatesEnabled = false,
+                uniqueUsersBattle = false,
+                withoutBonuses = false,
+                withoutDevices = false,
+                withoutDrones = false,
+                withoutSupplies = false,
+                withoutUpgrades = false,
+              )
+            ),
+            battleEntrance = BattleEntranceModelCC(),
+          ),
+          battleDMInfo = BattleDMInfoModelCC(
+            users = listOf()
+          )
+        )
+      )
+      event.space.objects.add(battleInfoObject)
+    }
+  }
 
   @OnEventFire
   @OutOfOrderExecution

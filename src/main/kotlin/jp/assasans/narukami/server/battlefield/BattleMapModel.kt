@@ -18,6 +18,7 @@
 
 package jp.assasans.narukami.server.battlefield
 
+import jp.assasans.narukami.server.core.IComponent
 import jp.assasans.narukami.server.core.IModelConstructor
 import jp.assasans.narukami.server.net.command.ProtocolModel
 import jp.assasans.narukami.server.net.command.ProtocolStruct
@@ -25,15 +26,15 @@ import jp.assasans.narukami.server.res.*
 
 @ProtocolModel(4693095212037357021)
 data class BattleMapModelCC(
-  val dustParams: DustParams,
-  val dynamicShadowParams: DynamicShadowParams,
+  val dustParams: DustParamsComponent,
+  val dynamicShadowParams: DynamicShadowParamsComponent,
   val environmentSound: Resource<SoundRes, Eager>,
-  val fogParams: FogParams,
+  val fogParams: FogParamsComponent,
   val gravity: Float,
   val mapResource: Resource<MapRes, Eager>,
   val skyBoxRevolutionAxis: Vector3d,
   val skyBoxRevolutionSpeed: Float,
-  val skyboxSides: SkyboxSides,
+  val skyboxSides: SkyboxSidesComponent,
   val ssaoColor: Int,
 ) : IModelConstructor {
   override fun getResources(): List<Resource<*, *>> {
@@ -51,38 +52,53 @@ data class BattleMapModelCC(
   }
 }
 
+data class MapResourceComponent(
+  val resource: Resource<MapRes, Eager>,
+) : IComponent
+
+data class MapEnvironmentComponent(
+  val sound: Resource<SoundRes, Eager>,
+) : IComponent
+
 @ProtocolStruct
-data class DustParams(
+data class DustParamsComponent(
   val alpha: Float,
   val density: Float,
   val dustFarDistance: Float,
   val dustNearDistance: Float,
   val dustParticle: Resource<MultiframeTextureRes, Eager>,
   val dustSize: Float,
-)
+) : IComponent
 
 @ProtocolStruct
-data class DynamicShadowParams(
+data class DynamicShadowParamsComponent(
   val angleX: Float,
   val angleZ: Float,
   val lightColor: Int,
   val shadowColor: Int,
-)
+) : IComponent
 
 @ProtocolStruct
-data class FogParams(
+data class FogParamsComponent(
   val alpha: Float,
   val color: Int,
   val farLimit: Float,
   val nearLimit: Float,
-)
+) : IComponent
 
 @ProtocolStruct
-data class SkyboxSides(
+data class SkyboxSidesComponent(
   val back: Resource<TextureRes, Eager>,
   val bottom: Resource<TextureRes, Eager>,
   val front: Resource<TextureRes, Eager>,
   val left: Resource<TextureRes, Eager>,
   val right: Resource<TextureRes, Eager>,
   val top: Resource<TextureRes, Eager>,
-)
+) : IComponent
+
+data class SkyboxRotationComponent(
+  val x: Float,
+  val y: Float,
+  val z: Float,
+  val speed: Float,
+) : IComponent
