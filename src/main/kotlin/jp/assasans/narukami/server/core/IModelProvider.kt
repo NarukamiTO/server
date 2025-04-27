@@ -18,8 +18,6 @@
 
 package jp.assasans.narukami.server.core
 
-import jp.assasans.narukami.server.net.SpaceChannel
-
 /**
  * Provides a model constructor for a given space channel (usually for a given session).
  *
@@ -27,7 +25,7 @@ import jp.assasans.narukami.server.net.SpaceChannel
  */
 interface IModelProvider<CC : IModelConstructor> {
   /**
-   * Provides a model constructor for the given space channel.
+   * Provides a model constructor for a given context.
    */
-  fun provide(gameObject: IGameObject, channel: SpaceChannel): CC
+  fun provide(gameObject: IGameObject, context: IModelContext): CC
 }

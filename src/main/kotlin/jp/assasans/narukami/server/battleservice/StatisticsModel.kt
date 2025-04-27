@@ -29,6 +29,9 @@ data class StatisticsModelCC(
   val fund: Int,
   val limits: BattleLimits,
   val mapName: String,
+  /**
+   * Controls whether the battle is a matchmaking battle.
+   */
   val matchBattle: Boolean,
   val maxPeopleCount: Int,
   val modeName: String,
@@ -37,5 +40,9 @@ data class StatisticsModelCC(
   val spectator: Boolean,
   val suspiciousUserIds: List<Long>,
   val timeLeft: Int,
+  /**
+   * Controls whether the fund is displayed on the client.
+   * [matchBattle] must be set to `false` for fund to be displayed.
+   */
   val valuableRound: Boolean,
 ) : IModelConstructor

@@ -94,7 +94,7 @@ class DispatcherSystem : AbstractSystem() {
         )
       )
     )
-    dispatcher.sender.space.objects.add(deferredDependenciesObject)
+    dispatcher.context.space.objects.add(deferredDependenciesObject)
 
     DispatcherModelLoadDependenciesEvent(
       dependencies = ObjectsDependencies.new(
@@ -112,11 +112,11 @@ class DispatcherSystem : AbstractSystem() {
   suspend fun dependenciesLoaded(event: DispatcherModelDependenciesLoadedEvent, dispatcher: DispatcherNode) {
     logger.info { "Dependencies loaded: ${event.callbackId}" }
 
-    val deferredDependenciesObject = dispatcher.sender.space.objects.get(event.callbackId.toLong())
+    val deferredDependenciesObject = dispatcher.context.space.objects.get(event.callbackId.toLong())
                                      ?: error("Deferred dependencies object ${event.callbackId} not found")
-    val deferredDependencies = deferredDependenciesObject.adaptSingle<DeferredDependenciesCC>(dispatcher.sender)
+    val deferredDependencies = deferredDependenciesObject.adaptSingle<DeferredDependenciesCC>(dispatcher.context)
     deferredDependencies.deferred.complete(Unit)
-    dispatcher.sender.space.objects.remove(deferredDependenciesObject)
+    dispatcher.context.space.objects.remove(deferredDependenciesObject)
     logger.info { "Deferred dependencies $deferredDependencies resolved" }
   }
 
@@ -134,13 +134,13 @@ class DispatcherSystem : AbstractSystem() {
       classes = event.objects.map { it.parent },
       resources = event.objects.flatMap { gameObject ->
         gameObject.models.values.flatMap { model ->
-          model.provide(gameObject, dispatcher.sender).getResources()
+          model.provide(gameObject, dispatcher.context).getResources()
         }
       }
     ).schedule(dispatcher).await()
 
     DispatcherModelLoadObjectsDataEvent(
-      objectsData = ObjectsData.new(event.objects, dispatcher.sender)
+      objectsData = ObjectsData.new(event.objects, dispatcher.context)
     ).schedule(dispatcher)
 
     logger.info { "Objects loaded: $event" }
@@ -154,7 +154,7 @@ class DispatcherSystem : AbstractSystem() {
 
     // Space management is too low-level for the Systems API,
     // we just bridge event to control channel API.
-    val session = dispatcher.sender.sessionNotNull
+    val session = dispatcher.context.requireSpaceChannel.sessionNotNull
     val channel = session.controlChannel.openSpace(event.id).await()
     event.deferred.complete(channel)
 

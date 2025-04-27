@@ -55,17 +55,25 @@ class Space(override val id: Long) : ISpace, KoinComponent {
 
   private val eventScheduler: IEventScheduler by inject()
 
-  override val objects: IRegistry<IGameObject> = Registry("Game object") { id }
+  override val objects: IRegistry<IGameObject> = GameObjectRegistry(this)
 
   override val rootObject: IGameObject
     get() = objects.get(id) ?: error("No root object for space $id")
 
   init {
-    val rootObject = TransientGameObject(id, ROOT_CLASS)
-    rootObject.models[DispatcherModelCC::class] = StaticModelProvider(DispatcherModelCC())
-    objects.add(rootObject)
+    replaceRootObject(TransientGameObject(id, ROOT_CLASS))
 
-    // TODO: Blocked by the requirement of SpaceChannel
-    // SpaceCreatedEvent().schedule(rootObject).await()
+    eventScheduler.schedule(SpaceCreatedEvent(), SpaceModelContext(this), rootObject)
+  }
+}
+
+class GameObjectRegistry(
+  private val space: ISpace
+) : Registry<IGameObject>("Game object", { id }), KoinComponent {
+  private val eventScheduler: IEventScheduler by inject()
+
+  override fun add(value: IGameObject) {
+    super.add(value)
+    eventScheduler.schedule(NodeAddedEvent(), SpaceModelContext(space), value)
   }
 }

@@ -60,7 +60,7 @@ class LobbySystem : AbstractSystem() {
     @JoinAll battleSelect: SingleNode<BattleSelectModelCC>,
   ) {
     logger.info { "Channel added: $event" }
-    logger.info { lobby.gameObject.adapt(lobby.sender) }
+    logger.info { lobby.gameObject.adapt(lobby.context) }
 
     val userClass = TemplatedGameClass.fromTemplate(UserTemplate::class)
     val userObject = TransientGameObject.instantiate(
@@ -69,7 +69,7 @@ class LobbySystem : AbstractSystem() {
       UserTemplate(
         userProperties = ClosureModelProvider {
           val user = it.adapt<UserNode>(this)
-          val ip = (lobby.sender.sessionNotNull.controlChannel.socket as NettySocketClient).channel.remoteAddress()
+          val ip = (lobby.context.requireSpaceChannel.sessionNotNull.controlChannel.socket as NettySocketClient).channel.remoteAddress()
           UserPropertiesModelCC(
             canUseGroup = false,
             crystals = user.crystals.crystals,
@@ -99,7 +99,7 @@ class LobbySystem : AbstractSystem() {
     userObject.addComponent(UsernameComponent("Sosal xuy"))
     userObject.addComponent(ScoreComponent(1234567))
     userObject.addComponent(CrystalsComponent(666666))
-    lobby.sender.space.objects.add(userObject)
+    lobby.context.space.objects.add(userObject)
 
     // The order of loading objects is important, user object must be loaded
     // before lobby object, otherwise user properties will not load on the client.

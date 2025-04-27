@@ -36,13 +36,13 @@ data class UserTemplate(
   val proBattleNotifier: ProBattleNotifierModelCC,
 ) : ITemplate
 
-fun <T : Node> IGameObject.adapt(sender: SpaceChannel, clazz: KClass<T>): T {
+fun <T : Node> IGameObject.adapt(context: IModelContext, clazz: KClass<T>): T {
   val builder = NodeBuilder()
   val definition = builder.getNodeDefinition(clazz.createType())
   val node = builder.tryBuildLazy(
     definition,
     models.mapValues { (_, model) ->
-      { model.provide(this, sender) }
+      { model.provide(this, context) }
     },
     components
   ) ?: throw IllegalStateException("Failed to build node $clazz")
@@ -50,15 +50,19 @@ fun <T : Node> IGameObject.adapt(sender: SpaceChannel, clazz: KClass<T>): T {
   return node as T
 }
 
-inline fun <reified T : Node> IGameObject.adapt(sender: SpaceChannel): T {
-  return adapt(sender, T::class)
+inline fun <reified T : Node> IGameObject.adapt(context: IModelContext): T {
+  return adapt(context, T::class)
 }
 
-inline fun <reified T : IDataUnit> IGameObject.adaptSingle(sender: SpaceChannel): T {
+inline fun <reified T : Node> IGameObject.adapt(sender: SpaceChannel): T {
+  return adapt(SpaceChannelModelContext(sender), T::class)
+}
+
+inline fun <reified T : IDataUnit> IGameObject.adaptSingle(context: IModelContext): T {
   return if(T::class.isSubclassOf(IModelConstructor::class)) {
     @Suppress("UNCHECKED_CAST")
     val provider = requireNotNull(models[T::class as KClass<out IModelConstructor>]) { "No ${T::class} in $this" }
-    provider.provide(this, sender) as T
+    provider.provide(this, context) as T
   } else if(T::class.isSubclassOf(IComponent::class)) {
     @Suppress("UNCHECKED_CAST")
     requireNotNull(components[T::class as KClass<out IComponent>]) { "No ${T::class} in $this" } as T
@@ -69,5 +73,10 @@ inline fun <reified T : IDataUnit> IGameObject.adaptSingle(sender: SpaceChannel)
 
 context(SpaceChannel)
 inline fun <reified T : IDataUnit> IGameObject.adaptSingle(): T {
-  return adaptSingle(this@SpaceChannel)
+  return adaptSingle(SpaceChannelModelContext(this@SpaceChannel))
+}
+
+context(IModelContext)
+inline fun <reified T : IDataUnit> IGameObject.adaptSingle(): T {
+  return adaptSingle(this@IModelContext)
 }

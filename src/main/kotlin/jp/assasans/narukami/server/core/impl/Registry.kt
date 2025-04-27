@@ -21,7 +21,7 @@ package jp.assasans.narukami.server.core.impl
 import io.github.oshai.kotlinlogging.KotlinLogging
 import jp.assasans.narukami.server.core.IRegistry
 
-class Registry<T : Any>(
+open class Registry<T : Any>(
   private val name: String,
   private val idMapper: T.() -> Long
 ) : IRegistry<T> {

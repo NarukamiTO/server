@@ -18,12 +18,21 @@
 
 package jp.assasans.narukami.server.core
 
-/**
- * Event scheduler, used to schedule events.
- */
-interface IEventScheduler {
-  /**
-   * Schedules an event for processing.
-   */
-  fun schedule(event: IEvent, context: IModelContext, gameObject: IGameObject)
-}
+import jp.assasans.narukami.server.net.SpaceChannel
+
+sealed interface IModelContext
+
+data class SpaceChannelModelContext(val channel: SpaceChannel) : IModelContext
+data class SpaceModelContext(val space: ISpace) : IModelContext
+
+val IModelContext.requireSpaceChannel: SpaceChannel
+  get() = when(this) {
+    is SpaceChannelModelContext -> channel
+    else                        -> throw IllegalStateException("Not a space channel model context: $this")
+  }
+
+val IModelContext.space: ISpace
+  get() = when(this) {
+    is SpaceChannelModelContext -> channel.space
+    is SpaceModelContext        -> space
+  }

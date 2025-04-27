@@ -18,16 +18,14 @@
 
 package jp.assasans.narukami.server.core
 
-import jp.assasans.narukami.server.net.SpaceChannel
-
 open class Node {
-  lateinit var sender: SpaceChannel
+  lateinit var context: IModelContext
     private set
   lateinit var gameObject: IGameObject
     private set
 
-  fun init(sender: SpaceChannel, gameObject: IGameObject) {
-    this.sender = sender
+  fun init(context: IModelContext, gameObject: IGameObject) {
+    this.context = context
     this.gameObject = gameObject
   }
 }

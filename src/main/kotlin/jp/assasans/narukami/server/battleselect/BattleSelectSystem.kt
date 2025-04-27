@@ -18,16 +18,28 @@
 
 package jp.assasans.narukami.server.battleselect
 
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import io.github.oshai.kotlinlogging.KotlinLogging
+import org.koin.core.component.inject
+import jp.assasans.narukami.server.battlefield.*
+import jp.assasans.narukami.server.battleservice.StatisticsDMModel
+import jp.assasans.narukami.server.battleservice.StatisticsModelCC
+import jp.assasans.narukami.server.battleservice.UserInfo
 import jp.assasans.narukami.server.core.*
+import jp.assasans.narukami.server.core.impl.Space
 import jp.assasans.narukami.server.core.impl.TemplatedGameClass
 import jp.assasans.narukami.server.core.impl.TransientGameObject
 import jp.assasans.narukami.server.dispatcher.DispatcherLoadObjectsManagedEvent
 import jp.assasans.narukami.server.dispatcher.DispatcherModelUnloadObjectsEvent
 import jp.assasans.narukami.server.dispatcher.DispatcherNode
 import jp.assasans.narukami.server.dispatcher.DispatcherOpenSpaceEvent
+import jp.assasans.narukami.server.lobby.communication.ChatModeratorLevel
 import jp.assasans.narukami.server.lobby.communication.ChatNode
+import jp.assasans.narukami.server.res.Eager
+import jp.assasans.narukami.server.res.RemoteGameResourceRepository
+import jp.assasans.narukami.server.res.SoundRes
 
 data class MapInfoNode(
   val model: MapInfoModelCC,
@@ -42,63 +54,153 @@ data class BattleInfoNode(
 class BattleSelectSystem : AbstractSystem() {
   private val logger = KotlinLogging.logger { }
 
+  private val spaces: IRegistry<ISpace> by inject()
+  private val gameResourceRepository: RemoteGameResourceRepository by inject()
+
   @OnEventFire
-  fun spaceCreated(
-    event: SpaceCreatedEvent,
-    dispatcher: DispatcherNode,
+  @OnlySpaceContext
+  fun mapLoaded(
+    event: NodeAddedEvent,
+    mapInfo: MapInfoNode,
     @JoinAll battleSelect: SingleNode<BattleSelectModelCC>,
-    @JoinAll maps: List<MapInfoNode>,
   ) {
-    for(mapInfo in maps) {
-      val battleInfoClass = TemplatedGameClass.fromTemplate(DMBattleInfoTemplate::class)
-      val battleInfoObject = TransientGameObject.instantiate(
-        TransientGameObject.freeId(),
-        battleInfoClass,
-        DMBattleInfoTemplate(
-          common = BattleInfoTemplate(
-            battleInfo = BattleInfoModelCC(
-              roundStarted = false,
-              suspicionLevel = BattleSuspicionLevel.NONE,
-              timeLeftInSec = 3600,
-            ),
-            battleParamInfo = BattleParamInfoModelCC(
-              map = mapInfo.gameObject,
-              params = BattleCreateParameters(
-                autoBalance = false,
-                battleMode = BattleMode.DM,
-                clanBattle = false,
-                dependentCooldownEnabled = false,
-                equipmentConstraintsMode = null,
-                friendlyFire = false,
-                goldBoxesEnabled = false,
-                limits = BattleLimits(scoreLimit = 0, timeLimitInSec = 0),
-                mapId = mapInfo.gameObject.id,
-                maxPeopleCount = 32,
-                name = null,
-                parkourMode = false,
-                privateBattle = false,
-                proBattle = true,
-                rankRange = Range(min = 1, max = 31),
-                reArmorEnabled = true,
-                theme = MapTheme.SUMMER_NIGHT,
-                ultimatesEnabled = false,
-                uniqueUsersBattle = false,
-                withoutBonuses = false,
-                withoutDevices = false,
-                withoutDrones = false,
-                withoutSupplies = false,
-                withoutUpgrades = false,
-              )
-            ),
-            battleEntrance = BattleEntranceModelCC(),
+    val battleId = Space.freeId()
+
+    val battleInfoClass = TemplatedGameClass.fromTemplate(DMBattleInfoTemplate::class)
+    val battleInfoObject = TransientGameObject.instantiate(
+      battleId,
+      battleInfoClass,
+      DMBattleInfoTemplate(
+        common = BattleInfoTemplate(
+          battleInfo = BattleInfoModelCC(
+            roundStarted = false,
+            suspicionLevel = BattleSuspicionLevel.NONE,
+            timeLeftInSec = 3600,
           ),
-          battleDMInfo = BattleDMInfoModelCC(
-            users = listOf()
-          )
+          battleParamInfo = BattleParamInfoModelCC(
+            map = mapInfo.gameObject,
+            params = BattleCreateParameters(
+              autoBalance = false,
+              battleMode = BattleMode.DM,
+              clanBattle = false,
+              dependentCooldownEnabled = false,
+              equipmentConstraintsMode = null,
+              friendlyFire = false,
+              goldBoxesEnabled = false,
+              limits = BattleLimits(
+                scoreLimit = 999,
+                timeLimitInSec = (21.minutes + 12.seconds).inWholeSeconds.toInt()
+              ),
+              mapId = mapInfo.gameObject.id,
+              maxPeopleCount = 32,
+              name = null,
+              parkourMode = false,
+              privateBattle = false,
+              proBattle = true,
+              rankRange = Range(min = 1, max = 31),
+              reArmorEnabled = true,
+              theme = MapTheme.SUMMER_NIGHT,
+              ultimatesEnabled = false,
+              uniqueUsersBattle = false,
+              withoutBonuses = false,
+              withoutDevices = false,
+              withoutDrones = false,
+              withoutSupplies = false,
+              withoutUpgrades = false,
+            )
+          ),
+          battleEntrance = BattleEntranceModelCC(),
+        ),
+        battleDMInfo = BattleDMInfoModelCC(
+          users = listOf()
         )
       )
-      event.space.objects.add(battleInfoObject)
-    }
+    )
+    mapInfo.context.space.objects.add(battleInfoObject)
+
+    spaces.add(Space(battleId).apply {
+      objects.remove(rootObject)
+
+      val battleMapObject = TransientGameObject.instantiate(
+        id = TransientGameObject.freeId(),
+        parent = TemplatedGameClass.fromTemplate(BattleMapTemplate::class),
+        template = BattleMapTemplate.Provider.create()
+      )
+      // TODO: Should BattleMapTemplate just access components from map info object?
+      battleMapObject.components.putAll(mapInfo.gameObject.components)
+      objects.add(battleMapObject)
+
+      val battlefieldObject = TransientGameObject.instantiate(
+        id,
+        parent = TemplatedGameClass.fromTemplate(BattlefieldTemplate::class),
+        BattlefieldTemplate(
+          battlefield = BattlefieldModelCC(
+            active = true,
+            battleId = id,
+            battlefieldSounds = BattlefieldSounds(
+              battleFinishSound = gameResourceRepository.get("battle.sound.finish", mapOf(), SoundRes, Eager),
+              killSound = gameResourceRepository.get("tank.sound.destroy", mapOf(), SoundRes, Eager)
+            ),
+            colorTransformMultiplier = 0.0f,
+            idleKickPeriodMsec = 0,
+            map = battleMapObject,
+            mineExplosionLighting = LightingSFXEntity(effects = listOf()),
+            proBattle = true,
+            range = Range(min = 1, max = 31),
+            reArmorEnabled = false,
+            respawnDuration = 1000,
+            shadowMapCorrectionFactor = 0.0f,
+            showAddressLink = false,
+            spectator = false,
+            withoutBonuses = false,
+            withoutDrones = false,
+            withoutSupplies = false
+          ),
+          battlefieldBonuses = BattlefieldBonusesModelCC(
+            bonusFallSpeed = 0.0f,
+            bonuses = listOf()
+          ),
+          battleFacilities = BattleFacilitiesModelCC(),
+          battleChat = BattleChatModelCC(),
+          statistics = StatisticsModelCC(
+            battleName = null,
+            equipmentConstraintsMode = null,
+            fund = 42,
+            limits = BattleLimits(
+              scoreLimit = 999,
+              timeLimitInSec = (21.minutes + 12.seconds).inWholeSeconds.toInt()
+            ),
+            mapName = "BattlefieldTemplate",
+            matchBattle = false,
+            maxPeopleCount = 0,
+            modeName = "DM",
+            parkourMode = false,
+            running = true,
+            spectator = false,
+            suspiciousUserIds = listOf(),
+            timeLeft = (21.minutes + 12.seconds).inWholeSeconds.toInt(),
+            valuableRound = true
+          ),
+          statisticsDM = StatisticsDMModel(
+            usersInfo = listOf(
+              UserInfo(
+                chatModeratorLevel = ChatModeratorLevel.ADMINISTRATOR,
+                deaths = 0,
+                hasPremium = false,
+                kills = 0,
+                rank = 1,
+                score = 0,
+                uid = "Player",
+                user = 30,
+              )
+            )
+          ),
+          inventory = InventoryModelCC(ultimateEnabled = false),
+          battleDM = BattleDMModelCC(),
+        )
+      )
+      replaceRootObject(battlefieldObject)
+    })
   }
 
   @OnEventFire
@@ -137,7 +239,7 @@ class BattleSelectSystem : AbstractSystem() {
       objects = listOf(chat.gameObject, battleSelect.gameObject)
     ).schedule(dispatcher)
 
-    DispatcherOpenSpaceEvent(4242).schedule(dispatcher).await()
+    DispatcherOpenSpaceEvent(battleInfo.gameObject.id).schedule(dispatcher).await()
   }
 }
 

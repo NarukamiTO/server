@@ -50,7 +50,7 @@ class LoginSystem : AbstractSystem(), KoinComponent {
     logger.info { "Login event: $event" }
 
     if(event.password.isNotEmpty() && event.password.length % 2 == 0) {
-      entrance.sender.sendBatched {
+      entrance.context.requireSpaceChannel.sendBatched {
         LoginModelWrongPasswordEvent().attach(entrance).enqueue()
       }
 
@@ -65,6 +65,6 @@ class LoginSystem : AbstractSystem(), KoinComponent {
     DispatcherOpenSpaceEvent(Space.stableId("lobby")).schedule(dispatcher).await()
 
     // Close the entrance space channel to trigger loading screen on the client
-    entrance.sender.close()
+    entrance.context.requireSpaceChannel.close()
   }
 }

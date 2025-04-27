@@ -20,9 +20,9 @@ package jp.assasans.narukami.server.dispatcher
 
 import kotlin.reflect.full.declaredMembers
 import jp.assasans.narukami.server.core.IGameObject
+import jp.assasans.narukami.server.core.IModelContext
 import jp.assasans.narukami.server.core.protocolId
 import jp.assasans.narukami.server.extensions.hasInheritedAnnotation
-import jp.assasans.narukami.server.net.SpaceChannel
 import jp.assasans.narukami.server.net.command.ProtocolTransient
 import jp.assasans.narukami.server.protocol.*
 
@@ -31,7 +31,7 @@ data class ObjectsData(
   val modelData: List<ModelData>,
 ) {
   companion object {
-    fun new(objects: List<IGameObject>, sender: SpaceChannel): ObjectsData {
+    fun new(objects: List<IGameObject>, context: IModelContext): ObjectsData {
       return ObjectsData(
         objects = objects,
         modelData = objects.flatMap { gameObject ->
@@ -40,7 +40,7 @@ data class ObjectsData(
           ) + gameObject.models
             .filterNot { (clazz, _) -> clazz.hasInheritedAnnotation<ProtocolTransient>() }
             .filter { (clazz, _) -> clazz.declaredMembers.isNotEmpty() }
-            .map { (clazz, model) -> ModelData.newModel(clazz.protocolId, model.provide(gameObject, sender)) }
+            .map { (clazz, model) -> ModelData.newModel(clazz.protocolId, model.provide(gameObject, context)) }
         }
       )
     }

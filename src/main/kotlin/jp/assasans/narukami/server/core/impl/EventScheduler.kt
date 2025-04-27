@@ -39,11 +39,10 @@ import jp.assasans.narukami.server.entrance.LoginSystem
 import jp.assasans.narukami.server.extensions.kotlinClass
 import jp.assasans.narukami.server.lobby.LobbySystem
 import jp.assasans.narukami.server.lobby.communication.ChatSystem
-import jp.assasans.narukami.server.net.SpaceChannel
 
 data class ScheduledEvent(
   val event: IEvent,
-  val sender: SpaceChannel,
+  val context: IModelContext,
   val gameObject: IGameObject
 )
 
@@ -54,15 +53,15 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler {
   private val eventJob = scope.launch {
     for(scheduledEvent in eventQueue) {
       try {
-        process(scheduledEvent.event, scheduledEvent.sender, scheduledEvent.gameObject)
+        process(scheduledEvent.event, scheduledEvent.context, scheduledEvent.gameObject)
       } catch(exception: Exception) {
         logger.error(exception) { "Error processing event $scheduledEvent" }
       }
     }
   }
 
-  override fun schedule(event: IEvent, sender: SpaceChannel, gameObject: IGameObject) {
-    val scheduledEvent = ScheduledEvent(event, sender, gameObject)
+  override fun schedule(event: IEvent, context: IModelContext, gameObject: IGameObject) {
+    val scheduledEvent = ScheduledEvent(event, context, gameObject)
 
     logger.debug { "Scheduling event $scheduledEvent" }
     eventQueue.trySend(scheduledEvent).onFailure {
@@ -70,13 +69,13 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler {
     }
   }
 
-  override suspend fun process(event: IEvent, sender: SpaceChannel, gameObject: IGameObject) {
+  private suspend fun process(event: IEvent, context: IModelContext, gameObject: IGameObject) {
     if(event is IClientEvent) {
-      sender.sendBatched {
+      context.requireSpaceChannel.sendBatched {
         event.attach(gameObject).enqueue()
       }
     } else {
-      processServerEvent(event, sender, gameObject)
+      processServerEvent(event, context, gameObject)
     }
   }
 
@@ -94,6 +93,7 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler {
   ) {
     val mandatory = function.hasAnnotation<Mandatory>()
     val outOfOrder = function.hasAnnotation<OutOfOrderExecution>()
+    val onlySpaceContext = function.hasAnnotation<OnlySpaceContext>()
   }
 
   private val nodeBuilder = NodeBuilder()
@@ -154,18 +154,28 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler {
     }
   }
 
-  private suspend fun processServerEvent(event: IEvent, sender: SpaceChannel, gameObject: IGameObject) {
+  private suspend fun processServerEvent(event: IEvent, context: IModelContext, gameObject: IGameObject) {
     logger.info { "Processing server event: $event" }
 
     var handled = false;
     for(handler in handlers) {
       if(!event::class.isSubclassOf(handler.event)) continue
+
+      if(handler.onlySpaceContext && context !is SpaceModelContext) {
+        logger.debug { "Skipping handler ${handler.system.qualifiedName}::${handler.function.name} for $event, requires space context, but got $context" }
+        continue
+      }
+      if(!handler.onlySpaceContext && context is SpaceModelContext) {
+        logger.debug { "Skipping handler ${handler.system.qualifiedName}::${handler.function.name} for $event, requires space channel context, but got $context" }
+        continue
+      }
+
       logger.debug { "Trying handler ${handler.system.qualifiedName}::${handler.function.name} for $event" }
 
       val args = mutableMapOf<KParameter, Any?>()
       args[handler.function.valueParameters[0]] = event
 
-      if(!buildNodes(sender, gameObject, handler, args)) {
+      if(!buildNodes(context, gameObject, handler, args)) {
         continue
       }
 
@@ -175,7 +185,7 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler {
       val instance = handler.system.createInstance()
       args[instanceParameter] = instance
 
-      invokeHandler(event, sender, handler, args)
+      invokeHandler(event, context, handler, args)
       handled = true
     }
 
@@ -188,7 +198,7 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler {
    * @return `null` if node was not built
    */
   private fun tryProvideNode(
-    sender: SpaceChannel,
+    context: IModelContext,
     nodeDefinition: NodeDefinition,
     gameObject: IGameObject
   ): Node? {
@@ -196,13 +206,13 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler {
     val node = nodeBuilder.tryBuildLazy(
       nodeDefinition,
       gameObject.models.mapValues { (_, model) ->
-        { model.provide(gameObject, sender) }
+        { model.provide(gameObject, context) }
       },
       gameObject.components
     )
     if(node == null) return null
 
-    node.init(sender, gameObject)
+    node.init(context, gameObject)
     return node
   }
 
@@ -210,7 +220,7 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler {
    * @return `true` if all nodes were built successfully
    */
   private fun buildNodes(
-    sender: SpaceChannel,
+    context: IModelContext,
     contextGameObject: IGameObject,
     handler: EventHandlerDefinition,
     args: MutableMap<KParameter, Any?>
@@ -220,10 +230,10 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler {
 
       val joinAll = parameter.hasAnnotation<JoinAll>()
       if(joinAll) {
-        val objects = sender.space.objects.all
+        val objects = context.space.objects.all
         val nodes = mutableListOf<Node>()
         for(nodeGameObject in objects) {
-          val node = tryProvideNode(sender, nodeDefinition, nodeGameObject)
+          val node = tryProvideNode(context, nodeDefinition, nodeGameObject)
           if(node != null) {
             nodes.add(node)
           }
@@ -249,7 +259,7 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler {
           logger.trace { "Built @JoinAll node $node for ${parameter.name}" }
         }
       } else {
-        val node = tryProvideNode(sender, nodeDefinition, contextGameObject)
+        val node = tryProvideNode(context, nodeDefinition, contextGameObject)
         if(node == null) {
           if(handler.mandatory) throw IllegalArgumentException("Failed to build context node $nodeDefinition for ${handler.system.qualifiedName}::${handler.function.name}, got $contextGameObject")
 
@@ -267,14 +277,14 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler {
 
   private suspend fun invokeHandler(
     event: IEvent,
-    sender: SpaceChannel,
+    context: IModelContext,
     handler: EventHandlerDefinition,
     args: Map<KParameter, Any?>,
   ) {
     logger.trace { "Invoking ${handler.system.qualifiedName}::${handler.function.name} with ${args.mapKeys { (parameter, _) -> parameter.name }}" }
     if(handler.function.isSuspend) {
       if(handler.outOfOrder) {
-        sender.socket.launch {
+        context.requireSpaceChannel.socket.launch {
           handler.function.callSuspendBy(args)
         }
       } else {

@@ -18,8 +18,6 @@
 
 package jp.assasans.narukami.server.core
 
-import jp.assasans.narukami.server.net.SpaceChannel
-
 /**
  * Calls a closure with the given space channel to provide a model constructor.
  *
@@ -30,9 +28,9 @@ import jp.assasans.narukami.server.net.SpaceChannel
  * @see jp.assasans.narukami.server.core.ArchitectureDocs
  */
 class ClosureModelProvider<CC : IModelConstructor>(
-  private val closure: SpaceChannel.(IGameObject) -> CC,
+  private val closure: IModelContext.(IGameObject) -> CC,
 ) : IModelProvider<CC> {
-  override fun provide(gameObject: IGameObject, channel: SpaceChannel): CC {
-    return closure(channel, gameObject)
+  override fun provide(gameObject: IGameObject, context: IModelContext): CC {
+    return closure(context, gameObject)
   }
 }

@@ -21,6 +21,4 @@ package jp.assasans.narukami.server.core
 /**
  * Synthetic server event that is sent when a space creates.
  */
-data class SpaceCreatedEvent(
-  val space: ISpace
-) : IEvent
+class SpaceCreatedEvent : IEvent

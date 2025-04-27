@@ -18,15 +18,13 @@
 
 package jp.assasans.narukami.server.core
 
-import jp.assasans.narukami.server.net.SpaceChannel
-
 /**
  * Provides the same model constructor for any space channel.
  */
 class StaticModelProvider<CC : IModelConstructor>(
   val model: CC,
 ) : IModelProvider<CC> {
-  override fun provide(gameObject: IGameObject, channel: SpaceChannel): CC {
+  override fun provide(gameObject: IGameObject, context: IModelContext): CC {
     return model
   }
 }

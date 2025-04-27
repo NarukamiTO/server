@@ -18,6 +18,8 @@
 
 package jp.assasans.narukami.server.core
 
+import jp.assasans.narukami.server.dispatcher.DispatcherModelCC
+
 /**
  * Spaces are used for the actual client-server communication.
  *
@@ -30,4 +32,20 @@ interface ISpace {
   val objects: IRegistry<IGameObject>
 
   val rootObject: IGameObject
+}
+
+/**
+ * Replaces the root object of a space with a new one.
+ */
+fun ISpace.replaceRootObject(gameObject: IGameObject) {
+  require(gameObject.id == id) { "Root object ID (${gameObject.id}) must be the same as space ID ($id)" }
+
+  // All root objects must have an implicit dispatcher model,
+  // otherwise DispatcherNode handlers will fail.
+  gameObject.models[DispatcherModelCC::class] = StaticModelProvider(DispatcherModelCC())
+
+  if(objects.has(id)) {
+    objects.remove(rootObject)
+  }
+  objects.add(gameObject)
 }

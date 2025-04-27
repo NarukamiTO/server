@@ -95,7 +95,7 @@ class BattlefieldSystem : AbstractSystem() {
     ).schedule(dispatcher).await()
 
     val hullObject = TransientGameObject.instantiate(
-      id = 52,
+      id = TransientGameObject.freeId(),
       parent = TemplatedGameClass.fromTemplate(HullTemplate::class),
       HullTemplate(
         hullCommon = HullCommonModelCC(
@@ -148,7 +148,7 @@ class BattlefieldSystem : AbstractSystem() {
     event.channel.space.objects.add(hullObject)
 
     val weaponObject = TransientGameObject.instantiate(
-      id = 50,
+      id = TransientGameObject.freeId(),
       parent = TemplatedGameClass.fromTemplate(SmokyTemplate::class),
       SmokyTemplate(
         weaponCommon = WeaponCommonModelCC(
@@ -224,7 +224,7 @@ class BattlefieldSystem : AbstractSystem() {
     event.channel.space.objects.add(weaponObject)
 
     val paintObject = TransientGameObject.instantiate(
-      id = 51,
+      id = TransientGameObject.freeId(),
       parent = TemplatedGameClass.fromTemplate(ColoringTemplate::class),
       ColoringTemplate(
         coloring = ColoringModelCC.static(
@@ -233,6 +233,11 @@ class BattlefieldSystem : AbstractSystem() {
       )
     )
     event.channel.space.objects.add(paintObject)
+
+    // TODO: This is bullshit
+    if(event.channel.space.objects.has(30)) {
+      event.channel.space.objects.remove(event.channel.space.objects.get(30)!!)
+    }
 
     val tankObject = TransientGameObject.instantiate(
       id = 30,
@@ -303,7 +308,7 @@ class BattlefieldSystem : AbstractSystem() {
     TankSpawnerModelPrepareToSpawnEvent(
       Vector3d(0f, 0f, 200f),
       Vector3d(0f, 0f, 0f),
-    ).schedule(battlefield.sender, tankObject)
+    ).schedule(battlefield.context, tankObject)
   }
 
   @OnEventFire

@@ -103,7 +103,20 @@ class ControlChannel(socket: ISocketClient) : ChannelKind(socket), KoinComponent
           check(this.session == null) { "Session already assigned, control channel -> space channel upgrade (unreachable)" }
 
           val session = sessions.get(command.hash) ?: error("Session ${command.hash} not found")
-          val space = spaces.get(command.spaceId) ?: error("Space ${command.spaceId} not found")
+          val pendingSpace = session.pendingSpaces.get(command.spaceId)
+          if(pendingSpace == null) {
+            logger.error { "Space channel opened for nonexistent pending space ${command.spaceId}" }
+            socket.close()
+            return
+          }
+
+          val space = spaces.get(command.spaceId)
+          if(space == null) {
+            logger.error { "Space channel opened for nonexistent space ${pendingSpace.id}" }
+            socket.close()
+            return
+          }
+
           val channel = SpaceChannel(socket, space)
           socket.kind = channel
           socket.kind.session = session
@@ -111,7 +124,6 @@ class ControlChannel(socket: ISocketClient) : ChannelKind(socket), KoinComponent
 
           logger.debug { "Assigned $this to $session" }
 
-          val pendingSpace = session.pendingSpaces.get(command.spaceId)
           if(pendingSpace == null) {
             logger.warn { "Pending space channel not found for space ${command.spaceId}" }
 

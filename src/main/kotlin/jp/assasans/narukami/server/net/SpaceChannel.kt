@@ -94,7 +94,7 @@ class SpaceChannel(
 
       // I don't know why, but using [handle] instead of [schedule] here makes some deadlock warnings not appear.
       // It is safe to assume that [IChannelKind.process] methods must not block.
-      eventScheduler.schedule(event, this, gameObject)
+      eventScheduler.schedule(event, SpaceChannelModelContext(this), gameObject)
     }
 
     if(buffer.data.readableBytes() > 0) {
