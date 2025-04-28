@@ -60,19 +60,9 @@ class BattlefieldSystem : AbstractSystem() {
     @JoinAll battleMap: SingleNode<BattleMapModelCC>,
     @JoinAll battlefield: SingleNode<BattlefieldModelCC>,
   ) {
-    val mapResource = gameResourceRepository.get(
-      "map.test-ground-7",
-      mapOf(
-        "gen" to "2.1",
-        "variant" to "default",
-      ),
-      MapRes,
-      Eager
-    )
-
     // TODO: Temporary solution
     val root = Paths.get(requireNotNull(System.getenv("RESOURCES_ROOT")) { "\"RESOURCES_ROOT\" environment variable is not set" })
-    val text = root.resolve("${mapResource.id.encode()}/private.json").readText()
+    val text = root.resolve("${battleMap.node.mapResource.id.encode()}/private.json").readText()
     val data = objectMapper.readValue<PrivateMapDataEntity>(text)
 
     DispatcherLoadDependenciesManagedEvent(

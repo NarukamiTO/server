@@ -90,13 +90,13 @@ class LocalGameResourceRepository(
 
       val codec = reader.getTypedCodec<IGameObject>()
       // TODO: Workaround, works for now
-      (codec as KdlGameObjectCodec).name = name
+      (codec as KdlGameObjectCodec).name = rawName
       val gameObject = codec.decode(reader, document.asNode())
 
       val spaceName = namespaces["space"] ?: throw IllegalArgumentException("No space assigned for $file")
       val space = spaces.get(Space.stableId(spaceName)) ?: throw IllegalArgumentException("Space $spaceName not found for $file")
 
-      logger.info { "Adding $name to $spaceName => $gameObject" }
+      logger.info { "Adding $rawName to $spaceName => $gameObject" }
       space.objects.add(gameObject)
     }
   }

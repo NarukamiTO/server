@@ -88,7 +88,7 @@ class ControlChannel(socket: ISocketClient) : ChannelKind(socket), KoinComponent
             // of the spaces should be opened using the Systems API.
             val channel = openSpace(Space.stableId("entrance")).await()
             // TODO: Use Node API
-            val entranceObject = channel.space.objects.get(TransientGameObject.stableId("entrance"))
+            val entranceObject = channel.space.objects.get(TransientGameObject.stableId("@space=entrance.entrance"))
                                  ?: error("Entrance object not found")
 
             channel.apply {
