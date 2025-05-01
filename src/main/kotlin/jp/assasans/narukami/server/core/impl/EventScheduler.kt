@@ -23,6 +23,7 @@ import kotlin.reflect.KFunction
 import kotlin.reflect.KParameter
 import kotlin.reflect.full.*
 import kotlin.time.Duration.Companion.seconds
+import io.github.classgraph.ClassGraph
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancelAndJoin
@@ -30,16 +31,8 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.onFailure
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import jp.assasans.narukami.server.battlefield.BattlefieldSystem
-import jp.assasans.narukami.server.battleselect.BattleCreateSystem
-import jp.assasans.narukami.server.battleselect.BattleSelectSystem
 import jp.assasans.narukami.server.core.*
-import jp.assasans.narukami.server.dispatcher.DispatcherSystem
-import jp.assasans.narukami.server.entrance.EntranceSystem
-import jp.assasans.narukami.server.entrance.LoginSystem
 import jp.assasans.narukami.server.extensions.kotlinClass
-import jp.assasans.narukami.server.lobby.LobbySystem
-import jp.assasans.narukami.server.lobby.communication.ChatSystem
 
 data class ScheduledEvent(
   val event: IEvent,
@@ -102,16 +95,19 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler {
   private val handlers: List<EventHandlerDefinition>
 
   init {
-    systems = listOf(
-      DispatcherSystem::class,
-      EntranceSystem::class,
-      LoginSystem::class,
-      LobbySystem::class,
-      ChatSystem::class,
-      BattleSelectSystem::class,
-      BattleCreateSystem::class,
-      BattlefieldSystem::class,
-    )
+    systems = ClassGraph()
+      .enableAllInfo()
+      .acceptPackages("jp.assasans.narukami.server")
+      .scan()
+      .use { scanResult ->
+        scanResult.getSubclasses(AbstractSystem::class.java).mapNotNull { classInfo ->
+          @Suppress("UNCHECKED_CAST")
+          val clazz = classInfo.loadClass().kotlin as KClass<out AbstractSystem>
+          logger.info { "Discovered system: $clazz" }
+
+          clazz
+        }
+      }
 
     handlers = systems.flatMap { system ->
       system.declaredFunctions
