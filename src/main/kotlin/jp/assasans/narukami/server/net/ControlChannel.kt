@@ -19,14 +19,14 @@
 package jp.assasans.narukami.server.net
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
-import jp.assasans.narukami.server.core.*
+import jp.assasans.narukami.server.core.IPending
+import jp.assasans.narukami.server.core.IRegistry
+import jp.assasans.narukami.server.core.ISessionRegistry
+import jp.assasans.narukami.server.core.ISpace
 import jp.assasans.narukami.server.core.impl.DeferredPending
 import jp.assasans.narukami.server.core.impl.Space
-import jp.assasans.narukami.server.core.impl.TransientGameObject
-import jp.assasans.narukami.server.dispatcher.DispatcherLoadObjectsManagedEvent
 import jp.assasans.narukami.server.net.command.*
 import jp.assasans.narukami.server.net.session.Session
 import jp.assasans.narukami.server.net.session.SessionHash
@@ -81,22 +81,10 @@ class ControlChannel(socket: ISocketClient) : ChannelKind(socket), KoinComponent
             HashResponseCommand(hash, channelProtectionEnabled = false).enqueue()
           }
 
-          // We start this in a separate coroutine to avoid deadlocks
-          // because [process] runs sequentially for received control commands.
-          socket.launch {
-            // Bootstrap the first space using low-level API, rest
-            // of the spaces should be opened using the Systems API.
-            val channel = openSpace(Space.stableId("entrance")).await()
-            // TODO: Use Node API
-            val entranceObject = channel.space.objects.get(TransientGameObject.stableId("@space=entrance.entrance"))
-                                 ?: error("Entrance object not found")
-
-            channel.apply {
-              DispatcherLoadObjectsManagedEvent(
-                objects = listOf(entranceObject),
-              ).schedule(channel.space.rootObject).await()
-            }
-          }
+          // Bootstrap the first space using low-level API, rest
+          // of the spaces should be opened using the Systems API.
+          // Loading continues in [EntranceSystem#channelAdded].
+          openSpace(Space.stableId("entrance"))
         }
 
         is InitSpaceCommand   -> {
@@ -123,13 +111,6 @@ class ControlChannel(socket: ISocketClient) : ChannelKind(socket), KoinComponent
           session.spaces.add(channel)
 
           logger.debug { "Assigned $this to $session" }
-
-          if(pendingSpace == null) {
-            logger.warn { "Pending space channel not found for space ${command.spaceId}" }
-
-            // TODO: Close the channel
-            throw IllegalStateException("Pending space channel not found for space ${command.spaceId}")
-          }
 
           // Mark pending space as opened
           (pendingSpace as DeferredPending<SpaceChannel>).complete(channel)

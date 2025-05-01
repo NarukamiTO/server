@@ -215,7 +215,9 @@ class BattleSelectSystem : AbstractSystem() {
   ) {
     // The order of loading objects is important, map info objects must be loaded
     // before battle create object, otherwise the client won't see any maps in battle create.
-    DispatcherLoadObjectsManagedEvent(mapInfo.gameObjects + listOf(battleCreate.gameObject)).schedule(dispatcher).await()
+    DispatcherLoadObjectsManagedEvent(
+      mapInfo.gameObjects + listOf(battleCreate.gameObject)
+    ).schedule(dispatcher).await()
     logger.info { "Loaded map objects" }
 
     DispatcherLoadObjectsManagedEvent(battleInfo.gameObjects).schedule(dispatcher).await()

@@ -110,13 +110,11 @@ class LobbySystem : AbstractSystem() {
     // followed by game.swf, which contains garage and battles.
     // Client notifies server when loading is complete in [onGpuDetectionComplete].
     DispatcherLoadObjectsManagedEvent(
-      listOf(
-        rankLoader.gameObject,
-        userObject,
-        lobby.gameObject,
-        chat.gameObject,
-        battleSelect.gameObject,
-      )
+      rankLoader.gameObject,
+      userObject,
+      lobby.gameObject,
+      chat.gameObject,
+      battleSelect.gameObject,
     ).schedule(dispatcher).await()
 
     // TODO: NodeAddedEvent is not yet automatically scheduled

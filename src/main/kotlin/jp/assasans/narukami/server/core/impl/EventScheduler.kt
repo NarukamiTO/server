@@ -35,6 +35,7 @@ import jp.assasans.narukami.server.battleselect.BattleCreateSystem
 import jp.assasans.narukami.server.battleselect.BattleSelectSystem
 import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.dispatcher.DispatcherSystem
+import jp.assasans.narukami.server.entrance.EntranceSystem
 import jp.assasans.narukami.server.entrance.LoginSystem
 import jp.assasans.narukami.server.extensions.kotlinClass
 import jp.assasans.narukami.server.lobby.LobbySystem
@@ -103,6 +104,7 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler {
   init {
     systems = listOf(
       DispatcherSystem::class,
+      EntranceSystem::class,
       LoginSystem::class,
       LobbySystem::class,
       ChatSystem::class,

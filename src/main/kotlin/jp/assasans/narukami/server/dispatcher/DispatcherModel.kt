@@ -73,6 +73,8 @@ data class DispatcherLoadObjectsManagedEvent(
 ) : IEvent {
   private val logger = KotlinLogging.logger { }
 
+  constructor(vararg objects: IGameObject) : this(objects.toList())
+
   var callbackId: Int = 0
   val deferred: CompletableDeferred<Unit> = CompletableDeferred()
 

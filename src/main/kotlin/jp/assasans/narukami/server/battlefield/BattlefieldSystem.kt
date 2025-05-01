@@ -78,10 +78,8 @@ class BattlefieldSystem : AbstractSystem() {
     ).schedule(dispatcher).await()
 
     DispatcherLoadObjectsManagedEvent(
-      listOf(
-        battleMap.gameObject,
-        battlefield.gameObject,
-      )
+      battleMap.gameObject,
+      battlefield.gameObject,
     ).schedule(dispatcher).await()
 
     val hullObject = TransientGameObject.instantiate(
@@ -287,9 +285,10 @@ class BattlefieldSystem : AbstractSystem() {
     logger.info { "Loading tank parts" }
 
     DispatcherLoadObjectsManagedEvent(
-      listOf(
-        hullObject, weaponObject, paintObject, tankObject
-      )
+      hullObject,
+      weaponObject,
+      paintObject,
+      tankObject,
     ).schedule(dispatcher).await()
     logger.info { "Loaded tank parts" }
 
