@@ -73,10 +73,12 @@ class Session(
         "Lobby channel not found for $this"
       }
       lobbyChannel.space.objects.remove(user)
+      this.user = null
     }
 
     for(space in spaces.all) {
       space.close()
+      spaces.remove(space)
     }
     controlChannel.socket.close()
 

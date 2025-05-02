@@ -21,10 +21,7 @@ package jp.assasans.narukami.server.net
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
-import jp.assasans.narukami.server.core.IPending
-import jp.assasans.narukami.server.core.IRegistry
-import jp.assasans.narukami.server.core.ISessionRegistry
-import jp.assasans.narukami.server.core.ISpace
+import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.core.impl.DeferredPending
 import jp.assasans.narukami.server.core.impl.Space
 import jp.assasans.narukami.server.net.command.*
@@ -91,7 +88,7 @@ class ControlChannel(socket: ISocketClient) : ChannelKind(socket), KoinComponent
           check(this.session == null) { "Session already assigned, control channel -> space channel upgrade (unreachable)" }
 
           val session = sessions.get(command.hash) ?: error("Session ${command.hash} not found")
-          val pendingSpace = session.pendingSpaces.get(command.spaceId)
+          val pendingSpace = session.pendingSpaces.take(command.spaceId)
           if(pendingSpace == null) {
             logger.error { "Space channel opened for nonexistent pending space ${command.spaceId}" }
             socket.close()

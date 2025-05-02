@@ -29,3 +29,12 @@ interface IRegistry<T> {
   fun get(id: Long): T?
   fun has(id: Long): Boolean
 }
+
+/**
+ * Takes the value out of the registry, removing it from the registry.
+ */
+fun <T> IRegistry<T>.take(id: Long): T? {
+  val value = get(id)
+  if(value != null) remove(value)
+  return value
+}
