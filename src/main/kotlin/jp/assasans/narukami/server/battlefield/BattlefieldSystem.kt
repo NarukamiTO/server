@@ -23,6 +23,7 @@ import kotlin.io.path.readText
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.delay
 import org.koin.core.component.inject
 import jp.assasans.narukami.server.battlefield.tank.*
 import jp.assasans.narukami.server.battlefield.tank.hull.*
@@ -34,12 +35,15 @@ import jp.assasans.narukami.server.battlefield.tank.weapon.smoky.SmokyShootSFXMo
 import jp.assasans.narukami.server.battlefield.tank.weapon.smoky.SmokyTemplate
 import jp.assasans.narukami.server.battleselect.BattleTeam
 import jp.assasans.narukami.server.battleselect.PrivateMapDataEntity
+import jp.assasans.narukami.server.battleservice.StatisticsDMModelUserConnectEvent
+import jp.assasans.narukami.server.battleservice.UserInfo
 import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.core.impl.TemplatedGameClass
 import jp.assasans.narukami.server.core.impl.TransientGameObject
 import jp.assasans.narukami.server.dispatcher.DispatcherLoadDependenciesManagedEvent
 import jp.assasans.narukami.server.dispatcher.DispatcherLoadObjectsManagedEvent
 import jp.assasans.narukami.server.dispatcher.DispatcherNode
+import jp.assasans.narukami.server.lobby.communication.ChatModeratorLevel
 import jp.assasans.narukami.server.res.*
 
 data class TankNode(
@@ -57,8 +61,10 @@ class BattlefieldSystem : AbstractSystem() {
   suspend fun channelAdded(
     event: ChannelAddedEvent,
     dispatcher: DispatcherNode,
+    @JoinAllChannels dispatcherShared: List<DispatcherNode>,
     @JoinAll battleMap: SingleNode<BattleMapModelCC>,
     @JoinAll battlefield: SingleNode<BattlefieldModelCC>,
+    @JoinAll @JoinAllChannels battlefieldShared: List<SingleNode<BattlefieldModelCC>>,
   ) {
     // TODO: Temporary solution
     val root = Paths.get(requireNotNull(System.getenv("RESOURCES_ROOT")) { "\"RESOURCES_ROOT\" environment variable is not set" })
@@ -289,8 +295,27 @@ class BattlefieldSystem : AbstractSystem() {
       weaponObject,
       paintObject,
       tankObject,
-    ).schedule(dispatcher).await()
+    ).schedule(dispatcherShared).await()
     logger.info { "Loaded tank parts" }
+
+    // FIXME: Awaiting events break when scheduled to multiple nodes
+    delay(5000)
+
+    StatisticsDMModelUserConnectEvent(
+      tankObject.id,
+      listOf(
+        UserInfo(
+          chatModeratorLevel = ChatModeratorLevel.ADMINISTRATOR,
+          deaths = 0,
+          hasPremium = false,
+          kills = 0,
+          rank = 1,
+          score = 0,
+          uid = "Player",
+          user = 30,
+        )
+      )
+    ).schedule(battlefieldShared)
 
     // We need to send this to start rendering the game.
     // The client calls [SpawnCameraConfigurator#setupCamera] on this event, which sets up the camera.

@@ -18,8 +18,10 @@
 
 package jp.assasans.narukami.server.battleservice
 
+import jp.assasans.narukami.server.core.IClientEvent
 import jp.assasans.narukami.server.core.IModelConstructor
 import jp.assasans.narukami.server.lobby.communication.ChatModeratorLevel
+import jp.assasans.narukami.server.net.command.ProtocolEvent
 import jp.assasans.narukami.server.net.command.ProtocolModel
 import jp.assasans.narukami.server.net.command.ProtocolStruct
 
@@ -30,12 +32,32 @@ data class StatisticsDMModel(
 
 @ProtocolStruct
 data class UserInfo(
-   val chatModeratorLevel: ChatModeratorLevel,
-   val deaths: Short,
-   val hasPremium: Boolean,
-   val kills: Short,
-   val rank: Byte,
-   val score: Int,
-   val uid: String,
-   val user: Long,
+  val chatModeratorLevel: ChatModeratorLevel,
+  val deaths: Short,
+  val hasPremium: Boolean,
+  val kills: Short,
+  val rank: Byte,
+  val score: Int,
+  val uid: String,
+  val user: Long,
 )
+
+@ProtocolStruct
+data class UserStat(
+  val deaths: Short,
+  val kills: Short,
+  val score: Int,
+  val user: Long,
+)
+
+@ProtocolEvent(4145605269036784193)
+data class StatisticsDMModelChangeUserStatEvent(val userStat: UserStat) : IClientEvent
+
+@ProtocolEvent(8633711911613390575)
+data class StatisticsDMModelRefreshUsersStatEvent(val usersStat: List<UserStat>) : IClientEvent
+
+@ProtocolEvent(3546760210246855825)
+data class StatisticsDMModelUserConnectEvent(val userId: Long, val usersInfo: List<UserInfo>) : IClientEvent
+
+@ProtocolEvent(1416652194602611703)
+data class StatisticsDMModelUserDisconnectEvent(val userId: Long) : IClientEvent
