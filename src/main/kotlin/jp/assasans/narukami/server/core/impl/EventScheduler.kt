@@ -33,6 +33,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.extensions.kotlinClass
+import jp.assasans.narukami.server.net.sessionNotNull
 
 data class ScheduledEvent(
   val event: IEvent,
@@ -77,7 +78,9 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler {
     val parameter: KParameter,
     val nodeDefinition: NodeDefinition,
     val isList: Boolean,
-  )
+  ) {
+    val joinAll = parameter.hasAnnotation<JoinAll>()
+  }
 
   data class EventHandlerDefinition(
     val event: KClass<out IEvent>,
@@ -112,44 +115,50 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler {
     handlers = systems.flatMap { system ->
       system.declaredFunctions
         .filter { function -> function.hasAnnotation<OnEventFire>() }
-        .map { function ->
-          val parameters = function.valueParameters
-          val eventClass = parameters[0].type.kotlinClass
-          if(!eventClass.isSubclassOf(IEvent::class)) {
-            throw IllegalArgumentException("${system.qualifiedName}::${function.name} first parameter is not an event type, got $eventClass")
-          }
-
-          val nodeParameters = parameters.drop(1)
-          val nodes = nodeParameters.map { parameter ->
-            var type = parameter.type
-            var isList = false
-            if(type.kotlinClass.isSubclassOf(List::class)) {
-              type = requireNotNull(type.arguments[0].type) {
-                "${system.qualifiedName}::${function.name} parameter ${parameter.name} has an illegal List<T> type argument"
-              }
-              isList = true
-            }
-            if(!type.kotlinClass.isSubclassOf(Node::class)) {
-              throw IllegalArgumentException("${system.qualifiedName}::${function.name} parameter ${parameter.name} illegal type $type")
-            }
-
-            val nodeDefinition = nodeBuilder.getNodeDefinition(type)
-            NodeParameterDefinition(parameter, nodeDefinition, isList)
-          }
-
-          @Suppress("UNCHECKED_CAST")
-          EventHandlerDefinition(
-            event = eventClass as KClass<out IEvent>,
-            system,
-            function,
-            nodes,
-          )
-        }
+        .map { function -> makeHandlerDefinition(system, function) }
     }
 
     for(handler in handlers) {
       logger.info { "Discovered event handler: ${handler.system.qualifiedName}::${handler.function.name} for ${handler.event.qualifiedName} with ${handler.nodes.map { it.nodeDefinition }}" }
     }
+  }
+
+  fun makeHandlerDefinition(system: KClass<out AbstractSystem>, function: KFunction<*>): EventHandlerDefinition {
+    val parameters = function.valueParameters
+    val eventClass = parameters[0].type.kotlinClass
+    if(!eventClass.isSubclassOf(IEvent::class)) {
+      throw IllegalArgumentException("${system.qualifiedName}::${function.name} first parameter is not an event type, got $eventClass")
+    }
+
+    val nodeParameters = parameters.drop(1)
+    val nodes = nodeParameters.map { parameter ->
+      var type = parameter.type
+      var isList = false
+      if(type.kotlinClass.isSubclassOf(List::class)) {
+        type = requireNotNull(type.arguments[0].type) {
+          "${system.qualifiedName}::${function.name} parameter ${parameter.name} has an illegal List<T> type argument"
+        }
+        isList = true
+      }
+      if(!type.kotlinClass.isSubclassOf(Node::class)) {
+        throw IllegalArgumentException("${system.qualifiedName}::${function.name} parameter ${parameter.name} illegal type $type")
+      }
+
+      val nodeDefinition = nodeBuilder.getNodeDefinition(type)
+      NodeParameterDefinition(
+        parameter,
+        nodeDefinition,
+        isList,
+      )
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    return EventHandlerDefinition(
+      event = eventClass as KClass<out IEvent>,
+      system,
+      function,
+      nodes,
+    )
   }
 
   private suspend fun processServerEvent(event: IEvent, context: IModelContext, gameObject: IGameObject) {
@@ -173,7 +182,19 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler {
       val args = mutableMapOf<KParameter, Any?>()
       args[handler.function.valueParameters[0]] = event
 
-      if(!buildNodes(context, gameObject, handler, args)) {
+      // Client-to-server events always have exactly 1 context object attached by the client
+      val contextObjects = mutableListOf(gameObject)
+
+      // If present, we also attach a user object
+      if(context is SpaceChannelModelContext) {
+        val user = context.channel.sessionNotNull.user
+        if(user != null) {
+          logger.debug { "Attached user object to the context of $event" }
+          contextObjects.add(user)
+        }
+      }
+
+      if(!buildNodes(context, contextObjects, handler, args)) {
         continue
       }
 
@@ -219,54 +240,43 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler {
    */
   private fun buildNodes(
     context: IModelContext,
-    contextGameObject: IGameObject,
+    contextObjects: List<IGameObject>,
     handler: EventHandlerDefinition,
     args: MutableMap<KParameter, Any?>
   ): Boolean {
     for(nodeParameter in handler.nodes) {
       val (parameter, nodeDefinition) = nodeParameter
 
-      val joinAll = parameter.hasAnnotation<JoinAll>()
-      if(joinAll) {
-        val objects = context.space.objects.all
-        val nodes = mutableListOf<Node>()
-        for(nodeGameObject in objects) {
-          val node = tryProvideNode(context, nodeDefinition, nodeGameObject)
-          if(node != null) {
-            nodes.add(node)
-          }
-        }
-
-        if(nodeParameter.isList) {
-          args[parameter] = nodes
-          logger.trace { "Built @JoinAll nodes $nodes for ${parameter.name}" }
-        } else {
-          val node = when(nodes.size) {
-            0    -> {
-              if(handler.mandatory) throw IllegalArgumentException("Failed to build node $nodeDefinition for ${handler.system.qualifiedName}::${handler.function.name}")
-
-              logger.trace { "Failed to build node $nodeDefinition" }
-              return false
-            }
-
-            1    -> nodes[0]
-            else -> throw IllegalArgumentException("Expected one game object for ${parameter.name} of ${handler.system.qualifiedName}::${handler.function.name}, got ${nodes.size}")
-          }
-
-          args[parameter] = node
-          logger.trace { "Built @JoinAll node $node for ${parameter.name}" }
-        }
+      val objects = if(nodeParameter.joinAll) {
+        context.space.objects.all
       } else {
-        val node = tryProvideNode(context, nodeDefinition, contextGameObject)
-        if(node == null) {
-          if(handler.mandatory) throw IllegalArgumentException("Failed to build context node $nodeDefinition for ${handler.system.qualifiedName}::${handler.function.name}, got $contextGameObject")
+        contextObjects
+      }
 
-          logger.trace { "Failed to build context node $nodeDefinition" }
-          return false
+      val nodes = mutableListOf<Node>()
+      for(gameObject in objects) {
+        val node = tryProvideNode(context, nodeDefinition, gameObject)
+        if(node != null) nodes.add(node)
+      }
+
+      if(nodeParameter.isList) {
+        args[parameter] = nodes
+        logger.trace { "Built nodes $nodes for ${parameter.name}" }
+      } else {
+        val node = when(nodes.size) {
+          0    -> {
+            if(handler.mandatory) throw IllegalArgumentException("Failed to build node $nodeDefinition for ${handler.system.qualifiedName}::${handler.function.name}")
+
+            logger.trace { "Failed to build node $nodeDefinition" }
+            return false
+          }
+
+          1    -> nodes[0]
+          else -> throw IllegalArgumentException("Expected one game object for ${parameter.name} of ${handler.system.qualifiedName}::${handler.function.name}, got ${nodes.size}")
         }
 
         args[parameter] = node
-        logger.trace { "Built context node $node for ${parameter.name}" }
+        logger.trace { "Built node $node for ${parameter.name}" }
       }
     }
 

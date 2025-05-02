@@ -60,7 +60,7 @@ annotation class OutOfOrderExecution
 @Target(AnnotationTarget.VALUE_PARAMETER)
 @Retention(AnnotationRetention.RUNTIME)
 annotation class JoinAll
-@Target(AnnotationTarget.FUNCTION)
 
+@Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.RUNTIME)
 annotation class OnlySpaceContext

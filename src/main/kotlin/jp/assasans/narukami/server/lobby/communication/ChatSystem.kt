@@ -54,7 +54,7 @@ class ChatSystem : AbstractSystem() {
   fun sendMessage(
     event: ChatModelSendMessageEvent,
     chat: ChatNode,
-    @JoinAll user: UserNode,
+    user: UserNode,
     @JoinAll dispatcher: DispatcherNode,
   ) {
     val message = ChatMessage(
