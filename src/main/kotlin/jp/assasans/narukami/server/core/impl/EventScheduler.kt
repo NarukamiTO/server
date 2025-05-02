@@ -31,6 +31,8 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.onFailure
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.extensions.kotlinClass
 import jp.assasans.narukami.server.net.sessionNotNull
@@ -41,7 +43,7 @@ data class ScheduledEvent(
   val gameObject: IGameObject
 )
 
-class EventScheduler(private val scope: CoroutineScope) : IEventScheduler {
+class EventScheduler(private val scope: CoroutineScope) : IEventScheduler, KoinComponent {
   private val logger = KotlinLogging.logger { }
 
   private val eventQueue = Channel<ScheduledEvent>(Channel.UNLIMITED)
@@ -80,6 +82,7 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler {
     val isList: Boolean,
   ) {
     val joinAll = parameter.hasAnnotation<JoinAll>()
+    val joinAllChannels = parameter.hasAnnotation<JoinAllChannels>()
   }
 
   data class EventHandlerDefinition(
@@ -92,6 +95,8 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler {
     val outOfOrder = function.hasAnnotation<OutOfOrderExecution>()
     val onlySpaceContext = function.hasAnnotation<OnlySpaceContext>()
   }
+
+  private val sessions: ISessionRegistry by inject()
 
   private val nodeBuilder = NodeBuilder()
   private val systems: List<KClass<out AbstractSystem>>
@@ -253,10 +258,23 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler {
         contextObjects
       }
 
+      val contexts = if(nodeParameter.joinAllChannels) {
+        requireNotNull(nodeParameter.isList) { "@JoinAllChannels can only be used with List<T> parameters" }
+        // TODO: Do we need [ISpace.channels]?
+        sessions.all
+          .mapNotNull { session -> session.spaces.get(context.space.id) }
+          .map { channel -> SpaceChannelModelContext(channel) }
+      } else {
+        listOf(context)
+      }
+
+      // TODO: This is very inefficient (node-context-object triple loop), should do something to it
       val nodes = mutableListOf<Node>()
-      for(gameObject in objects) {
-        val node = tryProvideNode(context, nodeDefinition, gameObject)
-        if(node != null) nodes.add(node)
+      for(context in contexts) {
+        for(gameObject in objects) {
+          val node = tryProvideNode(context, nodeDefinition, gameObject)
+          if(node != null) nodes.add(node)
+        }
       }
 
       if(nodeParameter.isList) {

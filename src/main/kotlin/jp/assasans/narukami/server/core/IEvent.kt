@@ -46,6 +46,14 @@ fun <T : IEvent> T.schedule(node: Node): T {
 }
 
 context(AbstractSystem)
+fun <T : IEvent> T.schedule(nodes: Iterable<Node>): T {
+  for(node in nodes) {
+    eventScheduler.schedule(this, node.context, node.gameObject)
+  }
+  return this
+}
+
+context(AbstractSystem)
 fun <T : IEvent> T.schedule(context: IModelContext, gameObject: IGameObject): T {
   eventScheduler.schedule(this, context, gameObject)
   return this

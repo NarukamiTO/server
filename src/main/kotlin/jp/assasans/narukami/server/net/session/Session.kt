@@ -19,9 +19,12 @@
 package jp.assasans.narukami.server.net.session
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import jp.assasans.narukami.server.core.IGameObject
 import jp.assasans.narukami.server.core.IPending
 import jp.assasans.narukami.server.core.IRegistry
+import jp.assasans.narukami.server.core.ISessionRegistry
 import jp.assasans.narukami.server.core.impl.Registry
 import jp.assasans.narukami.server.core.impl.Space
 import jp.assasans.narukami.server.net.ControlChannel
@@ -51,7 +54,7 @@ val ISession.userNotNull: IGameObject
 class Session(
   override val hash: SessionHash,
   override val controlChannel: ControlChannel
-) : ISession {
+) : ISession, KoinComponent {
   private val logger = KotlinLogging.logger { }
 
   override val spaces: IRegistry<SpaceChannel> = Registry("Space channel") { space.id }
@@ -60,6 +63,8 @@ class Session(
   override var user: IGameObject? = null
 
   private var open: Boolean = true
+
+  private val sessions: ISessionRegistry by inject()
 
   override suspend fun close() {
     if(!open) return
@@ -76,12 +81,13 @@ class Session(
       this.user = null
     }
 
-    for(space in spaces.all) {
-      space.close()
-      spaces.remove(space)
+    for(channel in spaces.all) {
+      channel.close()
+      spaces.remove(channel)
     }
     controlChannel.socket.close()
 
+    sessions.remove(this)
     logger.info { "Closed $this" }
   }
 

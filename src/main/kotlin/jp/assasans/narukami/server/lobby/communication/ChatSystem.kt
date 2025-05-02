@@ -51,11 +51,13 @@ class ChatSystem : AbstractSystem() {
   }
 
   @OnEventFire
+  @Mandatory
   fun sendMessage(
     event: ChatModelSendMessageEvent,
     chat: ChatNode,
     user: UserNode,
     @JoinAll dispatcher: DispatcherNode,
+    @JoinAllChannels chats: List<ChatNode>,
   ) {
     val message = ChatMessage(
       addressMode = event.addressMode,
@@ -91,10 +93,11 @@ class ChatSystem : AbstractSystem() {
       return
     }
 
-    ChatModelShowMessagesEvent(messages = listOf(message)).schedule(chat)
+    ChatModelShowMessagesEvent(messages = listOf(message)).schedule(chats)
   }
 
   @OnEventFire
+  @Mandatory
   fun changeChannel(event: ChatModelChangeChannelEvent, chat: ChatNode) {
     logger.debug { "Changed channel: $event" }
   }

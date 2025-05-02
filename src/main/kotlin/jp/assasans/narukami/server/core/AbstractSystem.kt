@@ -61,6 +61,13 @@ annotation class OutOfOrderExecution
 @Retention(AnnotationRetention.RUNTIME)
 annotation class JoinAll
 
+/**
+ * Marks a node to be searched for in all existing space channels of the space.
+ */
+@Target(AnnotationTarget.VALUE_PARAMETER)
+@Retention(AnnotationRetention.RUNTIME)
+annotation class JoinAllChannels
+
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.RUNTIME)
 annotation class OnlySpaceContext
