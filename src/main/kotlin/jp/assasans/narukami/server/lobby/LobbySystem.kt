@@ -18,17 +18,15 @@
 
 package jp.assasans.narukami.server.lobby
 
-import kotlin.time.Duration.Companion.days
 import io.github.oshai.kotlinlogging.KotlinLogging
 import jp.assasans.narukami.server.battleselect.BattleSelectModelCC
 import jp.assasans.narukami.server.core.*
-import jp.assasans.narukami.server.core.impl.TemplatedGameClass
-import jp.assasans.narukami.server.core.impl.TransientGameObject
 import jp.assasans.narukami.server.dispatcher.DispatcherLoadObjectsManagedEvent
 import jp.assasans.narukami.server.dispatcher.DispatcherNode
 import jp.assasans.narukami.server.lobby.communication.ChatNode
-import jp.assasans.narukami.server.lobby.user.*
-import jp.assasans.narukami.server.net.NettySocketClient
+import jp.assasans.narukami.server.lobby.user.RankLoaderModelCC
+import jp.assasans.narukami.server.lobby.user.adapt
+import jp.assasans.narukami.server.net.session.userNotNull
 import jp.assasans.narukami.server.net.sessionNotNull
 
 data class LobbyNode(
@@ -62,44 +60,8 @@ class LobbySystem : AbstractSystem() {
     logger.info { "Channel added: $event" }
     logger.info { lobby.gameObject.adapt(lobby.context) }
 
-    val userClass = TemplatedGameClass.fromTemplate(UserTemplate::class)
-    val userObject = TransientGameObject.instantiate(
-      TransientGameObject.freeId(),
-      userClass,
-      UserTemplate(
-        userProperties = ClosureModelProvider {
-          val user = it.adapt<UserNode>(this)
-          val ip = (lobby.context.requireSpaceChannel.sessionNotNull.controlChannel.socket as NettySocketClient).channel.remoteAddress()
-          UserPropertiesModelCC(
-            canUseGroup = false,
-            crystals = user.crystals.crystals,
-            crystalsRating = 0,
-            daysFromLastVisit = 0,
-            daysFromRegistration = 0,
-            gearScore = 0,
-            goldsTakenRating = 0,
-            hasSpectatorPermissions = false,
-            id = 30,
-            rank = 1,
-            rankBounds = RankBounds(lowBound = 123456, topBound = 2456789),
-            registrationTimestamp = 10,
-            score = user.score.score,
-            scoreRating = 10,
-            uid = "${user.username.username} ($ip)",
-            userProfileUrl = "",
-            userRating = 0
-          )
-        },
-        userNotifier = UserNotifierModelCC(currentUserId = 30),
-        uidNotifier = UidNotifierModelCC(uid = "NarukamiTO:AGPLv3+", userId = 30),
-        rankNotifier = RankNotifierModelCC(rank = 1, userId = 30),
-        proBattleNotifier = ProBattleNotifierModelCC(abonementRemainingTimeInSec = 2112.days.inWholeSeconds.toInt()),
-      )
-    )
-    userObject.addComponent(UsernameComponent("Sosal xuy"))
-    userObject.addComponent(ScoreComponent(1234567))
-    userObject.addComponent(CrystalsComponent(666666))
-    lobby.context.space.objects.add(userObject)
+    // User object is created in [LoginSystem#login]
+    val userObject = dispatcher.context.requireSpaceChannel.sessionNotNull.userNotNull
 
     // The order of loading objects is important, user object must be loaded
     // before lobby object, otherwise user properties will not load on the client.

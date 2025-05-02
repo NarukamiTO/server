@@ -134,7 +134,7 @@ class SpaceChannel(
     socket.send(buffer)
   }
 
-  suspend fun close() {
+  override suspend fun close() {
     socket.close()
   }
 }

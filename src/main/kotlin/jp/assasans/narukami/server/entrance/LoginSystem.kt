@@ -18,14 +18,24 @@
 
 package jp.assasans.narukami.server.entrance
 
+import kotlin.random.Random
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.datetime.Clock
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.core.impl.Space
+import jp.assasans.narukami.server.core.impl.TemplatedGameClass
+import jp.assasans.narukami.server.core.impl.TransientGameObject
 import jp.assasans.narukami.server.dispatcher.DispatcherNode
 import jp.assasans.narukami.server.dispatcher.DispatcherOpenSpaceEvent
 import jp.assasans.narukami.server.dispatcher.preloadResources
+import jp.assasans.narukami.server.extensions.roundToNearest
+import jp.assasans.narukami.server.lobby.CrystalsComponent
+import jp.assasans.narukami.server.lobby.ScoreComponent
+import jp.assasans.narukami.server.lobby.UsernameComponent
+import jp.assasans.narukami.server.lobby.user.UserTemplate
+import jp.assasans.narukami.server.net.sessionNotNull
 import jp.assasans.narukami.server.res.Eager
 import jp.assasans.narukami.server.res.LocalizedImageRes
 import jp.assasans.narukami.server.res.RemoteGameResourceRepository
@@ -50,10 +60,7 @@ class LoginSystem : AbstractSystem(), KoinComponent {
     logger.info { "Login event: $event" }
 
     if(event.password.isNotEmpty() && event.password.length % 2 == 0) {
-      entrance.context.requireSpaceChannel.sendBatched {
-        LoginModelWrongPasswordEvent().attach(entrance).enqueue()
-      }
-
+      LoginModelWrongPasswordEvent().schedule(entrance)
       EntranceAlertModelShowAlertEvent(
         image = gameResourceRepository.get("alert.restrict", emptyMap(), LocalizedImageRes, Eager),
         header = "Login failed",
@@ -62,7 +69,24 @@ class LoginSystem : AbstractSystem(), KoinComponent {
       return
     }
 
-    DispatcherOpenSpaceEvent(Space.stableId("lobby")).schedule(dispatcher).await()
+    // Create a user object and assign it to the session.
+    // The user object is destroyed immediately when the session is closed,
+    // without a grace period like in battles.
+    val id = makeStableId("GameObject:User:${event.uidOrEmail}:${Clock.System.now().toEpochMilliseconds()}")
+    val userObject = TransientGameObject.instantiate(
+      id,
+      parent = TemplatedGameClass.fromTemplate(UserTemplate::class),
+      template = UserTemplate.Provider.create(),
+      components = setOf(
+        UsernameComponent(event.uidOrEmail),
+        ScoreComponent(Random.nextInt(10_000, 1_000_000).roundToNearest(100)),
+        CrystalsComponent(Random.nextInt(100_000, 10_000_000).roundToNearest(100)),
+      )
+    )
+    entrance.context.requireSpaceChannel.sessionNotNull.user = userObject
+
+    val channel = DispatcherOpenSpaceEvent(Space.stableId("lobby")).schedule(dispatcher).await()
+    channel.space.objects.add(userObject)
 
     // Close the entrance space channel to trigger loading screen on the client
     entrance.context.requireSpaceChannel.close()

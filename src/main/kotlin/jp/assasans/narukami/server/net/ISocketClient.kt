@@ -56,6 +56,8 @@ class NettySocketClient(
   override var kind: IChannelKind = ControlChannel(this)
   override var session: ISession? = null
 
+  private var open: Boolean = true
+
   private val codec = ProtocolBufferCodec()
 
   private val receiveQueue = Channel<ProtocolBuffer>(Channel.UNLIMITED)
@@ -67,6 +69,8 @@ class NettySocketClient(
         logger.error(exception) { "Error processing buffer $buffer" }
       }
     }
+    logger.trace { "Reader job finished for $this" }
+    check(!open) { "Reader job finished for $this, but socket is still open" }
   }
 
   private val sendQueue = Channel<ProtocolBuffer>(Channel.UNLIMITED)
@@ -78,6 +82,8 @@ class NettySocketClient(
         logger.error(exception) { "Error sending buffer $buffer" }
       }
     }
+    logger.trace { "Writer job finished for $this" }
+    check(!open) { "Writer job finished for $this, but socket is still open" }
   }
 
   private suspend fun sendDirect(buffer: ProtocolBuffer) {
@@ -114,6 +120,9 @@ class NettySocketClient(
   }
 
   override suspend fun close() {
+    if(!open) return
+    open = false
+
     logger.debug { "Closing socket $this" }
 
     receiveQueue.close()
@@ -123,5 +132,12 @@ class NettySocketClient(
     writerJob.cancelAndJoin()
 
     channel.close().suspendAwait()
+
+    // TODO: Wrong place? Probably should make [ISocketKind.close()]
+    if(kind is ControlChannel) session?.close()
+  }
+
+  override fun toString(): String {
+    return "NettySocketClient(channel=$channel, kind=$kind, session=$session)"
   }
 }

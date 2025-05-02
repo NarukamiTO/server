@@ -16,32 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package jp.assasans.narukami.server.net
+package jp.assasans.narukami.server.extensions
 
-import jp.assasans.narukami.server.net.session.ISession
-import jp.assasans.narukami.server.protocol.IProtocol
-import jp.assasans.narukami.server.protocol.ProtocolBuffer
-
-sealed interface IChannelKind {
-  val socket: ISocketClient
-
-  suspend fun process(buffer: ProtocolBuffer)
-
-  suspend fun close()
+fun Int.roundToNearest(nearest: Int): Int {
+  return ((this + nearest / 2) / nearest) * nearest
 }
-
-val IChannelKind.protocol: IProtocol
-  get() = socket.protocol
-
-var IChannelKind.session: ISession?
-  get() = socket.session
-  set(value) {
-    socket.session = value
-  }
-
-val IChannelKind.sessionNotNull: ISession
-  get() = checkNotNull(socket.session) { "Session is null for $socket" }
-
-abstract class ChannelKind(
-  override val socket: ISocketClient
-) : IChannelKind

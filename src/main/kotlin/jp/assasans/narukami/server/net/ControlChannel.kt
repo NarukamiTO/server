@@ -170,6 +170,10 @@ class ControlChannel(socket: ISocketClient) : ChannelKind(socket), KoinComponent
     logger.trace { "Sending batch with ${batch.commands.size} commands" }
     socket.send(buffer)
   }
+
+  override suspend fun close() {
+    socket.close()
+  }
 }
 
 class ControlChannelOutgoingBatch {

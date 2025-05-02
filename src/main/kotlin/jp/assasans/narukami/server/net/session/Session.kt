@@ -18,9 +18,12 @@
 
 package jp.assasans.narukami.server.net.session
 
+import io.github.oshai.kotlinlogging.KotlinLogging
+import jp.assasans.narukami.server.core.IGameObject
 import jp.assasans.narukami.server.core.IPending
 import jp.assasans.narukami.server.core.IRegistry
 import jp.assasans.narukami.server.core.impl.Registry
+import jp.assasans.narukami.server.core.impl.Space
 import jp.assasans.narukami.server.net.ControlChannel
 import jp.assasans.narukami.server.net.SpaceChannel
 
@@ -36,14 +39,49 @@ interface ISession {
 
   val spaces: IRegistry<SpaceChannel>
   val pendingSpaces: IRegistry<IPending<SpaceChannel>>
+
+  var user: IGameObject?
+
+  suspend fun close()
 }
+
+val ISession.userNotNull: IGameObject
+  get() = checkNotNull(user) { "User is null for $this" }
 
 class Session(
   override val hash: SessionHash,
   override val controlChannel: ControlChannel
 ) : ISession {
+  private val logger = KotlinLogging.logger { }
+
   override val spaces: IRegistry<SpaceChannel> = Registry("Space channel") { space.id }
   override val pendingSpaces: IRegistry<IPending<SpaceChannel>> = Registry("Pending space channel") { id }
+
+  override var user: IGameObject? = null
+
+  private var open: Boolean = true
+
+  override suspend fun close() {
+    if(!open) return
+    open = false
+
+    logger.trace { "Closing $this" }
+
+    val user = user
+    if(user != null) {
+      val lobbyChannel = checkNotNull(spaces.get(Space.stableId("lobby"))) {
+        "Lobby channel not found for $this"
+      }
+      lobbyChannel.space.objects.remove(user)
+    }
+
+    for(space in spaces.all) {
+      space.close()
+    }
+    controlChannel.socket.close()
+
+    logger.info { "Closed $this" }
+  }
 
   override fun toString(): String {
     return "Session(hash=$hash, controlChannel=$controlChannel)"

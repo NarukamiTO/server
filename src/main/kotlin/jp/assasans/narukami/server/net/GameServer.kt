@@ -143,7 +143,11 @@ class ProtocolDecoder(
   override fun channelInactive(ctx: ChannelHandlerContext) {
     super.channelInactive(ctx)
 
-    logger.debug { "Channel for $socket inactive, releasing buffer" }
+    logger.trace { "Channel for $socket inactive, releasing buffer" }
     buffer.release()
+
+    socket.launch {
+      socket.close()
+    }
   }
 }
