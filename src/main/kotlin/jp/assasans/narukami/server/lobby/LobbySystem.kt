@@ -21,8 +21,10 @@ package jp.assasans.narukami.server.lobby
 import io.github.oshai.kotlinlogging.KotlinLogging
 import jp.assasans.narukami.server.battleselect.BattleSelectModelCC
 import jp.assasans.narukami.server.core.*
+import jp.assasans.narukami.server.core.impl.Space
 import jp.assasans.narukami.server.dispatcher.DispatcherLoadObjectsManagedEvent
 import jp.assasans.narukami.server.dispatcher.DispatcherNode
+import jp.assasans.narukami.server.dispatcher.DispatcherOpenSpaceEvent
 import jp.assasans.narukami.server.lobby.communication.ChatNode
 import jp.assasans.narukami.server.lobby.user.RankLoaderModelCC
 import jp.assasans.narukami.server.lobby.user.adapt
@@ -126,4 +128,39 @@ class LobbySystem : AbstractSystem() {
     logger.warn { "Show battle select is not implemented" }
     LobbyLayoutNotifyModelCancelPredictedLayoutSwitchEvent().schedule(lobby)
   }
+
+  @OnEventFire
+  @Mandatory
+  @OutOfOrderExecution
+  suspend fun sessionLogout(
+    event: SessionLogoutEvent,
+    // TODO: Session node?
+    dispatcher: DispatcherNode,
+  ) {
+    val session = dispatcher.context.requireSpaceChannel.sessionNotNull
+    logger.info { "Logout for $session" }
+
+    // TODO: This repeats the code from [Session#close], but without closing the control channel
+    val user = session.user
+    if(user != null) {
+      val lobbyChannel = checkNotNull(session.spaces.get(Space.stableId("lobby"))) {
+        "Lobby channel not found for $this"
+      }
+      lobbyChannel.space.objects.remove(user)
+      session.user = null
+    }
+
+    // To logout, we need to close all spaces and reopen the entrance space
+    for(space in session.spaces.all) {
+      space.close()
+      session.spaces.remove(space)
+    }
+
+    // Same as the bootstrapping code in [ControlChannel]
+    DispatcherOpenSpaceEvent(Space.stableId("entrance")).schedule(dispatcher).await()
+
+    logger.info { "Reopened entrance space for $session" }
+  }
 }
+
+class SessionLogoutEvent : IEvent
