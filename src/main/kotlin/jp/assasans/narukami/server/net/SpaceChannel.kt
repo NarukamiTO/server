@@ -64,9 +64,12 @@ class SpaceChannel(
   private val spaceEventProcessor: SpaceEventProcessor by inject()
   val eventScheduler: IEventScheduler by inject()
 
+  val loadedObjects: MutableSet<Long> = mutableSetOf()
+
   private val commandHeaderCodec = protocol.getTypedCodec<SpaceCommandHeader>()
 
-  suspend fun init() {
+  fun init() {
+    loadedObjects.add(space.rootObject.id)
     ChannelAddedEvent(this).schedule(space.rootObject)
   }
 

@@ -55,7 +55,7 @@ data class UserTemplate(
             gearScore = 0,
             goldsTakenRating = 0,
             hasSpectatorPermissions = false,
-            id = 30,
+            id = it.id,
             rank = 1,
             rankBounds = RankBounds(lowBound = user.score.score / 2, topBound = user.score.score * 2),
             registrationTimestamp = 10,

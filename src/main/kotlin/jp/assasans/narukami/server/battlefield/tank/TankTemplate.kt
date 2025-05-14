@@ -18,6 +18,9 @@
 
 package jp.assasans.narukami.server.battlefield.tank
 
+import jp.assasans.narukami.server.battlefield.BattleGearScoreModelCC
+import jp.assasans.narukami.server.battlefield.BossStateModelCC
+import jp.assasans.narukami.server.core.IModelProvider
 import jp.assasans.narukami.server.core.ITemplate
 import jp.assasans.narukami.server.net.command.ProtocolClass
 
@@ -25,7 +28,7 @@ import jp.assasans.narukami.server.net.command.ProtocolClass
 data class TankTemplate(
   val tankSpawner: TankSpawnerModelCC,
   val tankConfiguration: TankConfigurationModelCC,
-  val tank: TankModelCC,
+  val tank: IModelProvider<TankModelCC>,
   val tankResistances: TankResistancesModelCC,
   val tankPause: TankPauseModelCC,
   val speedCharacteristics: SpeedCharacteristicsModelCC,
@@ -34,4 +37,7 @@ data class TankTemplate(
   val tankDevice: TankDeviceModelCC,
   val suicide: SuicideModelCC,
   val tankTemperature: TankTemperatureModelCC,
+  val bossStateModel: IModelProvider<BossStateModelCC>,
+  // Required for remote tanks
+  val gearScoreModel: BattleGearScoreModelCC,
 ) : ITemplate

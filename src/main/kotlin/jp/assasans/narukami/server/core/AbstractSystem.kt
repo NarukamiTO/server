@@ -71,3 +71,7 @@ annotation class JoinAllChannels
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.RUNTIME)
 annotation class OnlySpaceContext
+
+@Target(AnnotationTarget.VALUE_PARAMETER)
+@Retention(AnnotationRetention.RUNTIME)
+annotation class OnlyLoadedObjects

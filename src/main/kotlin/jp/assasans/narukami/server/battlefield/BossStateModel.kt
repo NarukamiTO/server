@@ -16,27 +16,22 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package jp.assasans.narukami.server.core
+package jp.assasans.narukami.server.battlefield
 
-open class Node {
-  lateinit var context: IModelContext
-    private set
-  lateinit var gameObject: IGameObject
-    private set
+import jp.assasans.narukami.server.battlefield.tank.BossRelationRole
+import jp.assasans.narukami.server.core.IClientEvent
+import jp.assasans.narukami.server.core.IModelConstructor
+import jp.assasans.narukami.server.net.command.ProtocolEvent
+import jp.assasans.narukami.server.net.command.ProtocolModel
 
-  fun init(context: IModelContext, gameObject: IGameObject) {
-    this.context = context
-    this.gameObject = gameObject
-  }
-}
+@ProtocolModel(5055746953759097716)
+data class BossStateModelCC(
+  val enabled: Boolean,
+  val hullId: Long,
+  val local: Boolean,
+  val role: BossRelationRole,
+  val weaponId: Long,
+) : IModelConstructor
 
-data class SingleNode<T : IModelConstructor>(
-  val node: T
-) : Node()
-
-val Iterable<Node>.gameObjects: List<IGameObject>
-  get() = map { it.gameObject }
-
-operator fun <T : Node> Iterable<T>.minus(gameObject: IGameObject): Iterable<T> {
-  return filter { it.gameObject != gameObject }
-}
+@ProtocolEvent(5226450868398444185)
+data class BossStateModelChangeRoleEvent(val newRole: BossRelationRole) : IClientEvent

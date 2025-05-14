@@ -16,27 +16,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package jp.assasans.narukami.server.core
+package jp.assasans.narukami.server.battlefield
 
-open class Node {
-  lateinit var context: IModelContext
-    private set
-  lateinit var gameObject: IGameObject
-    private set
+import jp.assasans.narukami.server.core.IClientEvent
+import jp.assasans.narukami.server.core.IModelConstructor
+import jp.assasans.narukami.server.net.command.ProtocolEvent
+import jp.assasans.narukami.server.net.command.ProtocolModel
 
-  fun init(context: IModelContext, gameObject: IGameObject) {
-    this.context = context
-    this.gameObject = gameObject
-  }
-}
+@ProtocolModel(4875657231924274329)
+data class BattleGearScoreModelCC(
+  val score: Int,
+) : IModelConstructor
 
-data class SingleNode<T : IModelConstructor>(
-  val node: T
-) : Node()
-
-val Iterable<Node>.gameObjects: List<IGameObject>
-  get() = map { it.gameObject }
-
-operator fun <T : Node> Iterable<T>.minus(gameObject: IGameObject): Iterable<T> {
-  return filter { it.gameObject != gameObject }
-}
+@ProtocolEvent(4570603277638068285)
+data class BattleGearScoreModelSetGearScoreEvent(val score: Int) : IClientEvent

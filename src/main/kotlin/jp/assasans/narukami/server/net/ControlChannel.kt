@@ -109,11 +109,11 @@ class ControlChannel(socket: ISocketClient) : ChannelKind(socket), KoinComponent
 
           logger.debug { "Assigned $this to $session" }
 
-          // Mark pending space as opened
-          (pendingSpace as DeferredPending<SpaceChannel>).complete(channel)
-
           // Initialize the space channel and schedule [ChannelAddedEvent]
           (socket.kind as SpaceChannel).init()
+
+          // Mark pending space as opened
+          (pendingSpace as DeferredPending<SpaceChannel>).complete(channel)
 
           logger.info { "Initialized $socket as space channel" }
         }

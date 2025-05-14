@@ -23,7 +23,6 @@ import kotlin.io.path.readText
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlinx.coroutines.delay
 import org.koin.core.component.inject
 import jp.assasans.narukami.server.battlefield.tank.*
 import jp.assasans.narukami.server.battlefield.tank.hull.*
@@ -43,11 +42,15 @@ import jp.assasans.narukami.server.core.impl.TransientGameObject
 import jp.assasans.narukami.server.dispatcher.DispatcherLoadDependenciesManagedEvent
 import jp.assasans.narukami.server.dispatcher.DispatcherLoadObjectsManagedEvent
 import jp.assasans.narukami.server.dispatcher.DispatcherNode
+import jp.assasans.narukami.server.lobby.UserNode
 import jp.assasans.narukami.server.lobby.communication.ChatModeratorLevel
+import jp.assasans.narukami.server.net.session.userNotNull
+import jp.assasans.narukami.server.net.sessionNotNull
 import jp.assasans.narukami.server.res.*
 
 data class TankNode(
   val tank: TankModelCC,
+  val tankConfiguration: TankConfigurationModelCC,
 ) : Node()
 
 class BattlefieldSystem : AbstractSystem() {
@@ -61,10 +64,12 @@ class BattlefieldSystem : AbstractSystem() {
   suspend fun channelAdded(
     event: ChannelAddedEvent,
     dispatcher: DispatcherNode,
+    user: UserNode,
     @JoinAllChannels dispatcherShared: List<DispatcherNode>,
     @JoinAll battleMap: SingleNode<BattleMapModelCC>,
     @JoinAll battlefield: SingleNode<BattlefieldModelCC>,
     @JoinAll @JoinAllChannels battlefieldShared: List<SingleNode<BattlefieldModelCC>>,
+    @JoinAll tanks: List<TankNode>,
   ) {
     // TODO: Temporary solution
     val root = Paths.get(requireNotNull(System.getenv("RESOURCES_ROOT")) { "\"RESOURCES_ROOT\" environment variable is not set" })
@@ -106,7 +111,7 @@ class BattlefieldSystem : AbstractSystem() {
               )
             )
           ),
-          mass = 1000f,
+          mass = 100000f,
           stunEffectTexture = gameResourceRepository.get("tank.stun.texture", mapOf(), TextureRes, Eager),
           stunSound = gameResourceRepository.get("tank.stun.sound", mapOf(), SoundRes, Eager),
           ultimateHudIndicator = gameResourceRepository.get("tank.dead", mapOf(), TextureRes, Eager), // TODO: Wrong
@@ -228,13 +233,8 @@ class BattlefieldSystem : AbstractSystem() {
     )
     event.channel.space.objects.add(paintObject)
 
-    // TODO: This is bullshit
-    if(event.channel.space.objects.has(30)) {
-      event.channel.space.objects.remove(event.channel.space.objects.get(30)!!)
-    }
-
     val tankObject = TransientGameObject.instantiate(
-      id = 30,
+      id = user.gameObject.id,
       parent = TemplatedGameClass.fromTemplate(TankTemplate::class),
       TankTemplate(
         tankSpawner = TankSpawnerModelCC(incarnationId = 0),
@@ -244,15 +244,18 @@ class BattlefieldSystem : AbstractSystem() {
           hullId = hullObject.id,
           weaponId = weaponObject.id,
         ),
-        tank = TankModelCC(
-          health = -1,
-          local = true,
-          logicState = TankLogicState.ACTIVE,
-          movementDistanceBorderUntilTankCorrection = 2000,
-          movementTimeoutUntilTankCorrection = 4000,
-          tankState = null,
-          team = BattleTeam.BLUE
-        ),
+        tank = ClosureModelProvider {
+          val local = requireSpaceChannel.sessionNotNull.userNotNull.id == user.gameObject.id
+          TankModelCC(
+            health = if(local) -1 else 1000,
+            local = local,
+            logicState = TankLogicState.NEW,
+            movementDistanceBorderUntilTankCorrection = 2000,
+            movementTimeoutUntilTankCorrection = 4000,
+            tankState = null,
+            team = BattleTeam.NONE,
+          )
+        },
         tankResistances = TankResistancesModelCC(resistances = listOf()),
         tankPause = TankPauseModelCC(),
         speedCharacteristics = SpeedCharacteristicsModelCC(
@@ -284,22 +287,20 @@ class BattlefieldSystem : AbstractSystem() {
         tankDevice = TankDeviceModelCC(deviceId = null),
         suicide = SuicideModelCC(suicideDelayMS = 1000),
         tankTemperature = TankTemperatureModelCC(),
+        bossStateModel = ClosureModelProvider {
+          val local = requireSpaceChannel.sessionNotNull.userNotNull.id == user.gameObject.id
+          BossStateModelCC(
+            enabled = true,
+            hullId = hullObject.id,
+            local = local,
+            role = BossRelationRole.VICTIM,
+            weaponId = weaponObject.id,
+          )
+        },
+        gearScoreModel = BattleGearScoreModelCC(score = 2112),
       )
     )
     event.channel.space.objects.add(tankObject)
-
-    logger.info { "Loading tank parts" }
-
-    DispatcherLoadObjectsManagedEvent(
-      hullObject,
-      weaponObject,
-      paintObject,
-      tankObject,
-    ).schedule(dispatcherShared).await()
-    logger.info { "Loaded tank parts" }
-
-    // FIXME: Awaiting events break when scheduled to multiple nodes
-    delay(5000)
 
     StatisticsDMModelUserConnectEvent(
       tankObject.id,
@@ -311,35 +312,123 @@ class BattlefieldSystem : AbstractSystem() {
           kills = 0,
           rank = 1,
           score = 0,
-          uid = "Player",
-          user = 30,
+          uid = "NewPlayer_${tankObject.id}",
+          user = tankObject.id,
         )
       )
     ).schedule(battlefieldShared)
 
+    logger.info { "Loading tank parts" }
+    for(dispatcherRemote in dispatcherShared) {
+      DispatcherLoadObjectsManagedEvent(
+        hullObject,
+        weaponObject,
+        paintObject,
+        tankObject,
+      ).schedule(dispatcherRemote).await()
+    }
+    logger.info { "Loaded tank parts" }
+
     // We need to send this to start rendering the game.
     // The client calls [SpawnCameraConfigurator#setupCamera] on this event, which sets up the camera.
+    logger.info { "Schedule prepare to spawn" }
     TankSpawnerModelPrepareToSpawnEvent(
       Vector3d(0f, 0f, 200f),
       Vector3d(0f, 0f, 0f),
     ).schedule(battlefield.context, tankObject)
+
+    // Spawn own tank for the entire battlefield
+    for(battlefieldRemote in battlefieldShared) {
+      TankSpawnerModelSpawnEvent(
+        team = BattleTeam.NONE,
+        position = Vector3d(x = 0.0f, y = 0.0f, z = 200.0f),
+        orientation = Vector3d(x = 0.0f, y = 0.0f, z = 0.0f),
+        health = 1000,
+        incarnationId = 0,
+      ).schedule(battlefieldRemote.context, tankObject)
+
+      TankModelActivateTankEvent().schedule(battlefieldRemote.context, tankObject)
+    }
+
+    // TODO: This mirrors the forward loading logic, we need to merge them somehow
+    // TODO: Race condition possible when joining at the same time - black screen or userConnect() unhelpful error
+    // Spawn existing tanks for self
+    for(tank in tanks - tankObject) {
+      StatisticsDMModelUserConnectEvent(
+        tank.gameObject.id,
+        listOf(
+          UserInfo(
+            chatModeratorLevel = ChatModeratorLevel.ADMINISTRATOR,
+            deaths = 0,
+            hasPremium = false,
+            kills = 0,
+            rank = 1,
+            score = 0,
+            uid = "ExistingPlayer_${tank.gameObject.id}",
+            user = tank.gameObject.id,
+          )
+        )
+      ).schedule(battlefield)
+
+      DispatcherLoadObjectsManagedEvent(
+        // TODO: Workaround, works for now
+        requireNotNull(tank.context.space.objects.get(tank.tankConfiguration.hullId)) { "No hull" },
+        requireNotNull(tank.context.space.objects.get(tank.tankConfiguration.weaponId)) { "No weapon" },
+        requireNotNull(tank.context.space.objects.get(tank.tankConfiguration.coloringId)) { "No paint" },
+        tank.gameObject,
+      ).schedule(dispatcher).await()
+
+      TankSpawnerModelSpawnEvent(
+        team = BattleTeam.NONE,
+        position = Vector3d(x = 0.0f, y = 0.0f, z = 200.0f),
+        orientation = Vector3d(x = 0.0f, y = 0.0f, z = 0.0f),
+        health = 1000,
+        incarnationId = 0,
+      ).schedule(battlefield.context, tank.gameObject)
+
+      TankModelActivateTankEvent().schedule(battlefield.context, tank.gameObject)
+    }
   }
 
   @OnEventFire
   @Mandatory
   fun readyToSpawn(event: TankSpawnerModelReadyToSpawnEvent, tank: TankNode) {
-    TankSpawnerModelSpawnEvent(
-      team = BattleTeam.NONE,
-      position = Vector3d(x = 0.0f, y = 0.0f, z = 200.0f),
-      orientation = Vector3d(x = 0.0f, y = 0.0f, z = 0.0f),
-      health = 1000,
-      incarnationId = 0,
-    ).schedule(tank)
+    logger.info { "Process ready to spawn" }
+    // TankSpawnerModelSpawnEvent(
+    //   team = BattleTeam.NONE,
+    //   position = Vector3d(x = 0.0f, y = 0.0f, z = 200.0f),
+    //   orientation = Vector3d(x = 0.0f, y = 0.0f, z = 0.0f),
+    //   health = 1000,
+    //   incarnationId = 0,
+    // ).schedule(tank)
   }
 
   @OnEventFire
   @Mandatory
-  fun readyToPlace(event: TankSpawnerModelSetReadyToPlaceEvent, tank: TankNode) {
+  fun readyToPlace(
+    event: TankSpawnerModelSetReadyToPlaceEvent,
+    tank: TankNode,
+  ) {
+    logger.info { "Process ready to place" }
     TankModelActivateTankEvent().schedule(tank)
+  }
+
+  @OnEventFire
+  @Mandatory
+  fun move(
+    event: TankModelMoveCommandEvent,
+    tank: TankNode,
+    @JoinAllChannels @OnlyLoadedObjects tankShared: List<TankNode>,
+  ) {
+    logger.info { "Move tank $event" }
+
+    // Broadcast to all tanks, except the sender
+    TankModelMoveEvent(moveCommand = event.moveCommand).schedule(tankShared - tank)
+  }
+
+  @OnEventFire
+  @Mandatory
+  fun handleCollisionWithOtherTank(event: TankModelHandleCollisionWithOtherTankEvent, tank: TankNode) {
+    // No-op
   }
 }

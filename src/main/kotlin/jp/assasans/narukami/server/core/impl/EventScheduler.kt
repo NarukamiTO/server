@@ -83,6 +83,7 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler, KoinC
   ) {
     val joinAll = parameter.hasAnnotation<JoinAll>()
     val joinAllChannels = parameter.hasAnnotation<JoinAllChannels>()
+    val onlyLoadedObjects = parameter.hasAnnotation<OnlyLoadedObjects>()
   }
 
   data class EventHandlerDefinition(
@@ -169,7 +170,7 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler, KoinC
   private suspend fun processServerEvent(event: IEvent, context: IModelContext, gameObject: IGameObject) {
     logger.info { "Processing server event: $event" }
 
-    var handled = false;
+    var handled = false
     for(handler in handlers) {
       if(!event::class.isSubclassOf(handler.event)) continue
 
@@ -273,6 +274,13 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler, KoinC
       for(context in contexts) {
         for(gameObject in objects) {
           val node = tryProvideNode(context, nodeDefinition, gameObject)
+          if(nodeParameter.onlyLoadedObjects) {
+            if(context is SpaceChannelModelContext && !context.channel.loadedObjects.contains(gameObject.id)) {
+              logger.debug { "$gameObject is not loaded in ${context.channel}" }
+              continue
+            }
+          }
+
           if(node != null) nodes.add(node)
         }
       }

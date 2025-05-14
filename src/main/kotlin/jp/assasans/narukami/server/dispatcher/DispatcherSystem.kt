@@ -143,6 +143,11 @@ class DispatcherSystem : AbstractSystem() {
       objectsData = ObjectsData.new(event.objects, dispatcher.context)
     ).schedule(dispatcher)
 
+    val context = dispatcher.context
+    if(context is SpaceChannelModelContext) {
+      context.channel.loadedObjects.addAll(event.objects.map { it.id })
+    }
+
     logger.info { "Objects loaded: $event" }
     event.deferred.complete(Unit)
   }
