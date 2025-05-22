@@ -1,0 +1,30 @@
+= Narukami Server
+
+This is not a full-fledged server, but a core with basic features to build upon.
+Target feature level is a tournament server.
+
+== Running
+
+You need to set the `RESOURCES_ROOT` environment variable to the `out` directory of the
+link:https://github.com/NarukamiTO/resource-generator[resource generator].
+
+You may configure log levels using `KOTLIN_LOG` environment variable with syntax
+similar to `RUST_LOG`: `root_log_level,my.package=log_level`.
+
+== Connecting
+
+Standalone Flash Player / Ruffle::
+
+  `http://127.0.0.1:5192/libs/AlternativaLoader.swf?config=127.0.0.1:5191/config.xml&resources=127.0.0.1:5192&balancer=http://127.0.0.1:5191/s/status.js&prefix=main.c&locale=ru&lang=ru&debug=true`
+//   or `http://127.0.0.1:5191/play.swf` which will automatically redirect to the URL above.
+
+Optional query parameters:
+
+* `autologin=username:password` - automatically log in with the given username and optional password
+
+== License
+
+Licensed under GNU Affero General Public License, version 3.0 or later
+(link:LICENSE[] or link:https://www.gnu.org/licenses/agpl-3.0.html[]).
+
+**In short, you must make the entire source code available to your users if you host this server for anybody.**
