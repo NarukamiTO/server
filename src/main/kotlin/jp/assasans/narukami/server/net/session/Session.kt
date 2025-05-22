@@ -38,6 +38,7 @@ import jp.assasans.narukami.server.net.SpaceChannel
  */
 interface ISession {
   val hash: SessionHash
+  val properties: Map<String, String>
   val controlChannel: ControlChannel
 
   val spaces: IRegistry<SpaceChannel>
@@ -53,6 +54,7 @@ val ISession.userNotNull: IGameObject
 
 class Session(
   override val hash: SessionHash,
+  override val properties: Map<String, String>,
   override val controlChannel: ControlChannel
 ) : ISession, KoinComponent {
   private val logger = KotlinLogging.logger { }

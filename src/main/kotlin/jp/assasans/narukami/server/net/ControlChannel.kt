@@ -58,7 +58,7 @@ class ControlChannel(socket: ISocketClient) : ChannelKind(socket), KoinComponent
           val hash = SessionHash.random()
 
           // Create a new session
-          val session = Session(hash, this)
+          val session = Session(hash, command.properties, this)
           this.session = session
           sessions.add(session)
           logger.debug { "Created $session" }

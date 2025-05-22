@@ -18,11 +18,15 @@
 
 package jp.assasans.narukami.server.entrance
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.dispatcher.DispatcherLoadObjectsManagedEvent
 import jp.assasans.narukami.server.dispatcher.DispatcherNode
+import jp.assasans.narukami.server.net.sessionNotNull
 
 class EntranceSystem : AbstractSystem() {
+  private val logger = KotlinLogging.logger { }
+
   @OnEventFire
   @OutOfOrderExecution
   suspend fun channelAdded(
@@ -32,5 +36,20 @@ class EntranceSystem : AbstractSystem() {
   ) {
     // Load the first ever game object. This will display a login screen.
     DispatcherLoadObjectsManagedEvent(entrance.gameObject).schedule(dispatcher).await()
+
+    // One may pass "autologin=username:[password]" query parameter to the client,
+    // skipping the login screen. Intended to be used for debugging purposes.
+    val properties = event.channel.sessionNotNull.properties
+    properties["autologin"]?.let {
+      val username = it.substringBefore(':')
+      val password = it.substringAfter(':')
+
+      logger.info { "Performing autologin for $username" }
+      LoginModelLoginEvent(
+        uidOrEmail = username,
+        password = password,
+        remember = false,
+      ).schedule(entrance)
+    }
   }
 }
