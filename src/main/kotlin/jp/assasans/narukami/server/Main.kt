@@ -138,8 +138,9 @@ suspend fun main() {
   koin.koin.get<SpaceEventProcessor>()
   koin.koin.get<IEventScheduler>()
 
-  // Local game objects depend on remote resources and spaces
+  // Game objects depend on other remote resources and spaces
   koin.koin.get<LocalGameResourceRepository>().fetch()
+  koin.koin.get<RemoteGameResourceRepository>().createObjects()
 
   coroutineScope {
     launch { koin.koin.get<ConfigServer>().start() }

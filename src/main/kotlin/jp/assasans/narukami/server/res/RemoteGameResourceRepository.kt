@@ -26,8 +26,18 @@ import com.fasterxml.jackson.core.JsonGenerator
 import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.databind.*
 import com.fasterxml.jackson.module.kotlin.readValue
+import dev.kdl.parse.KdlParser
 import io.github.oshai.kotlinlogging.KotlinLogging
+import jp.assasans.narukami.server.core.AutoAddedComponent
+import jp.assasans.narukami.server.core.IGameObject
+import jp.assasans.narukami.server.core.IRegistry
+import jp.assasans.narukami.server.core.ISpace
+import jp.assasans.narukami.server.core.impl.Space
 import jp.assasans.narukami.server.extensions.singleOrNullOrThrow
+import jp.assasans.narukami.server.kdl.KdlGameObjectCodec
+import jp.assasans.narukami.server.kdl.KdlReader
+import jp.assasans.narukami.server.kdl.asNode
+import jp.assasans.narukami.server.kdl.getTypedCodec
 
 data class ResourceInfo(
   val name: String,
@@ -55,7 +65,8 @@ enum class ResourceType(val id: Short, val type: String) {
   Object3D(17, "Object3D"),
   Effects(25, ""), // Unused
   RawData(400, ""),
-  Localization(-1, "Localization"); // Unused
+  Localization(-1, "Localization"), // Unused
+  GameObject(-1, "GameObject");
 }
 
 object ResourceTypeConverter {
@@ -102,6 +113,7 @@ private fun ResourceType.intoMarker(): Res {
     ResourceType.LocalizedImage    -> LocalizedImageRes
     ResourceType.Object3D          -> Object3DRes
     ResourceType.Localization      -> LocalizationRes
+    ResourceType.GameObject        -> GameObjectRes
     else                           -> throw IllegalArgumentException("Resource type $this is not supported")
   }
 }
@@ -118,6 +130,7 @@ val Res.type: ResourceType
     is LocalizedImageRes    -> ResourceType.LocalizedImage
     is Object3DRes          -> ResourceType.Object3D
     is LocalizationRes      -> ResourceType.Localization
+    is GameObjectRes        -> ResourceType.GameObject
     is UnknownRes           -> throw IllegalArgumentException("Resource type $this is not supported")
   }
 
@@ -168,6 +181,7 @@ data object MultiframeTextureRes : Res
 data object LocalizedImageRes : Res
 data object Object3DRes : Res
 data object LocalizationRes : Res
+data object GameObjectRes : Res
 
 interface IGameResourceRepository {
   fun getAll(): List<Resource<*, *>>
@@ -175,7 +189,9 @@ interface IGameResourceRepository {
 }
 
 class RemoteGameResourceRepository(
-  private val objectMapper: ObjectMapper
+  private val objectMapper: ObjectMapper,
+  private val reader: KdlReader,
+  private val spaces: IRegistry<ISpace>,
 ) : IGameResourceRepository {
   private val logger = KotlinLogging.logger { }
 
@@ -225,6 +241,29 @@ class RemoteGameResourceRepository(
     resources.putAll(newResources)
 
     logger.debug { "Fetched ${fetched.size} remote resources" }
+  }
+
+  fun createObjects() {
+    for(resource in getAll().filter { it.type == GameObjectRes }) {
+      // TODO: Temporary solution
+      val root = Paths.get(requireNotNull(System.getenv("RESOURCES_ROOT")) { "\"RESOURCES_ROOT\" environment variable is not set" })
+      val text = root.resolve("${resource.id.encode()}/object.kdl").readText()
+
+      val document = KdlParser.v2().parse(text)
+      logger.trace { "KDL document: $document" }
+
+      val codec = reader.getTypedCodec<IGameObject>()
+      // TODO: Workaround, works for now
+      (codec as KdlGameObjectCodec).name = "${resource.name}${resource.namespaces}"
+      val gameObject = codec.decode(reader, document.asNode())
+
+      val spaceNames = (gameObject.components[AutoAddedComponent::class] as AutoAddedComponent?)?.spaces ?: emptyList()
+      for(spaceName in spaceNames) {
+        val space = spaces.get(Space.stableId(spaceName)) ?: throw IllegalArgumentException("Space $spaceName not found for $resource")
+        logger.info { "Auto-adding ${codec.name} to $spaceName => $gameObject" }
+        space.objects.add(gameObject)
+      }
+    }
   }
 
   override fun getAll(): List<Resource<*, *>> = resources.values.flatten().toList()
