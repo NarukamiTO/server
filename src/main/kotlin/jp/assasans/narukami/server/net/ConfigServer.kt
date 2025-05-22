@@ -39,7 +39,7 @@ class ConfigServer {
 
   suspend fun start() {
     logger.info { "Starting config server..." }
-    engine = embeddedServer(Netty, port = 8081, host = "0.0.0.0") {
+    engine = embeddedServer(Netty, port = 5191, host = "0.0.0.0") {
       install(CallLogging)
       install(DefaultHeaders) {
         header(HttpHeaders.Server, "Narukami TO, config server, AGPLv3+")
@@ -102,7 +102,6 @@ class ConfigServer {
         }
 
         get("sources.jar") {
-          println(this::class.java.classLoader)
           val resource = this::class.java.classLoader.getResource("sources.jar")
           if(resource == null) {
             call.respond(HttpStatusCode.NotFound, "sources.jar not found in the JAR")

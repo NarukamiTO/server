@@ -48,7 +48,7 @@ class ResourceServer(
 
   suspend fun start() {
     logger.info { "Starting resource server..." }
-    engine = embeddedServer(Netty, port = 8082, host = "0.0.0.0") {
+    engine = embeddedServer(Netty, port = 5192, host = "0.0.0.0") {
       install(CallLogging)
       install(DefaultHeaders) {
         header(HttpHeaders.Server, "Narukami TO, resource server, AGPLv3+")

@@ -40,7 +40,7 @@ data class LobbyTemplate(
         onceADayAction = OnceADayActionModelCC(todayRestartTime = 0),
         reconnect = ReconnectModelCC(
           // TODO: Take this from hash request command
-          configUrlTemplate = "127.0.0.1:8081/config.xml",
+          configUrlTemplate = "127.0.0.1:5191/config.xml",
           serverNumber = 1,
         ),
         gpuDetector = GPUDetectorModelCC(),
