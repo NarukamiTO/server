@@ -59,18 +59,17 @@ data class TankSpawnerModelConfirmSpawnEvent(
 ) : IServerEvent
 
 /**
- * Sent whenever the tank is ready to spawn after processing [TankSpawnerModelPrepareToSpawnEvent].
+ * Sent whenever the client is ready to handle [TankSpawnerModelPrepareToSpawnEvent] (i.e., first spawn or respawn).
  *
- * Delayed if pause is enabled and the player is [BossRelationRole.VICTIM], i.e., not the Juggernaut.
+ * Delayed if pause is enabled and the player is [BossRelationRole.VICTIM] (i.e., not the Juggernaut).
  */
 @ProtocolEvent(9209552134071208874)
 class TankSpawnerModelReadyToSpawnEvent : IServerEvent
 
 /**
- * Sent whenever the tank can be activated:
- * - after [BattlefieldModelCC.respawnDuration], and
- * - not inside another active tank, and
- * - no dialogs to interfere with gameplay.
+ * Sent whenever the tank is ready to spawn - after waiting [BattlefieldModelCC.respawnDuration] milliseconds
+ * after processing [TankSpawnerModelPrepareToSpawnEvent], and once there are no open dialogs
+ * to interfere with the gameplay.
  *
  * Sent after processing [TankSpawnerModelPrepareToSpawnEvent], assuming that
  * server won't reject [TankSpawnerModelReadyToSpawnEvent].

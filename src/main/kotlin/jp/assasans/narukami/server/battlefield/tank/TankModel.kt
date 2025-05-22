@@ -83,6 +83,9 @@ data class TankModelSetHealthEvent(
 @ProtocolEvent(2895186944952018743)
 class TankModelDeathConfirmationCommandEvent : IServerEvent
 
+/**
+ * Can be used to check when to activate newly spawned tank.
+ */
 @ProtocolEvent(117278145745427103)
 data class TankModelHandleCollisionWithOtherTankEvent(
   val otherTankZVelocity: Float,

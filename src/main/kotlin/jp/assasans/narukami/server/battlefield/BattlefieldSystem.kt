@@ -23,6 +23,7 @@ import kotlin.io.path.readText
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.delay
 import org.koin.core.component.inject
 import jp.assasans.narukami.server.battlefield.tank.*
 import jp.assasans.narukami.server.battlefield.tank.hull.*
@@ -44,6 +45,7 @@ import jp.assasans.narukami.server.dispatcher.DispatcherLoadObjectsManagedEvent
 import jp.assasans.narukami.server.dispatcher.DispatcherNode
 import jp.assasans.narukami.server.lobby.UserNode
 import jp.assasans.narukami.server.lobby.communication.ChatModeratorLevel
+import jp.assasans.narukami.server.lobby.user.adaptSingle
 import jp.assasans.narukami.server.net.session.userNotNull
 import jp.assasans.narukami.server.net.sessionNotNull
 import jp.assasans.narukami.server.res.*
@@ -52,6 +54,208 @@ data class TankNode(
   val tank: TankModelCC,
   val tankConfiguration: TankConfigurationModelCC,
 ) : Node()
+
+private fun createTankHull(gameResourceRepository: IGameResourceRepository) = TransientGameObject.instantiate(
+  id = TransientGameObject.freeId(),
+  parent = TemplatedGameClass.fromTemplate(HullTemplate::class),
+  HullTemplate(
+    hullCommon = HullCommonModelCC(
+      deadColoring = gameResourceRepository.get("tank.dead", mapOf(), TextureRes, Eager),
+      deathSound = gameResourceRepository.get("tank.sound.destroy", mapOf(), SoundRes, Eager),
+      lightingSFXEntity = LightingSFXEntity(
+        effects = listOf(
+          LightingEffectEntity(
+            "explosion", listOf(
+              LightEffectItem(1f, 2f, "0xCCA538", 0f, 0),
+              LightEffectItem(500f, 1500f, "0xCCA538", 1.2f, 100),
+              LightEffectItem(1f, 2f, "0xCCA538", 0f, 1200)
+            )
+          )
+        )
+      ),
+      mass = 100000f,
+      stunEffectTexture = gameResourceRepository.get("tank.stun.texture", mapOf(), TextureRes, Eager),
+      stunSound = gameResourceRepository.get("tank.stun.sound", mapOf(), SoundRes, Eager),
+      ultimateHudIndicator = gameResourceRepository.get("tank.dead", mapOf(), TextureRes, Eager), // TODO: Wrong
+      ultimateIconIndex = 0,
+    ),
+    simpleArmor = SimpleArmorModelCC(maxHealth = 1000),
+    engine = EngineModelCC(
+      engineIdleSound = gameResourceRepository.get("tank.sound.idle", mapOf(), SoundRes, Eager),
+      engineMovingSound = gameResourceRepository.get("tank.sound.moving", mapOf(), SoundRes, Eager),
+      engineStartMovingSound = gameResourceRepository.get("tank.sound.start-move", mapOf(), SoundRes, Eager),
+      engineStartSound = gameResourceRepository.get("tank.sound.start-move", mapOf(), SoundRes, Eager),
+      engineStopMovingSound = gameResourceRepository.get("tank.sound.idle", mapOf(), SoundRes, Eager),
+    ),
+    object3DS = gameResourceRepository.get("tank.hull.viking", mapOf("gen" to "1.0", "modification" to "0"), Object3DRes, Eager).asModel(),
+    hullSmoke = HullSmokeModelCC(
+      alpha = 0.5f,
+      density = 1f,
+      enabled = true,
+      fadeTime = 1000,
+      farDistance = 1000f,
+      nearDistance = 1f,
+      particle = gameResourceRepository.get("tank.smoke", mapOf(), MultiframeTextureRes, Eager),
+      size = 1f,
+    ),
+    tankExplosion = TankExplosionModelCC(
+      explosionTexture = gameResourceRepository.get("tank.explosion", mapOf(), MultiframeTextureRes, Eager),
+      shockWaveTexture = gameResourceRepository.get("tank.shock-wave", mapOf(), MultiframeTextureRes, Eager),
+      smokeTextureId = gameResourceRepository.get("tank.smoke", mapOf(), MultiframeTextureRes, Eager),
+    ),
+    trackedChassis = TrackedChassisModelCC(damping = 3000f),
+  )
+)
+
+private fun createTankWeapon(gameResourceRepository: IGameResourceRepository) = TransientGameObject.instantiate(
+  id = TransientGameObject.freeId(),
+  parent = TemplatedGameClass.fromTemplate(SmokyTemplate::class),
+  SmokyTemplate(
+    weaponCommon = WeaponCommonModelCC(
+      buffShotCooldownMs = 0,
+      buffed = false,
+      highlightingDistance = 1000f,
+      impactForce = 1000f,
+      kickback = 1000f,
+      turretRotationAcceleration = 1f,
+      turretRotationSound = gameResourceRepository.get("tank.sound.weapon-rotate", mapOf(), SoundRes, Eager),
+      turretRotationSpeed = 1f
+    ),
+    object3DS = gameResourceRepository.get("tank.weapon.smoky", mapOf("gen" to "1.0", "modification" to "0"), Object3DRes, Eager).asModel(),
+    verticalAutoAiming = VerticalAutoAimingModelCC(),
+    rotatingTurret = RotatingTurretModelCC(
+      turretState = TurretStateCommand(
+        controlInput = 0f,
+        controlType = TurretControlType.ROTATION_DIRECTION,
+        direction = 0f,
+        rotationSpeedNumber = 100
+      )
+    ),
+    discreteShot = DiscreteShotModelCC(reloadMsec = 500),
+    weaponWeakening = WeaponWeakeningModelCC(
+      maximumDamageRadius = 500.0f,
+      minimumDamagePercent = 10.0f,
+      minimumDamageRadius = 1000.0f
+    ),
+    weaponVerticalAngles = WeaponVerticalAnglesModelCC(
+      angleDown = 0.2f,
+      angleUp = 0.2f
+    ),
+    splash = SplashModel(
+      impactForce = 100f,
+      minSplashDamagePercent = 5f,
+      radiusOfMaxSplashDamage = 100f,
+      splashDamageRadius = 1000f,
+    ),
+    smoky = SmokyModelCC(),
+    smokyShootSFX = SmokyShootSFXModelCC(
+      criticalHitSize = 1000,
+      criticalHitTexture = gameResourceRepository.get("tank.weapon.smoky.sfx.critical", mapOf(), MultiframeTextureRes, Eager),
+      explosionMarkTexture = gameResourceRepository.get("tank.weapon.smoky.sfx.hit-mark", mapOf(), TextureRes, Eager),
+      explosionSize = 375,
+      explosionSound = gameResourceRepository.get("tank.weapon.smoky.sfx.sound.hit", mapOf(), SoundRes, Eager),
+      explosionTexture = gameResourceRepository.get("tank.weapon.smoky.sfx.NC_explosion", mapOf(), MultiframeTextureRes, Eager),
+      lightingSFXEntity = LightingSFXEntity(
+        listOf(
+          LightingEffectEntity(
+            "hit", listOf(
+              LightEffectItem(attenuationBegin = 170f, attenuationEnd = 300f, color = "0xffbf00", intensity = 1.7f, time = 0),
+              LightEffectItem(attenuationBegin = 100f, attenuationEnd = 300f, color = "0xffbf00", intensity = 0f, time = 400)
+            )
+          ),
+          LightingEffectEntity(
+            "shot", listOf(
+              LightEffectItem(attenuationBegin = 190f, attenuationEnd = 450f, color = "0xfcdd76", intensity = 1.9f, time = 0),
+              LightEffectItem(attenuationBegin = 1f, attenuationEnd = 2f, color = "0xfcdd76", intensity = 0f, time = 300)
+            )
+          ),
+          LightingEffectEntity(
+            "shell", listOf(
+              LightEffectItem(attenuationBegin = 0f, attenuationEnd = 0f, color = "0xfcdd76", intensity = 0f, time = 0)
+            )
+          )
+        )
+      ),
+      shotSound = gameResourceRepository.get("tank.weapon.smoky.sfx.sound.shot", mapOf(), SoundRes, Eager),
+      shotTexture = gameResourceRepository.get("tank.weapon.smoky.sfx.shot", mapOf(), TextureRes, Eager)
+    )
+  )
+)
+
+private fun createTankPaint(gameResourceRepository: IGameResourceRepository) = TransientGameObject.instantiate(
+  id = TransientGameObject.freeId(),
+  parent = TemplatedGameClass.fromTemplate(ColoringTemplate::class),
+  ColoringTemplate(
+    coloring = ColoringModelCC.static(
+      gameResourceRepository.get("tank.paint.fracture", mapOf("gen" to "2.1"), TextureRes, Eager),
+    )
+  )
+)
+
+data class TankLogicStateComponent(var logicState: TankLogicState) : IComponent
+
+private fun createTank(user: UserNode, configuration: TankConfigurationModelCC) = TransientGameObject.instantiate(
+  id = user.gameObject.id,
+  parent = TemplatedGameClass.fromTemplate(TankTemplate::class),
+  TankTemplate(
+    tankSpawner = TankSpawnerModelCC(incarnationId = 0),
+    tankConfiguration = configuration,
+    tank = ClosureModelProvider {
+      val local = requireSpaceChannel.sessionNotNull.userNotNull.id == user.gameObject.id
+      TankModelCC(
+        health = if(local) -1 else 1000,
+        local = local,
+        logicState = it.adaptSingle<TankLogicStateComponent>().logicState,
+        movementDistanceBorderUntilTankCorrection = 2000,
+        movementTimeoutUntilTankCorrection = 4000,
+        tankState = null,
+        team = BattleTeam.NONE,
+      )
+    },
+    tankResistances = TankResistancesModelCC(resistances = listOf()),
+    tankPause = TankPauseModelCC(),
+    speedCharacteristics = SpeedCharacteristicsModelCC(
+      baseSpeed = 12.00f,
+      currentSpeed = 12.00f,
+      baseAcceleration = 14.00f,
+      currentAcceleration = 14.00f,
+      reverseAcceleration = 23.00f,
+      baseTurnSpeed = 2.62f,
+      currentTurnSpeed = 2.62f,
+      turnAcceleration = 2.62f,
+      currentTurretRotationSpeed = 2.09f,
+      baseTurretRotationSpeed = 2.09f,
+      reverseTurnAcceleration = 1.5f,
+      sideAcceleration = 13.0f,
+      turnStabilizationAcceleration = 1.5f,
+    ),
+    ultimate = UltimateModelCC(
+      chargePercentPerSecond = 0.0f,
+      charged = false,
+      enabled = false,
+    ),
+    droneIndicator = DroneIndicatorModelCC(
+      batteryAmount = 0,
+      canOverheal = false,
+      droneReady = false,
+      timeToReloadMs = 0,
+    ),
+    tankDevice = TankDeviceModelCC(deviceId = null),
+    suicide = SuicideModelCC(suicideDelayMS = 1000),
+    tankTemperature = TankTemperatureModelCC(),
+    bossStateModel = ClosureModelProvider {
+      val local = requireSpaceChannel.sessionNotNull.userNotNull.id == user.gameObject.id
+      BossStateModelCC(
+        enabled = true,
+        hullId = configuration.hullId,
+        local = local,
+        role = BossRelationRole.VICTIM,
+        weaponId = configuration.weaponId,
+      )
+    },
+    gearScoreModel = BattleGearScoreModelCC(score = 2112),
+  )
+)
 
 class BattlefieldSystem : AbstractSystem() {
   private val logger = KotlinLogging.logger { }
@@ -93,215 +297,29 @@ class BattlefieldSystem : AbstractSystem() {
       battlefield.gameObject,
     ).schedule(dispatcher).await()
 
-    val hullObject = TransientGameObject.instantiate(
-      id = TransientGameObject.freeId(),
-      parent = TemplatedGameClass.fromTemplate(HullTemplate::class),
-      HullTemplate(
-        hullCommon = HullCommonModelCC(
-          deadColoring = gameResourceRepository.get("tank.dead", mapOf(), TextureRes, Eager),
-          deathSound = gameResourceRepository.get("tank.sound.destroy", mapOf(), SoundRes, Eager),
-          lightingSFXEntity = LightingSFXEntity(
-            effects = listOf(
-              LightingEffectEntity(
-                "explosion", listOf(
-                  LightEffectItem(1f, 2f, "0xCCA538", 0f, 0),
-                  LightEffectItem(500f, 1500f, "0xCCA538", 1.2f, 100),
-                  LightEffectItem(1f, 2f, "0xCCA538", 0f, 1200)
-                )
-              )
-            )
-          ),
-          mass = 100000f,
-          stunEffectTexture = gameResourceRepository.get("tank.stun.texture", mapOf(), TextureRes, Eager),
-          stunSound = gameResourceRepository.get("tank.stun.sound", mapOf(), SoundRes, Eager),
-          ultimateHudIndicator = gameResourceRepository.get("tank.dead", mapOf(), TextureRes, Eager), // TODO: Wrong
-          ultimateIconIndex = 0,
-        ),
-        simpleArmor = SimpleArmorModelCC(maxHealth = 1000),
-        engine = EngineModelCC(
-          engineIdleSound = gameResourceRepository.get("tank.sound.idle", mapOf(), SoundRes, Eager),
-          engineMovingSound = gameResourceRepository.get("tank.sound.moving", mapOf(), SoundRes, Eager),
-          engineStartMovingSound = gameResourceRepository.get("tank.sound.start-move", mapOf(), SoundRes, Eager),
-          engineStartSound = gameResourceRepository.get("tank.sound.start-move", mapOf(), SoundRes, Eager),
-          engineStopMovingSound = gameResourceRepository.get("tank.sound.idle", mapOf(), SoundRes, Eager),
-        ),
-        object3DS = gameResourceRepository.get("tank.hull.viking", mapOf("gen" to "1.0", "modification" to "0"), Object3DRes, Eager).asModel(),
-        hullSmoke = HullSmokeModelCC(
-          alpha = 0.5f,
-          density = 1f,
-          enabled = true,
-          fadeTime = 1000,
-          farDistance = 1000f,
-          nearDistance = 1f,
-          particle = gameResourceRepository.get("tank.smoke", mapOf(), MultiframeTextureRes, Eager),
-          size = 1f,
-        ),
-        tankExplosion = TankExplosionModelCC(
-          explosionTexture = gameResourceRepository.get("tank.explosion", mapOf(), MultiframeTextureRes, Eager),
-          shockWaveTexture = gameResourceRepository.get("tank.shock-wave", mapOf(), MultiframeTextureRes, Eager),
-          smokeTextureId = gameResourceRepository.get("tank.smoke", mapOf(), MultiframeTextureRes, Eager),
-        ),
-        trackedChassis = TrackedChassisModelCC(damping = 3000f),
+    val hullObject = createTankHull(gameResourceRepository)
+    val weaponObject = createTankWeapon(gameResourceRepository)
+    val paintObject = createTankPaint(gameResourceRepository)
+    val tankObject = createTank(
+      user,
+      TankConfigurationModelCC(
+        coloringId = paintObject.id,
+        droneId = 0,
+        hullId = hullObject.id,
+        weaponId = weaponObject.id,
       )
     )
+    tankObject.components[TankLogicStateComponent::class] = TankLogicStateComponent(TankLogicState.NEW)
+
     event.channel.space.objects.add(hullObject)
-
-    val weaponObject = TransientGameObject.instantiate(
-      id = TransientGameObject.freeId(),
-      parent = TemplatedGameClass.fromTemplate(SmokyTemplate::class),
-      SmokyTemplate(
-        weaponCommon = WeaponCommonModelCC(
-          buffShotCooldownMs = 0,
-          buffed = false,
-          highlightingDistance = 1000f,
-          impactForce = 1000f,
-          kickback = 1000f,
-          turretRotationAcceleration = 1f,
-          turretRotationSound = gameResourceRepository.get("tank.sound.weapon-rotate", mapOf(), SoundRes, Eager),
-          turretRotationSpeed = 1f
-        ),
-        object3DS = gameResourceRepository.get("tank.weapon.smoky", mapOf("gen" to "1.0", "modification" to "0"), Object3DRes, Eager).asModel(),
-        verticalAutoAiming = VerticalAutoAimingModelCC(),
-        rotatingTurret = RotatingTurretModelCC(
-          turretState = TurretStateCommand(
-            controlInput = 0f,
-            controlType = TurretControlType.ROTATION_DIRECTION,
-            direction = 0f,
-            rotationSpeedNumber = 100
-          )
-        ),
-        discreteShot = DiscreteShotModelCC(reloadMsec = 500),
-        weaponWeakening = WeaponWeakeningModelCC(
-          maximumDamageRadius = 500.0f,
-          minimumDamagePercent = 10.0f,
-          minimumDamageRadius = 1000.0f
-        ),
-        weaponVerticalAngles = WeaponVerticalAnglesModelCC(
-          angleDown = 0.2f,
-          angleUp = 0.2f
-        ),
-        splash = SplashModel(
-          impactForce = 100f,
-          minSplashDamagePercent = 5f,
-          radiusOfMaxSplashDamage = 100f,
-          splashDamageRadius = 1000f,
-        ),
-        smoky = SmokyModelCC(),
-        smokyShootSFX = SmokyShootSFXModelCC(
-          criticalHitSize = 1000,
-          criticalHitTexture = gameResourceRepository.get("tank.weapon.smoky.sfx.critical", mapOf(), MultiframeTextureRes, Eager),
-          explosionMarkTexture = gameResourceRepository.get("tank.weapon.smoky.sfx.hit-mark", mapOf(), TextureRes, Eager),
-          explosionSize = 375,
-          explosionSound = gameResourceRepository.get("tank.weapon.smoky.sfx.sound.hit", mapOf(), SoundRes, Eager),
-          explosionTexture = gameResourceRepository.get("tank.weapon.smoky.sfx.NC_explosion", mapOf(), MultiframeTextureRes, Eager),
-          lightingSFXEntity = LightingSFXEntity(
-            listOf(
-              LightingEffectEntity(
-                "hit", listOf(
-                  LightEffectItem(attenuationBegin = 170f, attenuationEnd = 300f, color = "0xffbf00", intensity = 1.7f, time = 0),
-                  LightEffectItem(attenuationBegin = 100f, attenuationEnd = 300f, color = "0xffbf00", intensity = 0f, time = 400)
-                )
-              ),
-              LightingEffectEntity(
-                "shot", listOf(
-                  LightEffectItem(attenuationBegin = 190f, attenuationEnd = 450f, color = "0xfcdd76", intensity = 1.9f, time = 0),
-                  LightEffectItem(attenuationBegin = 1f, attenuationEnd = 2f, color = "0xfcdd76", intensity = 0f, time = 300)
-                )
-              ),
-              LightingEffectEntity(
-                "shell", listOf(
-                  LightEffectItem(attenuationBegin = 0f, attenuationEnd = 0f, color = "0xfcdd76", intensity = 0f, time = 0)
-                )
-              )
-            )
-          ),
-          shotSound = gameResourceRepository.get("tank.weapon.smoky.sfx.sound.shot", mapOf(), SoundRes, Eager),
-          shotTexture = gameResourceRepository.get("tank.weapon.smoky.sfx.shot", mapOf(), TextureRes, Eager)
-        )
-      )
-    )
     event.channel.space.objects.add(weaponObject)
-
-    val paintObject = TransientGameObject.instantiate(
-      id = TransientGameObject.freeId(),
-      parent = TemplatedGameClass.fromTemplate(ColoringTemplate::class),
-      ColoringTemplate(
-        coloring = ColoringModelCC.static(
-          gameResourceRepository.get("tank.paint.fracture", mapOf("gen" to "2.1"), TextureRes, Eager),
-        )
-      )
-    )
     event.channel.space.objects.add(paintObject)
-
-    val tankObject = TransientGameObject.instantiate(
-      id = user.gameObject.id,
-      parent = TemplatedGameClass.fromTemplate(TankTemplate::class),
-      TankTemplate(
-        tankSpawner = TankSpawnerModelCC(incarnationId = 0),
-        tankConfiguration = TankConfigurationModelCC(
-          coloringId = paintObject.id,
-          droneId = 0,
-          hullId = hullObject.id,
-          weaponId = weaponObject.id,
-        ),
-        tank = ClosureModelProvider {
-          val local = requireSpaceChannel.sessionNotNull.userNotNull.id == user.gameObject.id
-          TankModelCC(
-            health = if(local) -1 else 1000,
-            local = local,
-            logicState = TankLogicState.NEW,
-            movementDistanceBorderUntilTankCorrection = 2000,
-            movementTimeoutUntilTankCorrection = 4000,
-            tankState = null,
-            team = BattleTeam.NONE,
-          )
-        },
-        tankResistances = TankResistancesModelCC(resistances = listOf()),
-        tankPause = TankPauseModelCC(),
-        speedCharacteristics = SpeedCharacteristicsModelCC(
-          baseSpeed = 12.00f,
-          currentSpeed = 12.00f,
-          baseAcceleration = 14.00f,
-          currentAcceleration = 14.00f,
-          reverseAcceleration = 23.00f,
-          baseTurnSpeed = 2.62f,
-          currentTurnSpeed = 2.62f,
-          turnAcceleration = 2.62f,
-          currentTurretRotationSpeed = 2.09f,
-          baseTurretRotationSpeed = 2.09f,
-          reverseTurnAcceleration = 1.5f,
-          sideAcceleration = 13.0f,
-          turnStabilizationAcceleration = 1.5f,
-        ),
-        ultimate = UltimateModelCC(
-          chargePercentPerSecond = 0.0f,
-          charged = false,
-          enabled = false,
-        ),
-        droneIndicator = DroneIndicatorModelCC(
-          batteryAmount = 0,
-          canOverheal = false,
-          droneReady = false,
-          timeToReloadMs = 0,
-        ),
-        tankDevice = TankDeviceModelCC(deviceId = null),
-        suicide = SuicideModelCC(suicideDelayMS = 1000),
-        tankTemperature = TankTemperatureModelCC(),
-        bossStateModel = ClosureModelProvider {
-          val local = requireSpaceChannel.sessionNotNull.userNotNull.id == user.gameObject.id
-          BossStateModelCC(
-            enabled = true,
-            hullId = hullObject.id,
-            local = local,
-            role = BossRelationRole.VICTIM,
-            weaponId = weaponObject.id,
-          )
-        },
-        gearScoreModel = BattleGearScoreModelCC(score = 2112),
-      )
-    )
     event.channel.space.objects.add(tankObject)
 
+    /* Forward loading */
+    // UserConnect must be sent before loading the tank object, otherwise an
+    // unhelpful error #1009 in [ActionOutputLine::createUserLabel] occurs.
+    // Tank object ID must match the user object ID, this is hardcoded in the client.
     StatisticsDMModelUserConnectEvent(
       tankObject.id,
       listOf(
@@ -329,30 +347,8 @@ class BattlefieldSystem : AbstractSystem() {
     }
     logger.info { "Loaded tank parts" }
 
-    // We need to send this to start rendering the game.
-    // The client calls [SpawnCameraConfigurator#setupCamera] on this event, which sets up the camera.
-    logger.info { "Schedule prepare to spawn" }
-    TankSpawnerModelPrepareToSpawnEvent(
-      Vector3d(0f, 0f, 200f),
-      Vector3d(0f, 0f, 0f),
-    ).schedule(battlefield.context, tankObject)
-
-    // Spawn own tank for the entire battlefield
-    for(battlefieldRemote in battlefieldShared) {
-      TankSpawnerModelSpawnEvent(
-        team = BattleTeam.NONE,
-        position = Vector3d(x = 0.0f, y = 0.0f, z = 200.0f),
-        orientation = Vector3d(x = 0.0f, y = 0.0f, z = 0.0f),
-        health = 1000,
-        incarnationId = 0,
-      ).schedule(battlefieldRemote.context, tankObject)
-
-      TankModelActivateTankEvent().schedule(battlefieldRemote.context, tankObject)
-    }
-
-    // TODO: This mirrors the forward loading logic, we need to merge them somehow
+    /* Backward loading - notes above apply */
     // TODO: Race condition possible when joining at the same time - black screen or userConnect() unhelpful error
-    // Spawn existing tanks for self
     for(tank in tanks - tankObject) {
       StatisticsDMModelUserConnectEvent(
         tank.gameObject.id,
@@ -378,6 +374,7 @@ class BattlefieldSystem : AbstractSystem() {
         tank.gameObject,
       ).schedule(dispatcher).await()
 
+      // TODO: State check
       TankSpawnerModelSpawnEvent(
         team = BattleTeam.NONE,
         position = Vector3d(x = 0.0f, y = 0.0f, z = 200.0f),
@@ -386,31 +383,67 @@ class BattlefieldSystem : AbstractSystem() {
         incarnationId = 0,
       ).schedule(battlefield.context, tank.gameObject)
 
+      // TODO: State check again
       TankModelActivateTankEvent().schedule(battlefield.context, tank.gameObject)
     }
   }
 
   @OnEventFire
   @Mandatory
-  fun readyToSpawn(event: TankSpawnerModelReadyToSpawnEvent, tank: TankNode) {
-    logger.info { "Process ready to spawn" }
-    // TankSpawnerModelSpawnEvent(
-    //   team = BattleTeam.NONE,
-    //   position = Vector3d(x = 0.0f, y = 0.0f, z = 200.0f),
-    //   orientation = Vector3d(x = 0.0f, y = 0.0f, z = 0.0f),
-    //   health = 1000,
-    //   incarnationId = 0,
-    // ).schedule(tank)
+  fun readyToSpawn(
+    event: TankSpawnerModelReadyToSpawnEvent,
+    tank: TankNode,
+  ) {
+    logger.info { "Process ready-to-spawn" }
+
+    // Sending this starts the game rendering on the client. The client calls
+    // [SpawnCameraConfigurator#setupCamera], which sets up the camera.
+    //
+    // Once this event is received, the client will send [TankSpawnerModelSetReadyToPlaceEvent] after
+    // [BattlefieldModelCC.respawnDuration] milliseconds.
+    //
+    // We do this after forward and backward loading so all other tanks are loaded
+    // before current tank is spawned (leading to wrong position in edge cases).
+    TankSpawnerModelPrepareToSpawnEvent(
+      Vector3d(0f, 0f, 200f),
+      Vector3d(0f, 0f, 0f),
+    ).schedule(tank)
   }
 
   @OnEventFire
   @Mandatory
-  fun readyToPlace(
+  @OutOfOrderExecution
+  suspend fun readyToPlace(
     event: TankSpawnerModelSetReadyToPlaceEvent,
     tank: TankNode,
+    @JoinAll @JoinAllChannels battlefieldShared: List<SingleNode<BattlefieldModelCC>>,
   ) {
-    logger.info { "Process ready to place" }
-    TankModelActivateTankEvent().schedule(tank)
+    logger.info { "Process ready-to-place, ${battlefieldShared.size} shared" }
+
+    // TODO: Workaround (class cast), works for now
+    val logicStateComponent = (tank.gameObject.components[TankLogicStateComponent::class] as TankLogicStateComponent)
+
+    // Spawn current tank for the entire battlefield
+    logicStateComponent.logicState = TankLogicState.ACTIVATING
+    for(battlefieldRemote in battlefieldShared) {
+      TankSpawnerModelSpawnEvent(
+        team = BattleTeam.NONE,
+        position = Vector3d(x = 0.0f, y = 0.0f, z = 200.0f),
+        orientation = Vector3d(x = 0.0f, y = 0.0f, z = 0.0f),
+        health = 1000,
+        incarnationId = 0,
+      ).schedule(battlefieldRemote.context, tank.gameObject)
+    }
+
+    // TODO: Check whether tank can be activated, see [handleCollisionWithOtherTank]
+    // Spawn -> active delay
+    delay(2000)
+
+    // Activate current tank for the entire battlefield
+    logicStateComponent.logicState = TankLogicState.ACTIVE
+    for(battlefieldRemote in battlefieldShared) {
+      TankModelActivateTankEvent().schedule(battlefieldRemote.context, tank.gameObject)
+    }
   }
 
   @OnEventFire
@@ -429,6 +462,6 @@ class BattlefieldSystem : AbstractSystem() {
   @OnEventFire
   @Mandatory
   fun handleCollisionWithOtherTank(event: TankModelHandleCollisionWithOtherTankEvent, tank: TankNode) {
-    // No-op
+    // TODO: Prevent tank from spawning for around 500 ms while client sends this event
   }
 }

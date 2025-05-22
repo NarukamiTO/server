@@ -146,7 +146,7 @@ class BattleSelectSystem : AbstractSystem() {
             proBattle = true,
             range = Range(min = 1, max = 31),
             reArmorEnabled = false,
-            respawnDuration = 1000,
+            respawnDuration = 2000,
             shadowMapCorrectionFactor = 0.0f,
             showAddressLink = false,
             spectator = false,
