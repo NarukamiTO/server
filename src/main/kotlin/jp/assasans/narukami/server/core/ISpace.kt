@@ -18,7 +18,9 @@
 
 package jp.assasans.narukami.server.core
 
+import java.util.*
 import jp.assasans.narukami.server.dispatcher.DispatcherModelCC
+import jp.assasans.narukami.server.dispatcher.DispatcherMutexComponent
 
 /**
  * Spaces are used for the actual client-server communication.
@@ -43,6 +45,7 @@ fun ISpace.replaceRootObject(gameObject: IGameObject) {
   // All root objects must have an implicit dispatcher model,
   // otherwise DispatcherNode handlers will fail.
   gameObject.models[DispatcherModelCC::class] = StaticModelProvider(DispatcherModelCC())
+  gameObject.addComponent(DispatcherMutexComponent(WeakHashMap()))
 
   if(objects.has(id)) {
     objects.remove(rootObject)

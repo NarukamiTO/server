@@ -44,6 +44,7 @@ import jp.assasans.narukami.server.dispatcher.DispatcherLoadDependenciesManagedE
 import jp.assasans.narukami.server.dispatcher.DispatcherLoadObjectsManagedEvent
 import jp.assasans.narukami.server.dispatcher.DispatcherNode
 import jp.assasans.narukami.server.lobby.UserNode
+import jp.assasans.narukami.server.lobby.UsernameComponent
 import jp.assasans.narukami.server.lobby.communication.ChatModeratorLevel
 import jp.assasans.narukami.server.lobby.user.adaptSingle
 import jp.assasans.narukami.server.net.session.userNotNull
@@ -336,8 +337,9 @@ class BattlefieldSystem : AbstractSystem() {
       )
     ).schedule(battlefieldShared)
 
-    logger.info { "Loading tank parts" }
+    logger.info { "${event.channel.sessionNotNull.userNotNull.components[UsernameComponent::class]} Loading tank parts" }
     for(dispatcherRemote in dispatcherShared) {
+      logger.info { "Loading tank parts to ${dispatcherRemote.context.requireSpaceChannel.sessionNotNull.userNotNull.components[UsernameComponent::class]}" }
       DispatcherLoadObjectsManagedEvent(
         hullObject,
         weaponObject,
@@ -345,10 +347,10 @@ class BattlefieldSystem : AbstractSystem() {
         tankObject,
       ).schedule(dispatcherRemote).await()
     }
-    logger.info { "Loaded tank parts" }
+    logger.info { "${event.channel.sessionNotNull.userNotNull.components[UsernameComponent::class]} Loaded tank parts" }
 
     /* Backward loading - notes above apply */
-    // TODO: Race condition possible when joining at the same time - black screen or userConnect() unhelpful error
+    // TODO: Race condition possible when joining at the same time - StatisticsDmModel::onTankLoaded() unhelpful error
     for(tank in tanks - tankObject) {
       StatisticsDMModelUserConnectEvent(
         tank.gameObject.id,
@@ -401,9 +403,6 @@ class BattlefieldSystem : AbstractSystem() {
     //
     // Once this event is received, the client will send [TankSpawnerModelSetReadyToPlaceEvent] after
     // [BattlefieldModelCC.respawnDuration] milliseconds.
-    //
-    // We do this after forward and backward loading so all other tanks are loaded
-    // before current tank is spawned (leading to wrong position in edge cases).
     TankSpawnerModelPrepareToSpawnEvent(
       Vector3d(0f, 0f, 200f),
       Vector3d(0f, 0f, 0f),

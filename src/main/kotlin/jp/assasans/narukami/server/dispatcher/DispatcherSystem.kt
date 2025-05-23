@@ -18,15 +18,18 @@
 
 package jp.assasans.narukami.server.dispatcher
 
+import java.util.*
 import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.full.isSubclassOf
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.sync.Mutex
 import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.core.impl.TemplatedGameClass
 import jp.assasans.narukami.server.core.impl.TransientGameObject
 import jp.assasans.narukami.server.extensions.kotlinClass
 import jp.assasans.narukami.server.lobby.user.adaptSingle
+import jp.assasans.narukami.server.net.SpaceChannel
 import jp.assasans.narukami.server.net.command.ProtocolClass
 import jp.assasans.narukami.server.net.command.ProtocolModel
 import jp.assasans.narukami.server.net.sessionNotNull
@@ -48,11 +51,19 @@ class DispatcherNode(
   val dispatcher: DispatcherModelCC,
 ) : Node()
 
+class DispatcherWithMutexNode(
+  val dispatcher: DispatcherModelCC,
+  val dispatcherMutex: DispatcherMutexComponent,
+) : Node()
+
+data class DispatcherMutexComponent(val mutexes: WeakHashMap<SpaceChannel, Mutex>) : IComponent
+
 class DispatcherSystem : AbstractSystem() {
   private val logger = KotlinLogging.logger { }
 
   @OnEventFire
   @Mandatory
+  @OutOfOrderExecution
   suspend fun preloadResourcesWrapped(
     event: PreloadResourcesWrappedEvent<*>,
     any: Node,
@@ -76,12 +87,9 @@ class DispatcherSystem : AbstractSystem() {
 
   @OnEventFire
   @Mandatory
-  suspend fun loadDependenciesManaged(event: DispatcherLoadDependenciesManagedEvent, dispatcher: DispatcherNode) {
+  @OutOfOrderExecution
+  suspend fun loadDependenciesManaged(event: DispatcherLoadDependenciesManagedEvent, dispatcher: DispatcherWithMutexNode) {
     logger.info { "Load dependencies managed: $event" }
-
-    // TODO: Use a better ID source, it is used as temporary object ID,
-    //  so either it should be unique, or we need to have some object namespacing
-    event.callbackId = event.deferred.hashCode()
 
     val deferredDependenciesClass = TemplatedGameClass.fromTemplate(DeferredDependenciesTemplate::class)
     val deferredDependenciesObject = TransientGameObject.instantiate(
@@ -96,6 +104,13 @@ class DispatcherSystem : AbstractSystem() {
     )
     dispatcher.context.space.objects.add(deferredDependenciesObject)
 
+    // The client can only track one dependency load batch at a time
+    // (see [DispatcherModel::loadDependencies] and [DispatcherModel::onBatchLoadingComplete]).
+    // Otherwise, the older batch will never inform the server of its completion.
+    val mutex = dispatcher.dispatcherMutex.mutexes.getOrPut(dispatcher.context.requireSpaceChannel) { Mutex() }
+    if(mutex.isLocked) logger.info { "Dispatcher mutex is locked for ${dispatcher.context.requireSpaceChannel}, waiting for unlock..." }
+    mutex.lock()
+
     DispatcherModelLoadDependenciesEvent(
       dependencies = ObjectsDependencies.new(
         callbackId = event.callbackId,
@@ -105,15 +120,22 @@ class DispatcherSystem : AbstractSystem() {
         resources = event.resources.distinctBy { it.id }
       )
     ).schedule(dispatcher)
+
+    logger.info { "Dependencies ${event.callbackId} ${event.resources.map { it.id.id }} load request scheduled" }
   }
 
   @OnEventFire
   @Mandatory
-  suspend fun dependenciesLoaded(event: DispatcherModelDependenciesLoadedEvent, dispatcher: DispatcherNode) {
+  fun dependenciesLoaded(event: DispatcherModelDependenciesLoadedEvent, dispatcher: DispatcherWithMutexNode) {
     logger.info { "Dependencies loaded: ${event.callbackId}" }
 
     val deferredDependenciesObject = dispatcher.context.space.objects.get(event.callbackId.toLong())
                                      ?: error("Deferred dependencies object ${event.callbackId} not found")
+
+    val mutex = dispatcher.dispatcherMutex.mutexes[dispatcher.context.requireSpaceChannel]
+                ?: error("Mutex not found for ${dispatcher.context.requireSpaceChannel}")
+    mutex.unlock()
+
     val deferredDependencies = deferredDependenciesObject.adaptSingle<DeferredDependenciesCC>(dispatcher.context)
     deferredDependencies.deferred.complete(Unit)
     dispatcher.context.space.objects.remove(deferredDependenciesObject)
@@ -125,10 +147,6 @@ class DispatcherSystem : AbstractSystem() {
   @OutOfOrderExecution
   suspend fun loadObjectsManaged(event: DispatcherLoadObjectsManagedEvent, dispatcher: DispatcherNode) {
     logger.info { "Load objects managed: $event" }
-
-    // TODO: Use a better ID source, it is used as temporary object ID,
-    //  so either it should be unique, or we need to have some object namespacing
-    event.callbackId = event.deferred.hashCode()
 
     DispatcherLoadDependenciesManagedEvent(
       classes = event.objects.map { it.parent },

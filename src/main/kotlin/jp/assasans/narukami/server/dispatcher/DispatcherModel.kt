@@ -18,6 +18,7 @@
 
 package jp.assasans.narukami.server.dispatcher
 
+import java.util.concurrent.atomic.AtomicInteger
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.CompletableDeferred
 import jp.assasans.narukami.server.core.*
@@ -57,13 +58,23 @@ data class DispatcherLoadDependenciesManagedEvent(
   val classes: List<IGameClass>,
   val resources: List<Resource<*, *>>,
 ) : IEvent {
+  companion object {
+    private val lastId = AtomicInteger(1)
+
+    fun freeId(): Int {
+      return lastId.getAndIncrement()
+    }
+  }
+
   private val logger = KotlinLogging.logger { }
 
-  var callbackId: Int = 0
+  // TODO: Use a better ID source, it is used as temporary object ID,
+  //  so either it should be unique, or we need to have some object namespacing
+  val callbackId: Int = freeId()
   val deferred: CompletableDeferred<Unit> = CompletableDeferred()
 
   suspend fun await() {
-    logger.info { "Waiting for dependencies $callbackId to load..." }
+    logger.info { "Waiting for dependencies $callbackId ${resources.map { it.id.id }} to load..." }
     return deferred.await()
   }
 }
@@ -75,11 +86,10 @@ data class DispatcherLoadObjectsManagedEvent(
 
   constructor(vararg objects: IGameObject) : this(objects.toList())
 
-  var callbackId: Int = 0
   val deferred: CompletableDeferred<Unit> = CompletableDeferred()
 
   suspend fun await() {
-    logger.info { "Waiting for objects $callbackId to load..." }
+    logger.info { "Waiting for objects ${objects.map { it.id }} to load..." }
     return deferred.await()
   }
 }
