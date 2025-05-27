@@ -317,24 +317,35 @@ class BattlefieldSystem : AbstractSystem() {
     event.channel.space.objects.add(paintObject)
     event.channel.space.objects.add(tankObject)
 
-    /* Forward loading */
+    /* Forward loading: load current player to existing */
     // UserConnect must be sent before loading the tank object, otherwise an
     // unhelpful error #1009 in [ActionOutputLine::createUserLabel] occurs.
     // Tank object ID must match the user object ID, this is hardcoded in the client.
+    val usersInfoForward = tanks.map { tank ->
+      UserInfo(
+        chatModeratorLevel = ChatModeratorLevel.ADMINISTRATOR,
+        deaths = 0,
+        hasPremium = false,
+        kills = 0,
+        rank = 1,
+        score = 0,
+        uid = "Forward_ExistingPlayer_${tank.gameObject.id}",
+        user = tank.gameObject.id,
+      )
+    } + UserInfo(
+      chatModeratorLevel = ChatModeratorLevel.ADMINISTRATOR,
+      deaths = 0,
+      hasPremium = false,
+      kills = 0,
+      rank = 1,
+      score = 0,
+      uid = "Forward_Self_NewPlayer_${tankObject.id}",
+      user = tankObject.id,
+    )
+    logger.info { "Forward: $usersInfoForward" }
     StatisticsDMModelUserConnectEvent(
       tankObject.id,
-      listOf(
-        UserInfo(
-          chatModeratorLevel = ChatModeratorLevel.ADMINISTRATOR,
-          deaths = 0,
-          hasPremium = false,
-          kills = 0,
-          rank = 1,
-          score = 0,
-          uid = "NewPlayer_${tankObject.id}",
-          user = tankObject.id,
-        )
-      )
+      usersInfoForward
     ).schedule(battlefieldShared)
 
     logger.info { "${event.channel.sessionNotNull.userNotNull.components[UsernameComponent::class]} Loading tank parts" }
@@ -349,25 +360,8 @@ class BattlefieldSystem : AbstractSystem() {
     }
     logger.info { "${event.channel.sessionNotNull.userNotNull.components[UsernameComponent::class]} Loaded tank parts" }
 
-    /* Backward loading - notes above apply */
-    // TODO: Race condition possible when joining at the same time - StatisticsDmModel::onTankLoaded() unhelpful error
+    /* Backward loading: load existing players to current - notes above apply */
     for(tank in tanks - tankObject) {
-      StatisticsDMModelUserConnectEvent(
-        tank.gameObject.id,
-        listOf(
-          UserInfo(
-            chatModeratorLevel = ChatModeratorLevel.ADMINISTRATOR,
-            deaths = 0,
-            hasPremium = false,
-            kills = 0,
-            rank = 1,
-            score = 0,
-            uid = "ExistingPlayer_${tank.gameObject.id}",
-            user = tank.gameObject.id,
-          )
-        )
-      ).schedule(battlefield)
-
       DispatcherLoadObjectsManagedEvent(
         // TODO: Workaround, works for now
         requireNotNull(tank.context.space.objects.get(tank.tankConfiguration.hullId)) { "No hull" },
