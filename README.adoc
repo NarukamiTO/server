@@ -3,6 +3,9 @@
 This is not a full-fledged server, but a core with basic features to build upon.
 Target feature level is a tournament server.
 
+I discuss development of this server at link:https://discord.gg/RFXav6jRem[Vint Discord server],
+a Tanki X server reimplementation community.
+
 == Running
 
 You need to set the `RESOURCES_ROOT` environment variable to the `out` directory of the
@@ -10,6 +13,13 @@ link:https://github.com/NarukamiTO/resource-generator[resource generator].
 
 You may configure log levels using `KOTLIN_LOG` environment variable with syntax
 similar to `RUST_LOG`: `root_log_level,my.package=log_level`.
+
+Example:
+
+[source,shell]
+----
+RESOURCES_ROOT=$(realpath ../resource-generator/out) ./gradlew run
+----
 
 == Connecting
 
