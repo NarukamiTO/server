@@ -41,8 +41,9 @@ val KClass<out ITemplate>.models: Map<KProperty1<out ITemplate, *>, KClass<out I
 
     return members.flatMap { (property, member) ->
       when(member) {
-        is TemplateMember.Model    -> listOf(property to member.model)
-        is TemplateMember.Template -> member.template.models.toList()
+        is TemplateMember.Model     -> listOf(property to member.model)
+        is TemplateMember.Component -> listOf()
+        is TemplateMember.Template  -> member.template.models.toList()
       }
     }.toMap()
   }

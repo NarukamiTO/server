@@ -23,6 +23,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.datetime.Clock
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import jp.assasans.narukami.server.battlefield.UserGroupComponent
 import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.core.impl.Space
 import jp.assasans.narukami.server.core.impl.TemplatedGameClass
@@ -83,6 +84,7 @@ class LoginSystem : AbstractSystem(), KoinComponent {
         CrystalsComponent(Random.nextInt(100_000, 10_000_000).roundToNearest(100)),
       )
     )
+    userObject.addComponent(UserGroupComponent(userObject))
     entrance.context.requireSpaceChannel.sessionNotNull.user = userObject
 
     val channel = DispatcherOpenSpaceEvent(Space.stableId("lobby")).schedule(dispatcher).await()

@@ -20,12 +20,14 @@ package jp.assasans.narukami.server.battlefield.tank
 
 import jp.assasans.narukami.server.battlefield.BattleGearScoreModelCC
 import jp.assasans.narukami.server.battlefield.BossStateModelCC
+import jp.assasans.narukami.server.battlefield.UserGroupComponent
 import jp.assasans.narukami.server.core.IModelProvider
 import jp.assasans.narukami.server.core.ITemplate
 import jp.assasans.narukami.server.net.command.ProtocolClass
 
 @ProtocolClass(53)
 data class TankTemplate(
+  val userGroup: UserGroupComponent,
   val tankSpawner: TankSpawnerModelCC,
   val tankConfiguration: TankConfigurationModelCC,
   val tank: IModelProvider<TankModelCC>,

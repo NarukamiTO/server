@@ -18,8 +18,10 @@
 
 package jp.assasans.narukami.server.core
 
+import kotlin.reflect.KClass
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import jp.assasans.narukami.server.battlefield.IGroupComponent
 
 /**
  * Base class for all systems.
@@ -60,6 +62,10 @@ annotation class OutOfOrderExecution
 @Target(AnnotationTarget.VALUE_PARAMETER)
 @Retention(AnnotationRetention.RUNTIME)
 annotation class JoinAll
+
+@Target(AnnotationTarget.VALUE_PARAMETER)
+@Retention(AnnotationRetention.RUNTIME)
+annotation class JoinBy(val component: KClass<out IGroupComponent>)
 
 /**
  * Marks a node to be searched for in all existing space channels of the space.

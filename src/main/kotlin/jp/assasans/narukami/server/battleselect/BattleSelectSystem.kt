@@ -26,7 +26,6 @@ import org.koin.core.component.inject
 import jp.assasans.narukami.server.battlefield.*
 import jp.assasans.narukami.server.battleservice.StatisticsDMModel
 import jp.assasans.narukami.server.battleservice.StatisticsModelCC
-import jp.assasans.narukami.server.battleservice.UserInfo
 import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.core.impl.Space
 import jp.assasans.narukami.server.core.impl.TemplatedGameClass
@@ -35,7 +34,6 @@ import jp.assasans.narukami.server.dispatcher.DispatcherLoadObjectsManagedEvent
 import jp.assasans.narukami.server.dispatcher.DispatcherModelUnloadObjectsEvent
 import jp.assasans.narukami.server.dispatcher.DispatcherNode
 import jp.assasans.narukami.server.dispatcher.DispatcherOpenSpaceEvent
-import jp.assasans.narukami.server.lobby.communication.ChatModeratorLevel
 import jp.assasans.narukami.server.lobby.communication.ChatNode
 import jp.assasans.narukami.server.res.Eager
 import jp.assasans.narukami.server.res.RemoteGameResourceRepository
@@ -182,20 +180,11 @@ class BattleSelectSystem : AbstractSystem() {
             valuableRound = true
           ),
           statisticsDM = ClosureModelProvider {
-            val tanks = space.objects.all.filter { it.components.contains(TankLogicStateComponent::class) }
+            val battleUsers = space.objects.all
+              .filter { it.components.contains(BattleUserComponent::class) }
+              .map { it.makeNode<BattleUserNode>(this@ClosureModelProvider) }
             StatisticsDMModel(
-              usersInfo = tanks.map { tank ->
-                UserInfo(
-                  chatModeratorLevel = ChatModeratorLevel.ADMINISTRATOR,
-                  deaths = 0,
-                  hasPremium = false,
-                  kills = 0,
-                  rank = 1,
-                  score = 0,
-                  uid = "ExistingPlayer_${tank.id}",
-                  user = tank.id,
-                )
-              }
+              usersInfo = battleUsers.map { battleUser -> battleUser.asUserInfo(space.objects.all) }
             )
           },
           inventory = InventoryModelCC(ultimateEnabled = false),

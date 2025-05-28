@@ -41,6 +41,10 @@ class NarukamiSymbolProcessor(
     val templateType = resolver.getClassDeclarationByName(templateTypeName)
                        ?: throw IllegalStateException("Unable to find ${templateTypeName.asString()}")
 
+    val componentTypeName = resolver.getKSNameFromString("jp.assasans.narukami.server.core.IComponent")
+    val componentType = resolver.getClassDeclarationByName(componentTypeName)
+                        ?: throw IllegalStateException("Unable to find ${componentTypeName.asString()}")
+
     // Exit from the processor in case nothing is annotated
     if(!symbols.iterator().hasNext()) return emptyList()
 
@@ -67,7 +71,7 @@ class NarukamiSymbolProcessor(
       file += "\n"
       file += "val templateToMembers: Map<KClass<out ITemplate>, Map<KProperty1<out ITemplate, *>, TemplateMember>> = mapOf(\n"
 
-      symbols.forEach { it.accept(Visitor(file, templateType), Unit) }
+      symbols.forEach { it.accept(Visitor(file, templateType, componentType), Unit) }
 
       file += ")\n"
     }
@@ -79,6 +83,7 @@ class NarukamiSymbolProcessor(
   inner class Visitor(
     private val file: OutputStream,
     private val templateType: KSClassDeclaration,
+    private val componentType: KSClassDeclaration,
   ) : KSVisitorVoid() {
     override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: Unit) {
       if(classDeclaration.classKind != ClassKind.CLASS) {
@@ -112,6 +117,8 @@ class NarukamiSymbolProcessor(
         // Check for composite template
         if(templateType.asStarProjectedType().isAssignableFrom(type)) {
           file += "    ${clazz.qualifiedName?.asString()}::${valueParameter.name?.asString()} to TemplateMember.Template($typeName::class),\n"
+        } else if(componentType.asStarProjectedType().isAssignableFrom(type)) {
+          file += "    ${clazz.qualifiedName?.asString()}::${valueParameter.name?.asString()} to TemplateMember.Component($typeName::class),\n"
         } else {
           file += "    ${clazz.qualifiedName?.asString()}::${valueParameter.name?.asString()} to TemplateMember.Model($typeName::class),\n"
         }

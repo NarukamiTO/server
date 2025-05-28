@@ -66,7 +66,12 @@ class TransientGameObject(
         }
 
         gameObject.models[clazz] = provider
-        logger.trace { "Instantiated $provider from $template" }
+        logger.trace { "Instantiated model $provider from $template" }
+      }
+
+      collectComponents(template).forEach { (clazz, value) ->
+        gameObject.components[clazz] = value
+        logger.trace { "Instantiated component $value from $template" }
       }
 
       for(component in components) {
@@ -98,14 +103,48 @@ private fun collectModels(template: ITemplate): Map<KClass<out IModelConstructor
     property as KProperty1<ITemplate, *>
 
     when(member) {
-      is TemplateMember.Model    -> {
+      is TemplateMember.Model     -> {
         result[member.model] = property.get(template)
       }
 
-      is TemplateMember.Template -> {
+      is TemplateMember.Component -> {}
+
+      is TemplateMember.Template  -> {
         val nestedTemplate = property.get(template)
         if(nestedTemplate is ITemplate) {
           result.putAll(collectModels(nestedTemplate))
+        }
+      }
+    }
+  }
+
+  return result
+}
+
+private fun collectComponents(template: ITemplate): Map<KClass<out IComponent>, IComponent> {
+  val result = mutableMapOf<KClass<out IComponent>, IComponent>()
+
+  val templateClass = template::class
+  val members = requireNotNull(jp.assasans.narukami.server.derive.templateToMembers[templateClass]) {
+    "$templateClass is not registered"
+  }
+
+  for((property, member) in members) {
+    @Suppress("UNCHECKED_CAST")
+    property as KProperty1<ITemplate, *>
+
+    when(member) {
+      is TemplateMember.Model     -> {
+      }
+
+      is TemplateMember.Component -> {
+        result[member.component] = property.get(template) as IComponent
+      }
+
+      is TemplateMember.Template  -> {
+        val nestedTemplate = property.get(template)
+        if(nestedTemplate is ITemplate) {
+          result.putAll(collectComponents(nestedTemplate))
         }
       }
     }
