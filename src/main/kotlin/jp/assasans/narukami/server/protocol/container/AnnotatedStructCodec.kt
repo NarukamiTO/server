@@ -23,6 +23,7 @@ import kotlin.reflect.KParameter
 import kotlin.reflect.KProperty1
 import kotlin.reflect.KType
 import kotlin.reflect.full.memberProperties
+import kotlin.reflect.full.primaryConstructor
 import io.github.oshai.kotlinlogging.KotlinLogging
 import jp.assasans.narukami.server.extensions.hasInheritedAnnotation
 import jp.assasans.narukami.server.extensions.kotlinClass
@@ -42,7 +43,8 @@ class AnnotatedStructCodec<T>(private val type: KType) : Codec<T>() {
 
   init {
     logger.debug { "Initializing codec for struct $type, preserve order: $preserveOrder" }
-    this.constructor = type.kotlinClass.constructors.single()
+    this.constructor = type.kotlinClass.primaryConstructor
+                       ?: throw IllegalArgumentException("No primary constructor found for type $type")
 
     val parameters = constructor.parameters.toMutableList()
     if(!preserveOrder) {

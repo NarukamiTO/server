@@ -85,7 +85,6 @@ class Session(
 
     for(channel in spaces.all) {
       channel.close()
-      spaces.remove(channel)
     }
     controlChannel.socket.close()
 

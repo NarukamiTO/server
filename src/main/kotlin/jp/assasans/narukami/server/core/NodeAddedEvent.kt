@@ -21,4 +21,6 @@ package jp.assasans.narukami.server.core
 /**
  * Synthetic server event that is sent when an object matching any node is created.
  */
-class NodeAddedEvent : IEvent
+class NodeAddedEvent : IEvent {
+  override fun toString() = "NodeAddedEvent"
+}

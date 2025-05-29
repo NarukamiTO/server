@@ -43,7 +43,7 @@ open class Registry<T : Any>(
 
   override fun remove(value: T) {
     val id = idMapper(value)
-    items.remove(id)
+    items.remove(id) ?: throw IllegalArgumentException("$name with ID $id does not exist")
   }
 
   override fun get(id: Long): T? {

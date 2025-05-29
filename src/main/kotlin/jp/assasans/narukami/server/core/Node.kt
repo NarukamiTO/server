@@ -35,6 +35,26 @@ open class Node {
     this.context = context
     this.gameObject = gameObject
   }
+
+  // XXX: Incorrect implementation? It ignores data units in subclasses,
+  //  but it also checks javaClass, so this should be fine.
+  final override fun equals(other: Any?): Boolean {
+    if(this === other) return true
+    if(javaClass != other?.javaClass) return false
+
+    other as Node
+
+    if(context != other.context) return false
+    if(gameObject != other.gameObject) return false
+
+    return true
+  }
+
+  final override fun hashCode(): Int {
+    var result = context.hashCode()
+    result = 31 * result + gameObject.hashCode()
+    return result
+  }
 }
 
 data class SingleNode<T : IModelConstructor>(

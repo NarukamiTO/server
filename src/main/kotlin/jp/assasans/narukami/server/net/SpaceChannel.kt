@@ -138,6 +138,7 @@ class SpaceChannel(
   }
 
   override suspend fun close() {
+    session?.spaces?.remove(this)
     socket.close()
   }
 }

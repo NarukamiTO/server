@@ -168,7 +168,7 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler, KoinC
   }
 
   private suspend fun processServerEvent(event: IEvent, context: IModelContext, gameObject: IGameObject) {
-    logger.info { "Processing server event: $event" }
+    logger.info { "Processing server event: $event on $context" }
 
     var handled = false
     for(handler in handlers) {
@@ -215,7 +215,7 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler, KoinC
     }
 
     if(!handled) {
-      logger.warn { "Unhandled $event" }
+      logger.warn { "Unhandled $event on $context" }
     }
   }
 

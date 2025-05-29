@@ -47,7 +47,9 @@ data class DispatcherModelLoadObjectsDataEvent(
 @ProtocolEvent(9038756763225879447)
 data class DispatcherModelUnloadObjectsEvent(
   val objects: List<IGameObject>
-) : IClientEvent
+) : IClientEvent {
+  constructor(vararg objects: IGameObject) : this(objects.toList())
+}
 
 @ProtocolEvent(1816792453857564692)
 data class DispatcherModelDependenciesLoadedEvent(

@@ -36,12 +36,14 @@ import jp.assasans.narukami.server.battlefield.tank.weapon.smoky.SmokyTemplate
 import jp.assasans.narukami.server.battleselect.BattleTeam
 import jp.assasans.narukami.server.battleselect.PrivateMapDataEntity
 import jp.assasans.narukami.server.battleservice.StatisticsDMModelUserConnectEvent
+import jp.assasans.narukami.server.battleservice.StatisticsDMModelUserDisconnectEvent
 import jp.assasans.narukami.server.battleservice.UserInfo
 import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.core.impl.TemplatedGameClass
 import jp.assasans.narukami.server.core.impl.TransientGameObject
 import jp.assasans.narukami.server.dispatcher.DispatcherLoadDependenciesManagedEvent
 import jp.assasans.narukami.server.dispatcher.DispatcherLoadObjectsManagedEvent
+import jp.assasans.narukami.server.dispatcher.DispatcherModelUnloadObjectsEvent
 import jp.assasans.narukami.server.dispatcher.DispatcherNode
 import jp.assasans.narukami.server.lobby.UserNode
 import jp.assasans.narukami.server.lobby.UsernameComponent
@@ -50,6 +52,8 @@ import jp.assasans.narukami.server.net.command.ProtocolClass
 import jp.assasans.narukami.server.net.session.userNotNull
 import jp.assasans.narukami.server.net.sessionNotNull
 import jp.assasans.narukami.server.res.*
+
+class RemoveBattleUserEvent : IEvent
 
 data class TankNode(
   val tank: TankModelCC,
@@ -364,6 +368,8 @@ class BattlefieldSystem : AbstractSystem() {
     event.channel.space.objects.add(paintObject)
     event.channel.space.objects.add(tankObject)
 
+    delay(1)
+
     val tanks = event.channel.space.objects.all.findAllBy<TankNode, UserGroupComponent>(battleUsers)
 
     /* Forward loading: load current player to existing */
@@ -388,7 +394,7 @@ class BattlefieldSystem : AbstractSystem() {
         tankObject,
       ).schedule(dispatcherRemote).await()
     }
-    logger.debug { "${event.channel.sessionNotNull.userNotNull.components[UsernameComponent::class]} Loaded tank parts" }
+    logger.debug { "${event.channel.sessionNotNull.userNotNull.components[UsernameComponent::class]} Loaded tank parts, ${dispatcherShared.size} shared" }
 
     /* Backward loading: load existing players to current - notes above apply */
     for(tank in tanks - tankObject) {
@@ -467,5 +473,40 @@ class BattlefieldSystem : AbstractSystem() {
     for(battlefieldRemote in battlefieldShared) {
       TankModelActivateTankEvent().schedule(battlefieldRemote.context, tank.gameObject)
     }
+  }
+
+  @OnEventFire
+  @Mandatory
+  fun removeBattleUser(
+    event: RemoveBattleUserEvent,
+    battleUser: BattleUserNode,
+    @JoinAll battlefield: SingleNode<BattlefieldModelCC>,
+    @JoinAll dispatcher: DispatcherNode,
+    @JoinAll @JoinAllChannels dispatcherShared: List<DispatcherNode>,
+    @JoinAll @JoinAllChannels battlefieldShared: List<SingleNode<BattlefieldModelCC>>,
+  ) {
+    logger.info { "Removing battle user ${battleUser.userGroup.reference.adapt<UserNode>(battleUser.context).username.username}" }
+
+    val space = battleUser.context.space
+    val tank = space.objects.all.findBy<TankNode, UserGroupComponent>(battleUser)
+
+    StatisticsDMModelUserDisconnectEvent(tank.gameObject.id).schedule(battlefieldShared - battlefield)
+
+    val hullObject = requireNotNull(space.objects.get(tank.tankConfiguration.hullId)) { "No hull" }
+    val weaponObject = requireNotNull(space.objects.get(tank.tankConfiguration.weaponId)) { "No weapon" }
+    val paintObject = requireNotNull(space.objects.get(tank.tankConfiguration.coloringId)) { "No paint" }
+
+    space.objects.remove(battleUser.gameObject)
+    space.objects.remove(tank.gameObject)
+    space.objects.remove(hullObject)
+    space.objects.remove(weaponObject)
+    space.objects.remove(paintObject)
+
+    DispatcherModelUnloadObjectsEvent(
+      hullObject,
+      weaponObject,
+      paintObject,
+      tank.gameObject,
+    ).schedule(dispatcherShared - dispatcher)
   }
 }

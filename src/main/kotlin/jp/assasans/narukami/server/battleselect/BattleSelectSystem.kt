@@ -34,7 +34,10 @@ import jp.assasans.narukami.server.dispatcher.DispatcherLoadObjectsManagedEvent
 import jp.assasans.narukami.server.dispatcher.DispatcherModelUnloadObjectsEvent
 import jp.assasans.narukami.server.dispatcher.DispatcherNode
 import jp.assasans.narukami.server.dispatcher.DispatcherOpenSpaceEvent
+import jp.assasans.narukami.server.lobby.*
 import jp.assasans.narukami.server.lobby.communication.ChatNode
+import jp.assasans.narukami.server.net.session.userNotNull
+import jp.assasans.narukami.server.net.sessionNotNull
 import jp.assasans.narukami.server.res.Eager
 import jp.assasans.narukami.server.res.RemoteGameResourceRepository
 import jp.assasans.narukami.server.res.SoundRes
@@ -225,15 +228,56 @@ class BattleSelectSystem : AbstractSystem() {
   suspend fun fight(
     event: BattleEntranceModelFightEvent,
     battleInfo: BattleInfoNode,
+    @JoinAll lobby: LobbyNode,
     @JoinAll chat: ChatNode,
     @JoinAll battleSelect: SingleNode<BattleSelectModelCC>,
     @JoinAll dispatcher: DispatcherNode,
   ) {
+    // TODO: End layout switch immediately to not obstruct screen for debugging purposes,
+    //  and anyway that new loading screen sucks.
+    LobbyLayoutNotifyModelBeginLayoutSwitchEvent(LayoutState.BATTLE).schedule(lobby)
+    LobbyLayoutNotifyModelEndLayoutSwitchEvent(LayoutState.BATTLE, LayoutState.BATTLE).schedule(lobby)
+    LobbyLayoutNotifyModelCancelPredictedLayoutSwitchEvent().schedule(lobby)
+
     DispatcherModelUnloadObjectsEvent(
       objects = listOf(chat.gameObject, battleSelect.gameObject)
     ).schedule(dispatcher)
 
     DispatcherOpenSpaceEvent(battleInfo.gameObject.id).schedule(dispatcher).await()
+  }
+
+  @OnEventFire
+  @Mandatory
+  @OutOfOrderExecution
+  suspend fun exitFromBattleToLobby(
+    event: LobbyLayoutModelExitFromBattleToBattleLobbyEvent,
+    lobby: LobbyNode,
+    @JoinAll chat: ChatNode,
+    @JoinAll battleSelect: SingleNode<BattleSelectModelCC>,
+    @JoinAll dispatcher: DispatcherNode,
+  ) {
+    // TODO: End layout switch immediately to not obstruct screen for debugging purposes,
+    //  and anyway that new loading screen sucks.
+    LobbyLayoutNotifyModelBeginLayoutSwitchEvent(LayoutState.BATTLE_SELECT).schedule(lobby)
+    LobbyLayoutNotifyModelEndLayoutSwitchEvent(LayoutState.BATTLE_SELECT, LayoutState.BATTLE_SELECT).schedule(lobby)
+
+    // TODO: Workaround, works for now
+    val battleChannel = lobby.context.requireSpaceChannel.sessionNotNull.spaces.all.single { it.space.rootObject.models.contains(BattlefieldModelCC::class) }
+    battleChannel.close()
+
+    val user = battleChannel.sessionNotNull.userNotNull.adapt<UserNode>(battleChannel)
+    val battleUser = battleChannel.space.objects.all.findBy<BattleUserNode, UserGroupComponent>(user)
+    RemoveBattleUserEvent().schedule(battleUser)
+
+    // Mirrors loading logic
+    DispatcherLoadObjectsManagedEvent(
+      chat.gameObject,
+      battleSelect.gameObject,
+    ).schedule(dispatcher).await()
+
+    // TODO: NodeAddedEvent is not yet automatically scheduled
+    NodeAddedEvent().schedule(chat)
+    NodeAddedEvent().schedule(battleSelect)
   }
 }
 
