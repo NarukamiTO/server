@@ -468,23 +468,4 @@ class BattlefieldSystem : AbstractSystem() {
       TankModelActivateTankEvent().schedule(battlefieldRemote.context, tank.gameObject)
     }
   }
-
-  @OnEventFire
-  @Mandatory
-  fun move(
-    event: TankModelMoveCommandEvent,
-    tank: TankNode,
-    @JoinAllChannels @OnlyLoadedObjects tankShared: List<TankNode>,
-  ) {
-    logger.trace { "Move tank $event" }
-
-    // Broadcast to all tanks, except the sender
-    TankModelMoveEvent(moveCommand = event.moveCommand).schedule(tankShared - tank)
-  }
-
-  @OnEventFire
-  @Mandatory
-  fun handleCollisionWithOtherTank(event: TankModelHandleCollisionWithOtherTankEvent, tank: TankNode) {
-    // TODO: Prevent tank from spawning for around 500 ms while client sends this event
-  }
 }
