@@ -56,7 +56,7 @@ class NodeBuilder {
     }
 
     if(!clazz.isSubclassOf(IModelConstructor::class) && !clazz.isSubclassOf(IComponent::class)) {
-      throw IllegalArgumentException("Parameter $parameter is neither IModelConstructor nor IComponent")
+      throw IllegalArgumentException("Parameter ${parameter.name}: ${parameter.type} is neither IModelConstructor nor IComponent")
     }
 
     @Suppress("UNCHECKED_CAST")

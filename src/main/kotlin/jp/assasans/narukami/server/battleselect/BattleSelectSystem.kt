@@ -210,10 +210,10 @@ class BattleSelectSystem : AbstractSystem() {
     DispatcherLoadObjectsManagedEvent(
       mapInfo.gameObjects + listOf(battleCreate.gameObject)
     ).schedule(dispatcher).await()
-    logger.info { "Loaded map objects" }
+    logger.debug { "Loaded map objects" }
 
     DispatcherLoadObjectsManagedEvent(battleInfo.gameObjects).schedule(dispatcher).await()
-    logger.info { "Loaded battle objects" }
+    logger.debug { "Loaded battle objects" }
 
     // Update battle list on the client
     BattleSelectModelBattleItemsPacketJoinSuccessEvent().schedule(battleSelect)

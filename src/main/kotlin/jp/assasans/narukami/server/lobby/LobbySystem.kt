@@ -58,9 +58,6 @@ class LobbySystem : AbstractSystem() {
     @JoinAll rankLoader: SingleNode<RankLoaderModelCC>,
     @JoinAll battleSelect: SingleNode<BattleSelectModelCC>,
   ) {
-    logger.info { "Channel added: $event" }
-    logger.info { lobby.gameObject.adapt(lobby.context) }
-
     // User object is created in [LoginSystem#login]
     val userObject = dispatcher.context.requireSpaceChannel.sessionNotNull.userNotNull
 

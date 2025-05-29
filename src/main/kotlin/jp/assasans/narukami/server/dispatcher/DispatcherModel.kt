@@ -74,7 +74,7 @@ data class DispatcherLoadDependenciesManagedEvent(
   val deferred: CompletableDeferred<Unit> = CompletableDeferred()
 
   suspend fun await() {
-    logger.info { "Waiting for dependencies $callbackId ${resources.map { it.id.id }} to load..." }
+    logger.debug { "Waiting for dependencies $callbackId ${resources.map { it.id.id }} to load..." }
     return deferred.await()
   }
 }
@@ -89,7 +89,7 @@ data class DispatcherLoadObjectsManagedEvent(
   val deferred: CompletableDeferred<Unit> = CompletableDeferred()
 
   suspend fun await() {
-    logger.info { "Waiting for objects ${objects.map { it.id }} to load..." }
+    logger.debug { "Waiting for objects ${objects.map { it.id }} to load..." }
     return deferred.await()
   }
 }
@@ -102,7 +102,7 @@ data class DispatcherOpenSpaceEvent(
   val deferred: CompletableDeferred<SpaceChannel> = CompletableDeferred()
 
   suspend fun await(): SpaceChannel {
-    logger.info { "Waiting for space channel $id to open..." }
+    logger.debug { "Waiting for space channel $id to open..." }
     return deferred.await()
   }
 }

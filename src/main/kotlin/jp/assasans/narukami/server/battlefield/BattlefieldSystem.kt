@@ -372,15 +372,15 @@ class BattlefieldSystem : AbstractSystem() {
     // Tank object ID must match the user object ID, this is hardcoded in the client.
     val battleUser = battleUserObject.adapt<BattleUserNode>(event.channel)
     val usersInfoForward = battleUsers.map { it.asUserInfo(event.channel.space.objects.all) } + battleUser.asUserInfo(event.channel.space.objects.all)
-    logger.info { "Forward: $usersInfoForward" }
+    logger.debug { "Forward: $usersInfoForward" }
     StatisticsDMModelUserConnectEvent(
       tankObject.id,
       usersInfoForward
     ).schedule(battlefieldShared)
 
-    logger.info { "${event.channel.sessionNotNull.userNotNull.components[UsernameComponent::class]} Loading tank parts" }
+    logger.debug { "${event.channel.sessionNotNull.userNotNull.components[UsernameComponent::class]} Loading tank parts" }
     for(dispatcherRemote in dispatcherShared) {
-      logger.info { "Loading tank parts to ${dispatcherRemote.context.requireSpaceChannel.sessionNotNull.userNotNull.components[UsernameComponent::class]}" }
+      logger.debug { "Loading tank parts to ${dispatcherRemote.context.requireSpaceChannel.sessionNotNull.userNotNull.components[UsernameComponent::class]}" }
       DispatcherLoadObjectsManagedEvent(
         hullObject,
         weaponObject,
@@ -388,7 +388,7 @@ class BattlefieldSystem : AbstractSystem() {
         tankObject,
       ).schedule(dispatcherRemote).await()
     }
-    logger.info { "${event.channel.sessionNotNull.userNotNull.components[UsernameComponent::class]} Loaded tank parts" }
+    logger.debug { "${event.channel.sessionNotNull.userNotNull.components[UsernameComponent::class]} Loaded tank parts" }
 
     /* Backward loading: load existing players to current - notes above apply */
     for(tank in tanks - tankObject) {
@@ -420,7 +420,7 @@ class BattlefieldSystem : AbstractSystem() {
     event: TankSpawnerModelReadyToSpawnEvent,
     tank: TankNode,
   ) {
-    logger.info { "Process ready-to-spawn" }
+    logger.debug { "Process ready-to-spawn" }
 
     // Sending this starts the game rendering on the client. The client calls
     // [SpawnCameraConfigurator#setupCamera], which sets up the camera.
@@ -441,7 +441,7 @@ class BattlefieldSystem : AbstractSystem() {
     tank: TankNode,
     @JoinAll @JoinAllChannels battlefieldShared: List<SingleNode<BattlefieldModelCC>>,
   ) {
-    logger.info { "Process ready-to-place, ${battlefieldShared.size} shared" }
+    logger.debug { "Process ready-to-place, ${battlefieldShared.size} shared" }
 
     // TODO: Workaround (class cast), works for now
     val logicStateComponent = (tank.gameObject.components[TankLogicStateComponent::class] as TankLogicStateComponent)
@@ -476,7 +476,7 @@ class BattlefieldSystem : AbstractSystem() {
     tank: TankNode,
     @JoinAllChannels @OnlyLoadedObjects tankShared: List<TankNode>,
   ) {
-    logger.info { "Move tank $event" }
+    logger.trace { "Move tank $event" }
 
     // Broadcast to all tanks, except the sender
     TankModelMoveEvent(moveCommand = event.moveCommand).schedule(tankShared - tank)

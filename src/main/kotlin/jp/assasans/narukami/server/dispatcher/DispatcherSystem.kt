@@ -120,13 +120,13 @@ class DispatcherSystem : AbstractSystem() {
       )
     ).schedule(dispatcher)
 
-    logger.info { "Dependencies ${event.callbackId} ${event.resources.map { it.id.id }} load request scheduled" }
+    logger.debug { "Dependencies ${event.callbackId} ${event.resources.map { it.id.id }} load request scheduled" }
   }
 
   @OnEventFire
   @Mandatory
   fun dependenciesLoaded(event: DispatcherModelDependenciesLoadedEvent, dispatcher: DispatcherWithMutexNode) {
-    logger.info { "Dependencies loaded: ${event.callbackId}" }
+    logger.debug { "Dependencies loaded: ${event.callbackId}" }
 
     val deferredDependenciesObject = dispatcher.context.space.objects.get(event.callbackId.toLong())
                                      ?: error("Deferred dependencies object ${event.callbackId} not found")
@@ -138,7 +138,7 @@ class DispatcherSystem : AbstractSystem() {
     val deferredDependencies = deferredDependenciesObject.adaptSingle<DeferredDependenciesCC>(dispatcher.context)
     deferredDependencies.deferred.complete(Unit)
     dispatcher.context.space.objects.remove(deferredDependenciesObject)
-    logger.info { "Deferred dependencies $deferredDependencies resolved" }
+    logger.debug { "Deferred dependencies $deferredDependencies resolved" }
   }
 
   @OnEventFire
@@ -165,7 +165,7 @@ class DispatcherSystem : AbstractSystem() {
       context.channel.loadedObjects.addAll(event.objects.map { it.id })
     }
 
-    logger.info { "Objects loaded: $event" }
+    logger.debug { "Objects loaded: $event" }
     event.deferred.complete(Unit)
   }
 
@@ -180,7 +180,7 @@ class DispatcherSystem : AbstractSystem() {
     val channel = session.controlChannel.openSpace(event.id).await()
     event.deferred.complete(channel)
 
-    logger.info { "Space channel opened: $channel" }
+    logger.debug { "Space channel opened: $channel" }
   }
 }
 
