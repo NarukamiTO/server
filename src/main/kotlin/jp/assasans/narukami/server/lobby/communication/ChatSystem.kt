@@ -23,6 +23,7 @@ import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.dispatcher.DispatcherNode
 import jp.assasans.narukami.server.lobby.SessionLogoutEvent
 import jp.assasans.narukami.server.lobby.UserNode
+import jp.assasans.narukami.server.net.sessionNotNull
 
 data class ChatNode(
   val chat: ChatModelCC,
@@ -33,6 +34,7 @@ class ChatSystem : AbstractSystem() {
 
   @OnEventFire
   fun chatAdded(event: NodeAddedEvent, chat: ChatNode) {
+    val identity = chat.context.requireSpaceChannel.sessionNotNull.properties["identity"]?.split(",") ?: emptyList()
     ChatModelShowMessagesEvent(
       messages = listOf(
         ChatMessage(
@@ -43,7 +45,16 @@ class ChatSystem : AbstractSystem() {
           messageType = MessageType.SYSTEM,
           sourceUser = null,
           targetUser = null,
-          text = "стена текста в стиле тх",
+          text = buildString {
+            if(identity.isNotEmpty()) append("Client identity: ${identity.joinToString(", ")}\n")
+            if(!identity.contains("baseline")) {
+              append("<font color='#ee4e3e'><b>")
+              appendLine("WARNING!")
+              appendLine("You do not use <u>baseline</u> branch.")
+              append("GAME WILL HAVE BUGS AND MAY BE UNPLAYABLE!")
+              append("</b></font>")
+            }
+          },
           timePassedInSec = 0
         )
       )
