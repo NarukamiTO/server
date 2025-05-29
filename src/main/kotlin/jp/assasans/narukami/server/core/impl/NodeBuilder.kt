@@ -27,9 +27,7 @@ import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.full.primaryConstructor
 import io.github.classgraph.ClassGraph
 import io.github.oshai.kotlinlogging.KotlinLogging
-import jp.assasans.narukami.server.core.IComponent
-import jp.assasans.narukami.server.core.IModelConstructor
-import jp.assasans.narukami.server.core.Node
+import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.core.internal.IDataUnit
 import jp.assasans.narukami.server.extensions.kotlinClass
 
@@ -113,38 +111,35 @@ class NodeBuilder {
     return nodeDefinitions
   }
 
-  @Deprecated("Use tryBuildLazy instead", ReplaceWith("tryBuildLazy"))
-  fun tryBuild(nodeDefinition: NodeDefinition, components: Set<IModelConstructor>): Node? {
-    val constructor = nodeDefinition.type.kotlinClass.primaryConstructor ?: return null
-    val parameters = constructor.parameters
+  /**
+   * @return `null` if node was not built
+   */
+  fun tryBuildLazy(nodeDefinition: NodeDefinition, gameObject: IGameObject, context: IModelContext): Node? {
+    val node = tryBuildUninitializedLazy(
+      nodeDefinition,
+      gameObject.models.mapValues { (_, model) ->
+        { model.provide(gameObject, context) }
+      },
+      gameObject.components
+    )
+    node?.init(context, gameObject)
 
-    val args = mutableMapOf<KParameter, IModelConstructor>()
-    for(parameter in parameters) {
-      val type = normalizeParameterType(parameter, nodeDefinition.type)
-      val component = components.firstOrNull { it::class == type }
-      if(component == null) {
-        logger.trace { "Component $type (for ${parameter.name}) not found in $components" }
-        return null
-      }
-
-      args[parameter] = component
-    }
-
-    return constructor.callBy(args) as Node
+    return node
   }
 
-  fun tryBuildLazy(
+  private fun tryBuildUninitializedLazy(
     nodeDefinition: NodeDefinition,
     models: Map<KClass<out IModelConstructor>, () -> IModelConstructor>,
     components: Map<KClass<out IComponent>, IComponent>
   ): Node? {
+    logger.trace { "Trying to build node $nodeDefinition" }
     val constructor = nodeDefinition.type.kotlinClass.primaryConstructor ?: return null
     val parameters = constructor.parameters
 
     val args = mutableMapOf<KParameter, IDataUnit>()
     for(parameter in parameters) {
       val type = normalizeParameterType(parameter, nodeDefinition.type)
-      val value = if(type.isSubclassOf(IModelConstructor::class)) {
+      if(type.isSubclassOf(IModelConstructor::class)) {
         val provider = models[type]
         if(provider == null) {
           logger.trace { "Model $type not found" }

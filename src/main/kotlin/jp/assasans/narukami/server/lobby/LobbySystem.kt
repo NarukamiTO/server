@@ -27,7 +27,6 @@ import jp.assasans.narukami.server.dispatcher.DispatcherNode
 import jp.assasans.narukami.server.dispatcher.DispatcherOpenSpaceEvent
 import jp.assasans.narukami.server.lobby.communication.ChatNode
 import jp.assasans.narukami.server.lobby.user.RankLoaderModelCC
-import jp.assasans.narukami.server.lobby.user.adapt
 import jp.assasans.narukami.server.net.session.userNotNull
 import jp.assasans.narukami.server.net.sessionNotNull
 

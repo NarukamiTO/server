@@ -182,7 +182,7 @@ class BattleSelectSystem : AbstractSystem() {
           statisticsDM = ClosureModelProvider {
             val battleUsers = space.objects.all
               .filter { it.components.contains(BattleUserComponent::class) }
-              .map { it.makeNode<BattleUserNode>(this@ClosureModelProvider) }
+              .map { it.adapt<BattleUserNode>() }
             StatisticsDMModel(
               usersInfo = battleUsers.map { battleUser -> battleUser.asUserInfo(space.objects.all) }
             )

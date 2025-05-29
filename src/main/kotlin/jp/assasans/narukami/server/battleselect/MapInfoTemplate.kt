@@ -20,7 +20,6 @@ package jp.assasans.narukami.server.battleselect
 
 import org.koin.core.component.KoinComponent
 import jp.assasans.narukami.server.core.*
-import jp.assasans.narukami.server.lobby.user.adaptSingle
 import jp.assasans.narukami.server.net.command.ProtocolClass
 import jp.assasans.narukami.server.res.ImageRes
 import jp.assasans.narukami.server.res.Lazy

@@ -18,11 +18,7 @@
 
 package jp.assasans.narukami.server.battlefield
 
-import jp.assasans.narukami.server.core.ClosureModelProvider
-import jp.assasans.narukami.server.core.IModelProvider
-import jp.assasans.narukami.server.core.ITemplate
-import jp.assasans.narukami.server.core.ITemplateProvider
-import jp.assasans.narukami.server.lobby.user.adaptSingle
+import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.net.command.ProtocolClass
 
 @ProtocolClass(4200)

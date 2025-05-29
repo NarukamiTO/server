@@ -22,6 +22,6 @@ import jp.assasans.narukami.server.core.IComponent
 import jp.assasans.narukami.server.core.IModelConstructor
 
 /**
- * Shared root for [IModelConstructor] and [IComponent], not used directly.
+ * Shared root for [IModelConstructor] and [IComponent].
  */
 interface IDataUnit

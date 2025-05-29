@@ -220,28 +220,6 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler, KoinC
   }
 
   /**
-   * @return `null` if node was not built
-   */
-  private fun tryProvideNode(
-    context: IModelContext,
-    nodeDefinition: NodeDefinition,
-    gameObject: IGameObject
-  ): Node? {
-    logger.trace { "Trying to build node $nodeDefinition" }
-    val node = nodeBuilder.tryBuildLazy(
-      nodeDefinition,
-      gameObject.models.mapValues { (_, model) ->
-        { model.provide(gameObject, context) }
-      },
-      gameObject.components
-    )
-    if(node == null) return null
-
-    node.init(context, gameObject)
-    return node
-  }
-
-  /**
    * @return `true` if all nodes were built successfully
    */
   private fun buildNodes(
@@ -273,7 +251,7 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler, KoinC
       val nodes = mutableListOf<Node>()
       for(context in contexts) {
         for(gameObject in objects) {
-          val node = tryProvideNode(context, nodeDefinition, gameObject)
+          val node = nodeBuilder.tryBuildLazy(nodeDefinition, gameObject, context)
           if(nodeParameter.onlyLoadedObjects) {
             if(context is SpaceChannelModelContext && !context.channel.loadedObjects.contains(gameObject.id)) {
               logger.debug { "$gameObject is not loaded in ${context.channel}" }

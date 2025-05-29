@@ -18,6 +18,13 @@
 
 package jp.assasans.narukami.server.core
 
+/**
+ * Node is a type-safe view of a [IGameObject] for a certain [IModelContext].
+ *
+ * Nodes can be created manually using the [IGameObject.adapt] function.
+ *
+ * Nodes may define extension members to eliminate repeated code.
+ */
 open class Node {
   lateinit var context: IModelContext
     private set

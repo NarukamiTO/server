@@ -20,8 +20,6 @@ package jp.assasans.narukami.server.battlefield
 
 import java.nio.file.Paths
 import kotlin.io.path.readText
-import kotlin.reflect.KClass
-import kotlin.reflect.full.createType
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -40,7 +38,6 @@ import jp.assasans.narukami.server.battleselect.PrivateMapDataEntity
 import jp.assasans.narukami.server.battleservice.StatisticsDMModelUserConnectEvent
 import jp.assasans.narukami.server.battleservice.UserInfo
 import jp.assasans.narukami.server.core.*
-import jp.assasans.narukami.server.core.impl.NodeBuilder
 import jp.assasans.narukami.server.core.impl.TemplatedGameClass
 import jp.assasans.narukami.server.core.impl.TransientGameObject
 import jp.assasans.narukami.server.dispatcher.DispatcherLoadDependenciesManagedEvent
@@ -49,7 +46,6 @@ import jp.assasans.narukami.server.dispatcher.DispatcherNode
 import jp.assasans.narukami.server.lobby.UserNode
 import jp.assasans.narukami.server.lobby.UsernameComponent
 import jp.assasans.narukami.server.lobby.communication.ChatModeratorLevel
-import jp.assasans.narukami.server.lobby.user.adaptSingle
 import jp.assasans.narukami.server.net.command.ProtocolClass
 import jp.assasans.narukami.server.net.session.userNotNull
 import jp.assasans.narukami.server.net.sessionNotNull
@@ -204,7 +200,6 @@ interface IGroupComponent : IComponent {
 }
 
 class BattleUserComponent : IComponent
-data class BattleUserGroupComponent(override val reference: IGameObject) : IGroupComponent
 data class UserGroupComponent(override val reference: IGameObject) : IGroupComponent
 
 @ProtocolClass(6464)
@@ -217,6 +212,21 @@ data class BattleUserNode(
   val battleUser: BattleUserComponent,
   val userGroup: UserGroupComponent,
 ) : Node()
+
+fun BattleUserNode.asUserInfo(objects: Iterable<IGameObject>): UserInfo {
+  val user = userGroup.reference.adapt<UserNode>(context)
+  val tank = objects.findBy<TankNode, UserGroupComponent>(this)
+  return UserInfo(
+    chatModeratorLevel = ChatModeratorLevel.ADMINISTRATOR,
+    deaths = 0,
+    hasPremium = false,
+    kills = 0,
+    rank = 1,
+    score = 0,
+    uid = user.username.username,
+    user = tank.gameObject.id,
+  )
+}
 
 private fun createTank(user: UserNode, configuration: TankConfigurationModelCC) = TransientGameObject.instantiate(
   id = user.gameObject.id,
@@ -294,67 +304,6 @@ private fun createBattleUser(user: UserNode) = TransientGameObject.instantiate(
   )
 )
 
-fun <O : Node> Node.remap(objects: Iterable<IGameObject>, group: KClass<out IGroupComponent>, output: KClass<out O>): O {
-  val nodeBuilder = NodeBuilder()
-  val nodeDefinition = nodeBuilder.getNodeDefinition(output.createType())
-  val sourceGroup = gameObject.components[group] ?: throw IllegalArgumentException("No group component $group in $this")
-  for(gameObject in objects) {
-    val targetGroup = gameObject.components[group]
-    if(sourceGroup != targetGroup) {
-      continue
-    }
-
-    val node = nodeBuilder.tryBuildLazy(
-      nodeDefinition,
-      gameObject.models.mapValues { (_, model) ->
-        { model.provide(gameObject, context) }
-      },
-      gameObject.components
-    )
-    if(node != null) {
-      node.init(context, gameObject)
-      return node as O
-    }
-  }
-
-  throw IllegalArgumentException("Failed to remap $this to ${output.qualifiedName} by $sourceGroup ($group)")
-}
-
-inline fun <reified O : Node, reified G : IGroupComponent> Node.remap(objects: Iterable<IGameObject>): O {
-  return remap(objects, G::class, O::class)
-}
-
-inline fun <reified O : Node, reified G : IGroupComponent> Iterable<Node>.remap(objects: Iterable<IGameObject>): List<O> {
-  return map { it.remap<O, G>(objects) }
-}
-
-fun BattleUserNode.asUserInfo(objects: Iterable<IGameObject>): UserInfo {
-  val user = userGroup.reference.makeNode<UserNode>(context)
-  val tank = remap<TankNode, UserGroupComponent>(objects.filter { it.components.contains(TankLogicStateComponent::class) })
-  return UserInfo(
-    chatModeratorLevel = ChatModeratorLevel.ADMINISTRATOR,
-    deaths = 0,
-    hasPremium = false,
-    kills = 0,
-    rank = 1,
-    score = 0,
-    uid = user.username.username,
-    user = tank.gameObject.id,
-  )
-}
-
-inline fun <reified T : Node> IGameObject.makeNode(context: IModelContext): T {
-  val nodeBuilder = NodeBuilder()
-  val nodeDefinition = nodeBuilder.getNodeDefinition(T::class.createType())
-  val node = nodeBuilder.tryBuildLazy(
-    nodeDefinition,
-    models.mapValues { (_, model) -> { model.provide(this, context) } },
-    components
-  ) ?: throw IllegalArgumentException("Failed to build node for $this")
-  node.init(context, this)
-  return node as T
-}
-
 class BattlefieldSystem : AbstractSystem() {
   private val logger = KotlinLogging.logger { }
 
@@ -415,13 +364,13 @@ class BattlefieldSystem : AbstractSystem() {
     event.channel.space.objects.add(paintObject)
     event.channel.space.objects.add(tankObject)
 
-    val tanks = battleUsers.remap<TankNode, UserGroupComponent>(event.channel.space.objects.all.filter { it.components.contains(TankLogicStateComponent::class) })
+    val tanks = event.channel.space.objects.all.findAllBy<TankNode, UserGroupComponent>(battleUsers)
 
     /* Forward loading: load current player to existing */
     // UserConnect must be sent before loading the tank object, otherwise an
     // unhelpful error #1009 in [ActionOutputLine::createUserLabel] occurs.
     // Tank object ID must match the user object ID, this is hardcoded in the client.
-    val battleUser = battleUserObject.makeNode<BattleUserNode>(dispatcher.context)
+    val battleUser = battleUserObject.adapt<BattleUserNode>(event.channel)
     val usersInfoForward = battleUsers.map { it.asUserInfo(event.channel.space.objects.all) } + battleUser.asUserInfo(event.channel.space.objects.all)
     logger.info { "Forward: $usersInfoForward" }
     StatisticsDMModelUserConnectEvent(

@@ -28,7 +28,6 @@ import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.core.impl.TemplatedGameClass
 import jp.assasans.narukami.server.core.impl.TransientGameObject
 import jp.assasans.narukami.server.extensions.kotlinClass
-import jp.assasans.narukami.server.lobby.user.adaptSingle
 import jp.assasans.narukami.server.net.SpaceChannel
 import jp.assasans.narukami.server.net.command.ProtocolClass
 import jp.assasans.narukami.server.net.command.ProtocolModel
