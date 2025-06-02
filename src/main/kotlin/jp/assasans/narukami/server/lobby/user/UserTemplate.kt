@@ -65,7 +65,7 @@ data class UserTemplate(
           UserNotifierModelCC(currentUserId = it.id)
         },
         uidNotifier = ClosureModelProvider {
-          UidNotifierModelCC(uid = it.adaptSingle<UsernameComponent>().username, userId = it.id)
+          UidNotifierModelCC(uid = it.getComponent<UsernameComponent>().username, userId = it.id)
         },
         rankNotifier = ClosureModelProvider {
           RankNotifierModelCC(rank = 1, userId = it.id)

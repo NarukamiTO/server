@@ -34,12 +34,12 @@ import jp.assasans.narukami.server.core.impl.NodeBuilder
 fun <T : Node> Iterable<IGameObject>.findBy(source: Node, group: KClass<out IGroupComponent>, output: KClass<out T>): T {
   val nodeBuilder = NodeBuilder()
   val nodeDefinition = nodeBuilder.getNodeDefinition(output.createType())
-  val sourceGroup = source.gameObject.components[group] ?: throw IllegalArgumentException("No group component $group in $this")
+  val sourceGroup = source.gameObject.getComponent(group)
 
   var single: T? = null
   var found = false
   for(gameObject in this) {
-    val targetGroup = gameObject.components[group]
+    val targetGroup = gameObject.getComponentOrNull(group)
     if(sourceGroup != targetGroup) continue
 
     val node = nodeBuilder.tryBuildLazy(nodeDefinition, gameObject, source.context)

@@ -46,8 +46,8 @@ data class MapInfoTemplate(
     val Provider = ITemplateProvider {
       MapInfoTemplate(
         mapInfo = ClosureModelProvider {
-          val mapInfo = it.adaptSingle<MapInfoComponent>()
-          val mapLimits = it.adaptSingle<MapLimitsComponent>()
+          val mapInfo = it.getComponent<MapInfoComponent>()
+          val mapLimits = it.getComponent<MapLimitsComponent>()
 
           MapInfoModelCC(
             defaultTheme = mapInfo.defaultTheme,

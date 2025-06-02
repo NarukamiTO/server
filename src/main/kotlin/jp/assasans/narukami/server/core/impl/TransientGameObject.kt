@@ -82,8 +82,30 @@ class TransientGameObject(
     }
   }
 
-  override val components: MutableMap<KClass<out IComponent>, IComponent> = mutableMapOf()
+  val components: MutableMap<KClass<out IComponent>, IComponent> = mutableMapOf()
   override val models: MutableMap<KClass<out IModelConstructor>, IModelProvider<*>> = mutableMapOf()
+
+  override val allComponents: Map<KClass<out IComponent>, IComponent>
+    get() = components
+
+  override fun addComponent(component: IComponent) {
+    check(components[component::class] == null) { "Component ${component::class} already exists in $this" }
+    components[component::class] = component
+  }
+
+  override fun hasComponent(type: KClass<out IComponent>): Boolean {
+    return components.containsKey(type)
+  }
+
+  override fun <T : IComponent> getComponent(type: KClass<T>): T {
+    @Suppress("UNCHECKED_CAST")
+    return components[type] as T? ?: throw NoSuchElementException("Component $type not found in $this")
+  }
+
+  override fun <T : IComponent> getComponentOrNull(type: KClass<T>): T? {
+    @Suppress("UNCHECKED_CAST")
+    return components[type] as T?
+  }
 
   override fun toString(): String {
     return "TransientGameObject(id=$id, parent=$parent, models=$models)"

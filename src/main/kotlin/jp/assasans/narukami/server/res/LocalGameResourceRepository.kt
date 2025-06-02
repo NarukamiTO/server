@@ -88,9 +88,8 @@ class LocalGameResourceRepository(
       val document = KdlParser.v2().parse(content)
       logger.trace { "KDL document: $document" }
 
-      val codec = reader.getTypedCodec<IGameObject>()
-      // TODO: Workaround, works for now
-      (codec as KdlGameObjectCodec).name = rawName
+      val codec = reader.getTypedCodec<IGameObject>() as KdlGameObjectCodec
+      codec.name = rawName
       val gameObject = codec.decode(reader, document.asNode())
 
       val spaceName = namespaces["space"] ?: throw IllegalArgumentException("No space assigned for $file")

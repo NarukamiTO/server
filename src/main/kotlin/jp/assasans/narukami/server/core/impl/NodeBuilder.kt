@@ -120,7 +120,7 @@ class NodeBuilder {
       gameObject.models.mapValues { (_, model) ->
         { model.provide(gameObject, context) }
       },
-      gameObject.components
+      gameObject.allComponents
     )
     node?.init(context, gameObject)
 

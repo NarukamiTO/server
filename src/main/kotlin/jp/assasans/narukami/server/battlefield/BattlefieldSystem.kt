@@ -18,7 +18,6 @@
 
 package jp.assasans.narukami.server.battlefield
 
-import java.nio.file.Paths
 import kotlin.io.path.readText
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
@@ -253,7 +252,7 @@ private fun createTank(user: UserNode, configuration: TankConfigurationModelCC) 
       TankModelCC(
         health = if(local) -1 else 1000,
         local = local,
-        logicState = it.adaptSingle<TankLogicStateComponent>().logicState,
+        logicState = it.getComponent<TankLogicStateComponent>().logicState,
         movementDistanceBorderUntilTankCorrection = 2000,
         movementTimeoutUntilTankCorrection = 4000,
         tankState = null,
@@ -341,9 +340,7 @@ class BattlefieldSystem : AbstractSystem() {
     @JoinAll @JoinAllChannels battlefieldShared: List<SingleNode<BattlefieldModelCC>>,
     @JoinAll battleUsers: List<BattleUserNode>,
   ) {
-    // TODO: Temporary solution
-    val root = Paths.get(requireNotNull(System.getenv("RESOURCES_ROOT")) { "\"RESOURCES_ROOT\" environment variable is not set" })
-    val text = root.resolve("${battleMap.battleMap.mapResource.id.encode()}/private.json").readText()
+    val text = gameResourceRepository.resolve(battleMap.battleMap.mapResource, "private.json").readText()
     val data = objectMapper.readValue<PrivateMapDataEntity>(text)
 
     DispatcherLoadDependenciesManagedEvent(
@@ -409,9 +406,9 @@ class BattlefieldSystem : AbstractSystem() {
       usersInfoForward
     ).schedule(battlefieldShared)
 
-    logger.debug { "${event.channel.sessionNotNull.userNotNull.components[UsernameComponent::class]} Loading tank parts" }
+    logger.debug { "${event.channel.sessionNotNull.userNotNull.getComponent<UsernameComponent>()} Loading tank parts" }
     for(dispatcherRemote in dispatcherShared) {
-      logger.debug { "Loading tank parts to ${dispatcherRemote.context.requireSpaceChannel.sessionNotNull.userNotNull.components[UsernameComponent::class]}" }
+      logger.debug { "Loading tank parts to ${dispatcherRemote.context.requireSpaceChannel.sessionNotNull.userNotNull.getComponent<UsernameComponent>()}" }
       DispatcherLoadObjectsManagedEvent(
         hullObject,
         weaponObject,
@@ -419,7 +416,7 @@ class BattlefieldSystem : AbstractSystem() {
         tankObject,
       ).schedule(dispatcherRemote).await()
     }
-    logger.debug { "${event.channel.sessionNotNull.userNotNull.components[UsernameComponent::class]} Loaded tank parts, ${dispatcherShared.size} shared" }
+    logger.debug { "${event.channel.sessionNotNull.userNotNull.getComponent<UsernameComponent>()} Loaded tank parts, ${dispatcherShared.size} shared" }
 
     /* Backward loading: load existing players to current - notes above apply */
     for(tank in tanks - tankObject) {
@@ -474,8 +471,7 @@ class BattlefieldSystem : AbstractSystem() {
   ) {
     logger.debug { "Process ready-to-place, ${battlefieldShared.size} shared" }
 
-    // TODO: Workaround (class cast), works for now
-    val logicStateComponent = (tank.gameObject.components[TankLogicStateComponent::class] as TankLogicStateComponent)
+    val logicStateComponent = tank.gameObject.getComponent<TankLogicStateComponent>()
 
     // Spawn current tank for the entire battlefield
     logicStateComponent.logicState = TankLogicState.ACTIVATING

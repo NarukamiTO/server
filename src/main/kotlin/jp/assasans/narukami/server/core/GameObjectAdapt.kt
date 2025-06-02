@@ -20,9 +20,7 @@ package jp.assasans.narukami.server.core
 
 import kotlin.reflect.KClass
 import kotlin.reflect.full.createType
-import kotlin.reflect.full.isSubclassOf
 import jp.assasans.narukami.server.core.impl.NodeBuilder
-import jp.assasans.narukami.server.core.internal.IDataUnit
 import jp.assasans.narukami.server.net.SpaceChannel
 
 /**
@@ -69,24 +67,17 @@ inline fun <reified T : Node> IGameObject.adapt(): T {
 /**
  * Returns a single data unit [T] from the [IGameObject] for the specified [context].
  */
-inline fun <reified T : IDataUnit> IGameObject.adaptSingle(context: IModelContext): T {
-  return if(T::class.isSubclassOf(IModelConstructor::class)) {
-    @Suppress("UNCHECKED_CAST")
-    val provider = requireNotNull(models[T::class as KClass<out IModelConstructor>]) { "No ${T::class} in $this" }
-    provider.provide(this, context) as T
-  } else if(T::class.isSubclassOf(IComponent::class)) {
-    @Suppress("UNCHECKED_CAST")
-    requireNotNull(components[T::class as KClass<out IComponent>]) { "No ${T::class} in $this" } as T
-  } else {
-    throw IllegalArgumentException("Class ${T::class} is not a subclass of IModelConstructor or IComponent")
-  }
+inline fun <reified T : IModelConstructor> IGameObject.adaptSingle(context: IModelContext): T {
+  @Suppress("UNCHECKED_CAST")
+  val provider = requireNotNull(models[T::class as KClass<out IModelConstructor>]) { "No ${T::class} in $this" }
+  return provider.provide(this, context) as T
 }
 
 /**
  * Returns a single data unit [T] from the [IGameObject] for the current space channel.
  */
 context(SpaceChannel)
-inline fun <reified T : IDataUnit> IGameObject.adaptSingle(): T {
+inline fun <reified T : IModelConstructor> IGameObject.adaptSingle(): T {
   return adaptSingle(SpaceChannelModelContext(this@SpaceChannel))
 }
 
@@ -94,6 +85,6 @@ inline fun <reified T : IDataUnit> IGameObject.adaptSingle(): T {
  * Returns a single data unit [T] from the [IGameObject] for the current context.
  */
 context(IModelContext)
-inline fun <reified T : IDataUnit> IGameObject.adaptSingle(): T {
+inline fun <reified T : IModelConstructor> IGameObject.adaptSingle(): T {
   return adaptSingle(this@IModelContext)
 }

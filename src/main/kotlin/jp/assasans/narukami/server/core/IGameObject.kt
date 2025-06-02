@@ -27,11 +27,31 @@ interface IGameObject {
   val id: Long
   val parent: IGameClass
 
-  val components: MutableMap<KClass<out IComponent>, IComponent>
+  val allComponents: Map<KClass<out IComponent>, IComponent>
   val models: MutableMap<KClass<out IModelConstructor>, IModelProvider<*>>
+
+  fun addComponent(component: IComponent)
+  fun hasComponent(type: KClass<out IComponent>): Boolean
+  fun <T : IComponent> getComponent(type: KClass<T>): T
+  fun <T : IComponent> getComponentOrNull(type: KClass<T>): T?
 }
 
-fun IGameObject.addComponent(component: IComponent) {
-  check(components[component::class] == null) { "Component ${component::class} already exists in $this" }
-  components[component::class] = component
+fun IGameObject.addAllComponents(components: Collection<IComponent>) {
+  components.forEach { addComponent(it) }
+}
+
+inline fun <reified T : IComponent> IGameObject.hasComponent(): Boolean {
+  return hasComponent(T::class)
+}
+
+inline fun <reified T : IComponent> IGameObject.getComponent(): T {
+  return getComponent(T::class)
+}
+
+inline fun <reified T : IComponent> IGameObject.getComponentOrNull(): T? {
+  return getComponentOrNull(T::class)
+}
+
+inline fun <reified T : IComponent> Iterable<IGameObject>.filterHasComponent(): List<IGameObject> {
+  return filter { it.hasComponent<T>() }
 }

@@ -19,6 +19,7 @@
 package jp.assasans.narukami.server.lobby.communication
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import jp.assasans.narukami.server.NOTICE_SHORT
 import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.dispatcher.DispatcherNode
 import jp.assasans.narukami.server.lobby.SessionLogoutEvent
@@ -46,7 +47,11 @@ class ChatSystem : AbstractSystem() {
           sourceUser = null,
           targetUser = null,
           text = buildString {
-            if(identity.isNotEmpty()) append("Client identity: ${identity.joinToString(", ")}\n")
+            append("<font size='10'>")
+            append(NOTICE_SHORT)
+            append("</font>\n\n")
+
+            if(identity.isNotEmpty()) append("Client identity: ${identity.joinToString(", ")}")
             if(!identity.contains("baseline")) {
               append("<font color='#ee4e3e'><b>")
               appendLine("WARNING!")

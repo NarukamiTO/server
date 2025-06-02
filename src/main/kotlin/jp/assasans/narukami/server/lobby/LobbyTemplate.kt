@@ -18,9 +18,9 @@
 
 package jp.assasans.narukami.server.lobby
 
-import jp.assasans.narukami.server.core.ITemplate
-import jp.assasans.narukami.server.core.ITemplateProvider
+import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.net.command.ProtocolClass
+import jp.assasans.narukami.server.net.sessionNotNull
 
 @ProtocolClass(3)
 data class LobbyTemplate(
@@ -28,7 +28,7 @@ data class LobbyTemplate(
   val lobbyLayout: LobbyLayoutModelCC,
   val panel: PanelModelCC,
   val onceADayAction: OnceADayActionModelCC,
-  val reconnect: ReconnectModelCC,
+  val reconnect: IModelProvider<ReconnectModelCC>,
   val gpuDetector: GPUDetectorModelCC,
 ) : ITemplate {
   companion object {
@@ -38,11 +38,13 @@ data class LobbyTemplate(
         lobbyLayout = LobbyLayoutModelCC(),
         panel = PanelModelCC(),
         onceADayAction = OnceADayActionModelCC(todayRestartTime = 0),
-        reconnect = ReconnectModelCC(
-          // TODO: Take this from hash request command
-          configUrlTemplate = "127.0.0.1:5191/config.xml",
-          serverNumber = 1,
-        ),
+        reconnect = ClosureModelProvider {
+          ReconnectModelCC(
+            // TODO: How to specify public-facing URLs?
+            configUrlTemplate = requireSpaceChannel.sessionNotNull.properties["config"] ?: "127.0.0.1:5191/config.xml",
+            serverNumber = 1,
+          )
+        },
         gpuDetector = GPUDetectorModelCC(),
       )
     }

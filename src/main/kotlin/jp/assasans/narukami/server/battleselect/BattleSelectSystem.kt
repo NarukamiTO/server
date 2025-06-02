@@ -119,9 +119,9 @@ class BattleSelectSystem : AbstractSystem() {
           battleEntrance = BattleEntranceModelCC(),
         ),
         battleDMInfo = ClosureModelProvider {
-          val battleUsers = it.adaptSingle<BattleSpaceComponent>()
+          val battleUsers = it.getComponent<BattleSpaceComponent>()
             .space.objects.all
-            .filter { it.components.contains(BattleUserComponent::class) }
+            .filterHasComponent<BattleUserComponent>()
             .map { it.adapt<BattleUserNode>() }
           BattleDMInfoModelCC(
             users = battleUsers.map { battleUser -> battleUser.asBattleInfoUser() }
@@ -143,7 +143,7 @@ class BattleSelectSystem : AbstractSystem() {
         template = BattleMapTemplate.Provider.create()
       )
       // TODO: Should BattleMapTemplate just access components from map info object?
-      battleMapObject.components.putAll(mapInfo.gameObject.components)
+      battleMapObject.addAllComponents(mapInfo.gameObject.allComponents.values)
       battleMapObject.addComponent(BattleInfoGroupComponent(battleInfoObject))
       objects.add(battleMapObject)
 
@@ -208,11 +208,11 @@ class BattleSelectSystem : AbstractSystem() {
             valuableRound = true
           ),
           statisticsDM = ClosureModelProvider {
-            val battleUsers = space.objects.all
-              .filter { it.components.contains(BattleUserComponent::class) }
-              .map { it.adapt<BattleUserNode>() }
             StatisticsDMModel(
-              usersInfo = battleUsers.map { battleUser -> battleUser.asUserInfo(space.objects.all) }
+              usersInfo = space.objects.all
+                .filterHasComponent<BattleUserComponent>()
+                .map { it.adapt<BattleUserNode>() }
+                .map { it.asUserInfo(space.objects.all) }
             )
           },
           inventory = InventoryModelCC(ultimateEnabled = false),

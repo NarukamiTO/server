@@ -39,8 +39,7 @@ class SmokySystem : AbstractSystem() {
     logger.trace { "Fire: $event" }
 
     SmokyModelShootEvent(
-      // TODO: Workaround, works for now
-      shooterId = (smoky.gameObject.components[TankGroupComponent::class] as TankGroupComponent).reference.id,
+      shooterId = smoky.gameObject.getComponent<TankGroupComponent>().reference.id,
     ).schedule(smokyShared - smoky)
   }
 
@@ -54,8 +53,7 @@ class SmokySystem : AbstractSystem() {
     logger.trace { "Fire static: $event" }
 
     SmokyModelShootStaticEvent(
-      // TODO: Workaround, works for now
-      shooterId = (smoky.gameObject.components[TankGroupComponent::class] as TankGroupComponent).reference.id,
+      shooterId = smoky.gameObject.getComponent<TankGroupComponent>().reference.id,
       hitPoint = event.hitPoint,
     ).schedule(smokyShared - smoky)
   }
@@ -70,8 +68,7 @@ class SmokySystem : AbstractSystem() {
     logger.trace { "Fire target: $event" }
 
     SmokyModelShootTargetEvent(
-      // TODO: Workaround, works for now
-      shooterId = (smoky.gameObject.components[TankGroupComponent::class] as TankGroupComponent).reference.id,
+      shooterId = smoky.gameObject.getComponent<TankGroupComponent>().reference.id,
       targetId = event.targetId,
       hitPoint = event.hitPoint,
       weakeningCoeff = 1f,

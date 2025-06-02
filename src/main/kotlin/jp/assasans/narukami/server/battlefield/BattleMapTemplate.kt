@@ -31,18 +31,18 @@ data class BattleMapTemplate(
     val Provider = ITemplateProvider {
       BattleMapTemplate(
         battleMap = ClosureModelProvider {
-          val skyboxRotation = it.adaptSingle<SkyboxRotationComponent>()
+          val skyboxRotation = it.getComponent<SkyboxRotationComponent>()
 
           BattleMapModelCC(
-            dustParams = it.adaptSingle<DustParamsComponent>(),
-            dynamicShadowParams = it.adaptSingle<DynamicShadowParamsComponent>(),
-            environmentSound = it.adaptSingle<MapEnvironmentComponent>().sound,
-            fogParams = it.adaptSingle<FogParamsComponent>(),
+            dustParams = it.getComponent<DustParamsComponent>(),
+            dynamicShadowParams = it.getComponent<DynamicShadowParamsComponent>(),
+            environmentSound = it.getComponent<MapEnvironmentComponent>().sound,
+            fogParams = it.getComponent<FogParamsComponent>(),
             gravity = 1000.0f,
-            mapResource = it.adaptSingle<MapResourceComponent>().resource,
+            mapResource = it.getComponent<MapResourceComponent>().resource,
             skyBoxRevolutionAxis = Vector3d(skyboxRotation.x, skyboxRotation.y, skyboxRotation.z),
             skyBoxRevolutionSpeed = skyboxRotation.speed,
-            skyboxSides = it.adaptSingle<SkyboxSidesComponent>(),
+            skyboxSides = it.getComponent<SkyboxSidesComponent>(),
             ssaoColor = 3025184
           )
         },

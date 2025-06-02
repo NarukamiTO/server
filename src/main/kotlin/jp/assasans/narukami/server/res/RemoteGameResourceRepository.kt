@@ -28,10 +28,7 @@ import com.fasterxml.jackson.databind.*
 import com.fasterxml.jackson.module.kotlin.readValue
 import dev.kdl.parse.KdlParser
 import io.github.oshai.kotlinlogging.KotlinLogging
-import jp.assasans.narukami.server.core.AutoAddedComponent
-import jp.assasans.narukami.server.core.IGameObject
-import jp.assasans.narukami.server.core.IRegistry
-import jp.assasans.narukami.server.core.ISpace
+import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.core.impl.Space
 import jp.assasans.narukami.server.extensions.singleOrNullOrThrow
 import jp.assasans.narukami.server.kdl.KdlGameObjectCodec
@@ -245,19 +242,15 @@ class RemoteGameResourceRepository(
 
   fun createObjects() {
     for(resource in getAll().filter { it.type == GameObjectRes }) {
-      // TODO: Temporary solution
-      val root = Paths.get(requireNotNull(System.getenv("RESOURCES_ROOT")) { "\"RESOURCES_ROOT\" environment variable is not set" })
-      val text = root.resolve("${resource.id.encode()}/object.kdl").readText()
-
+      val text = resolve(resource, "object.kdl").readText()
       val document = KdlParser.v2().parse(text)
       logger.trace { "KDL document: $document" }
 
-      val codec = reader.getTypedCodec<IGameObject>()
-      // TODO: Workaround, works for now
-      (codec as KdlGameObjectCodec).name = "${resource.name}${resource.namespaces}"
+      val codec = reader.getTypedCodec<IGameObject>() as KdlGameObjectCodec
+      codec.name = "${resource.name}${resource.namespaces}"
       val gameObject = codec.decode(reader, document.asNode())
 
-      val spaceNames = (gameObject.components[AutoAddedComponent::class] as AutoAddedComponent?)?.spaces ?: emptyList()
+      val spaceNames = gameObject.getComponentOrNull<AutoAddedComponent>()?.spaces ?: emptyList()
       for(spaceName in spaceNames) {
         val space = spaces.get(Space.stableId(spaceName)) ?: throw IllegalArgumentException("Space $spaceName not found for $resource")
         logger.info { "Auto-adding ${codec.name} to $spaceName => $gameObject" }
@@ -301,4 +294,9 @@ class RemoteGameResourceRepository(
   //     .map { it.into<T>() }
   //     .toSet()
   // }
+
+  // TODO: Should we abstract Path / File away and return ByteArray / String instead?
+  fun resolve(resource: Resource<*, *>, file: String): Path {
+    return root.resolve("${resource.id.encode()}/$file")
+  }
 }

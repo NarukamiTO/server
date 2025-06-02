@@ -33,7 +33,7 @@ data class RankLoaderTemplate(
     val Provider = ITemplateProvider {
       RankLoaderTemplate(
         rankLoader = ClosureModelProvider {
-          RankLoaderModelCC(ranks = it.adaptSingle<RankLoaderComponent>().ranks)
+          RankLoaderModelCC(ranks = it.getComponent<RankLoaderComponent>().ranks)
         }
       )
     }

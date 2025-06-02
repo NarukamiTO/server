@@ -44,10 +44,10 @@ data class EntranceTemplate(
         captcha = CaptchaModelCC(stateWithCaptcha = listOf()),
         login = LoginModelCC(),
         registration = ClosureModelProvider {
-          val limits = it.adaptSingle<RegistrationPasswordLimitsComponent>()
+          val limits = it.getComponent<RegistrationPasswordLimitsComponent>()
 
           RegistrationModelCC(
-            bgResource = it.adaptSingle<RegistrationBackgroundComponent>().resource,
+            bgResource = it.getComponent<RegistrationBackgroundComponent>().resource,
             enableRequiredEmail = false,
             minPasswordLength = limits.minPasswordLength,
             maxPasswordLength = limits.maxPasswordLength,
