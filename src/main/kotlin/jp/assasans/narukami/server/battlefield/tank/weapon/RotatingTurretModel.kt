@@ -18,16 +18,27 @@
 
 package jp.assasans.narukami.server.battlefield.tank.weapon
 
+import jp.assasans.narukami.server.core.IClientEvent
 import jp.assasans.narukami.server.core.IModelConstructor
-import jp.assasans.narukami.server.net.command.IProtocolEnum
-import jp.assasans.narukami.server.net.command.ProtocolEnum
-import jp.assasans.narukami.server.net.command.ProtocolModel
-import jp.assasans.narukami.server.net.command.ProtocolStruct
+import jp.assasans.narukami.server.core.IServerEvent
+import jp.assasans.narukami.server.net.command.*
 
 @ProtocolModel(2803166101624878775)
 data class RotatingTurretModelCC(
   val turretState: TurretStateCommand,
 ) : IModelConstructor
+
+@ProtocolEvent(6598381021390194005)
+data class RotatingTurretModelUpdateClientEvent(
+  val turretStateCommand: TurretStateCommand,
+) : IClientEvent
+
+@ProtocolEvent(584200547137598173)
+data class RotatingTurretModelUpdateServerEvent(
+  val clientTime: Int,
+  val incarnationId: Short,
+  val turretStateCommand: TurretStateCommand,
+) : IServerEvent
 
 @ProtocolStruct
 data class TurretStateCommand(

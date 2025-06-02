@@ -120,8 +120,8 @@ private fun createTankWeapon(gameResourceRepository: IGameResourceRepository) = 
       buffShotCooldownMs = 0,
       buffed = false,
       highlightingDistance = 1000f,
-      impactForce = 1000f,
-      kickback = 1000f,
+      impactForce = 500f,
+      kickback = 500f,
       turretRotationAcceleration = 1f,
       turretRotationSound = gameResourceRepository.get("tank.sound.weapon-rotate", mapOf(), SoundRes, Eager),
       turretRotationSpeed = 1f
@@ -383,6 +383,10 @@ class BattlefieldSystem : AbstractSystem() {
         weaponId = weaponObject.id,
       )
     )
+    tankObject.addComponent(TankGroupComponent(tankObject))
+    hullObject.addComponent(TankGroupComponent(tankObject))
+    weaponObject.addComponent(TankGroupComponent(tankObject))
+    paintObject.addComponent(TankGroupComponent(tankObject))
 
     event.channel.space.objects.add(battleUserObject)
     event.channel.space.objects.add(hullObject)

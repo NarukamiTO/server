@@ -18,13 +18,7 @@
 
 package jp.assasans.narukami.server.battlefield.tank
 
-import jp.assasans.narukami.server.core.IModelConstructor
-import jp.assasans.narukami.server.core.IServerEvent
-import jp.assasans.narukami.server.net.command.ProtocolEvent
-import jp.assasans.narukami.server.net.command.ProtocolModel
+import jp.assasans.narukami.server.battlefield.IGroupComponent
+import jp.assasans.narukami.server.core.IGameObject
 
-@ProtocolModel(5998998533998178542)
-class TankPauseModelCC : IModelConstructor
-
-@ProtocolEvent(5333994690148230179)
-class TankPauseModelDisablePauseEvent : IServerEvent
+data class TankGroupComponent(override val reference: IGameObject) : IGroupComponent

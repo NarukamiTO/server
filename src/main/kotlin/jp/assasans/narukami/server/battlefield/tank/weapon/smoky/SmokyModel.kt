@@ -18,8 +18,58 @@
 
 package jp.assasans.narukami.server.battlefield.tank.weapon.smoky
 
+import jp.assasans.narukami.server.battlefield.Vector3d
+import jp.assasans.narukami.server.core.IClientEvent
 import jp.assasans.narukami.server.core.IModelConstructor
+import jp.assasans.narukami.server.core.IServerEvent
+import jp.assasans.narukami.server.net.command.ProtocolEvent
 import jp.assasans.narukami.server.net.command.ProtocolModel
 
 @ProtocolModel(2172139419072369403)
 class SmokyModelCC : IModelConstructor
+
+@ProtocolEvent(5645206942441648925)
+data class SmokyModelLocalCriticalHitEvent(
+  val targetId: Long,
+) : IClientEvent
+
+@ProtocolEvent(5513207377268960901)
+data class SmokyModelShootEvent(
+  val shooterId: Long,
+) : IClientEvent
+
+@ProtocolEvent(4100592046364094803)
+data class SmokyModelShootStaticEvent(
+  val shooterId: Long,
+  val hitPoint: Vector3d,
+) : IClientEvent
+
+@ProtocolEvent(4100592046375670902)
+data class SmokyModelShootTargetEvent(
+  val shooterId: Long,
+  val targetId: Long,
+  val hitPoint: Vector3d,
+  val weakeningCoeff: Float,
+  val isCritical: Boolean
+) : IClientEvent
+
+@ProtocolEvent(682326792057158253)
+data class SmokyModelFireCommandEvent(
+  val clientTime: Int,
+) : IServerEvent
+
+@ProtocolEvent(7586454165429681851)
+data class SmokyModelFireStaticCommandEvent(
+  val clientTime: Int,
+  val hitPoint: Vector3d,
+) : IServerEvent
+
+@ProtocolEvent(7267965420731948862)
+data class SmokyModelFireTargetCommandEvent(
+  val clientTime: Int,
+  val targetId: Long,
+  val targetIncarnation: Short,
+  val targetPosition: Vector3d,
+  val hitPoint: Vector3d,
+  val hitPointWorld: Vector3d,
+) : IServerEvent

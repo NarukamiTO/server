@@ -20,7 +20,14 @@ package jp.assasans.narukami.server.battlefield
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import jp.assasans.narukami.server.battlefield.tank.*
+import jp.assasans.narukami.server.battlefield.tank.weapon.RotatingTurretModelCC
+import jp.assasans.narukami.server.battlefield.tank.weapon.RotatingTurretModelUpdateClientEvent
+import jp.assasans.narukami.server.battlefield.tank.weapon.RotatingTurretModelUpdateServerEvent
 import jp.assasans.narukami.server.core.*
+
+data class RotatingTurretNode(
+  val rotatingTurret: RotatingTurretModelCC,
+) : Node()
 
 class BattlefieldMovementSystem : AbstractSystem() {
   private val logger = KotlinLogging.logger { }
@@ -71,5 +78,20 @@ class BattlefieldMovementSystem : AbstractSystem() {
   fun handleCollisionWithOtherTank(event: TankModelHandleCollisionWithOtherTankEvent, tank: TankNode) {
     // TODO: Prevent tank from spawning for around 500 ms while client sends this event.
     //  Apparently, the client does not send this event until the tank is activated.
+  }
+
+  @OnEventFire
+  @Mandatory
+  fun updateTurret(
+    event: RotatingTurretModelUpdateServerEvent,
+    turret: RotatingTurretNode,
+    @JoinAllChannels @OnlyLoadedObjects turretShared: List<RotatingTurretNode>,
+  ) {
+    logger.trace { "Update turret $event" }
+
+    // Broadcast to all turrets, except the sender
+    RotatingTurretModelUpdateClientEvent(
+      turretStateCommand = event.turretStateCommand
+    ).schedule(turretShared - turret)
   }
 }
