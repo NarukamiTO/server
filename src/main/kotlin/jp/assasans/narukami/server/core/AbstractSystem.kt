@@ -78,6 +78,10 @@ annotation class JoinAllChannels
 @Retention(AnnotationRetention.RUNTIME)
 annotation class OnlySpaceContext
 
+/**
+ * Requires that object in loaded on the client before creating a node.
+ */
+// TODO: This should be a default behavior, negated with [@AllowUnloadedObjects] instead
 @Target(AnnotationTarget.VALUE_PARAMETER)
 @Retention(AnnotationRetention.RUNTIME)
 annotation class OnlyLoadedObjects

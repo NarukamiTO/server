@@ -171,6 +171,19 @@ class DispatcherSystem : AbstractSystem() {
 
   @OnEventFire
   @Mandatory
+  fun unloadObjects(event: DispatcherUnloadObjectsManagedEvent, dispatcher: DispatcherNode) {
+    DispatcherModelUnloadObjectsEvent(event.objects).schedule(dispatcher)
+
+    val context = dispatcher.context
+    if(context is SpaceChannelModelContext) {
+      context.channel.loadedObjects.removeAll(event.objects.map { it.id })
+    }
+
+    logger.debug { "Objects unloaded: $event" }
+  }
+
+  @OnEventFire
+  @Mandatory
   suspend fun openSpace(event: DispatcherOpenSpaceEvent, dispatcher: DispatcherNode) {
     logger.info { "Open space channel: $event" }
 

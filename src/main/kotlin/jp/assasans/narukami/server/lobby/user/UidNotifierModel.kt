@@ -18,7 +18,9 @@
 
 package jp.assasans.narukami.server.lobby.user
 
+import jp.assasans.narukami.server.core.IClientEvent
 import jp.assasans.narukami.server.core.IModelConstructor
+import jp.assasans.narukami.server.net.command.ProtocolEvent
 import jp.assasans.narukami.server.net.command.ProtocolModel
 
 @ProtocolModel(4255726087158005051)
@@ -26,3 +28,8 @@ data class UidNotifierModelCC(
   val uid: String,
   val userId: Long,
 ) : IModelConstructor
+
+@ProtocolEvent(1246109053620123806)
+data class UidNotifierModelSetUidEvent(val users: List<UidNotifierModelCC>) : IClientEvent {
+  constructor(vararg users: UidNotifierModelCC) : this(users.toList())
+}

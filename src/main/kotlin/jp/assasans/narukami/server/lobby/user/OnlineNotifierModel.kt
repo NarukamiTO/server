@@ -18,22 +18,26 @@
 
 package jp.assasans.narukami.server.lobby.user
 
+import jp.assasans.narukami.server.core.IClientEvent
 import jp.assasans.narukami.server.core.IModelConstructor
-import jp.assasans.narukami.server.core.IServerEvent
 import jp.assasans.narukami.server.net.command.ProtocolEvent
 import jp.assasans.narukami.server.net.command.ProtocolModel
+import jp.assasans.narukami.server.net.command.ProtocolStruct
 
-@ProtocolModel(6403067749608679876)
-data class UserNotifierModelCC(
-  val currentUserId: Long,
-) : IModelConstructor
+@ProtocolModel(2009560714711279199)
+class OnlineNotifierModelCC : IModelConstructor
 
-@ProtocolEvent(5429494051830592977)
-data class UserNotifierModelSubscribeEvent(
+@ProtocolEvent(7795510382230390111)
+data class UserNotifierModelSetOnlineEvent(
+  val users: List<OnlineNotifierData>
+) : IClientEvent {
+  constructor(vararg users: OnlineNotifierData) : this(users.toList())
+}
+
+@ProtocolStruct
+data class OnlineNotifierData(
+  val online: Boolean,
+  val serverNumber: Int,
+  val timeSinceLastVisitInSec: Long,
   val userId: Long,
-) : IServerEvent
-
-@ProtocolEvent(2683320318075486824)
-data class UserNotifierModelUnsubscribeEvent(
-  val usersId: List<Long>,
-) : IServerEvent
+)

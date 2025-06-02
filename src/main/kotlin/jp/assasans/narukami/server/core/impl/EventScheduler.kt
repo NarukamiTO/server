@@ -68,6 +68,7 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler, KoinC
 
   private suspend fun process(event: IEvent, context: IModelContext, gameObject: IGameObject) {
     if(event is IClientEvent) {
+      // delay(Random.nextLong(100, 500))
       context.requireSpaceChannel.sendBatched {
         event.attach(gameObject).enqueue()
       }
@@ -188,8 +189,9 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler, KoinC
       val args = mutableMapOf<KParameter, Any?>()
       args[handler.function.valueParameters[0]] = event
 
-      // Client-to-server events always have exactly 1 context object attached by the client
-      val contextObjects = mutableListOf(gameObject)
+      // Client-to-server events always have exactly 1 context object attached by the client.
+      // We use Set<T> to avoid duplicates (e.g., in case event is scheduled to the user object).
+      val contextObjects = mutableSetOf(gameObject)
 
       // If present, we also attach a user object
       if(context is SpaceChannelModelContext) {
@@ -224,7 +226,7 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler, KoinC
    */
   private fun buildNodes(
     context: IModelContext,
-    contextObjects: List<IGameObject>,
+    contextObjects: Set<IGameObject>,
     handler: EventHandlerDefinition,
     args: MutableMap<KParameter, Any?>
   ): Boolean {
@@ -251,7 +253,6 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler, KoinC
       val nodes = mutableListOf<Node>()
       for(context in contexts) {
         for(gameObject in objects) {
-          val node = nodeBuilder.tryBuildLazy(nodeDefinition, gameObject, context)
           if(nodeParameter.onlyLoadedObjects) {
             if(context is SpaceChannelModelContext && !context.channel.loadedObjects.contains(gameObject.id)) {
               logger.debug { "$gameObject is not loaded in ${context.channel}" }
@@ -259,6 +260,7 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler, KoinC
             }
           }
 
+          val node = nodeBuilder.tryBuildLazy(nodeDefinition, gameObject, context)
           if(node != null) nodes.add(node)
         }
       }
@@ -297,7 +299,18 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler, KoinC
     if(handler.function.isSuspend) {
       if(handler.outOfOrder) {
         context.requireSpaceChannel.socket.launch {
-          handler.function.callSuspendBy(args)
+          val timeout = 5.seconds
+          val job = scope.launch {
+            delay(timeout)
+            logger.warn { "${handler.system.qualifiedName}::${handler.function.name} timed out ($timeout) while processing $event" }
+          }
+
+          try {
+            handler.function.callSuspendBy(args)
+            logger.trace { "${handler.system.qualifiedName}::${handler.function.name} processed $event" }
+          } finally {
+            job.cancelAndJoin()
+          }
         }
       } else {
         val timeout = 5.seconds

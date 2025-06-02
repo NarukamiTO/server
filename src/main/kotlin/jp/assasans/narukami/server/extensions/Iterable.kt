@@ -55,3 +55,17 @@ inline fun <T> Iterable<T>.singleOrNullOrThrow(predicate: (T) -> Boolean): T? {
   @Suppress("UNCHECKED_CAST")
   return single as T
 }
+
+inline fun <T> Iterable<T>.singleMap(transform: (T) -> T): T? {
+  var single: T? = null
+  var found = false
+  for(element in this) {
+    if(found) throw IllegalArgumentException("Collection contains more than one matching element.")
+    single = transform(element)
+    found = true
+  }
+  if(!found) return null
+
+  @Suppress("UNCHECKED_CAST")
+  return single as T
+}

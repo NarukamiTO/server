@@ -18,10 +18,17 @@
 
 package jp.assasans.narukami.server.lobby.user
 
+import jp.assasans.narukami.server.core.IClientEvent
 import jp.assasans.narukami.server.core.IModelConstructor
+import jp.assasans.narukami.server.net.command.ProtocolEvent
 import jp.assasans.narukami.server.net.command.ProtocolModel
 
 @ProtocolModel(7019981464353739346)
 data class ProBattleNotifierModelCC(
   val abonementRemainingTimeInSec: Int,
 ) : IModelConstructor
+
+@ProtocolEvent(8285569264978375868)
+data class ProBattleNotifierModelSetRemainingAbonementTimeSecEvent(
+  val remainingTime: Int
+) : IClientEvent

@@ -39,11 +39,17 @@ data class DispatcherModelLoadDependenciesEvent(
   val dependencies: ObjectsDependencies
 ) : IClientEvent
 
+/**
+ * Note: This is a low-level API, you should use [DispatcherLoadObjectsManagedEvent].
+ */
 @ProtocolEvent(7640916300855664666)
 data class DispatcherModelLoadObjectsDataEvent(
   val objectsData: ObjectsData
 ) : IClientEvent
 
+/**
+ * Note: This is a low-level API, you should use [DispatcherUnloadObjectsManagedEvent].
+ */
 @ProtocolEvent(9038756763225879447)
 data class DispatcherModelUnloadObjectsEvent(
   val objects: List<IGameObject>
@@ -94,6 +100,12 @@ data class DispatcherLoadObjectsManagedEvent(
     logger.debug { "Waiting for objects ${objects.map { it.id }} to load..." }
     return deferred.await()
   }
+}
+
+data class DispatcherUnloadObjectsManagedEvent(
+  val objects: List<IGameObject>,
+) : IEvent {
+  constructor(vararg objects: IGameObject) : this(objects.toList())
 }
 
 data class DispatcherOpenSpaceEvent(

@@ -31,9 +31,9 @@ import jp.assasans.narukami.server.core.impl.Space
 import jp.assasans.narukami.server.core.impl.TemplatedGameClass
 import jp.assasans.narukami.server.core.impl.TransientGameObject
 import jp.assasans.narukami.server.dispatcher.DispatcherLoadObjectsManagedEvent
-import jp.assasans.narukami.server.dispatcher.DispatcherModelUnloadObjectsEvent
 import jp.assasans.narukami.server.dispatcher.DispatcherNode
 import jp.assasans.narukami.server.dispatcher.DispatcherOpenSpaceEvent
+import jp.assasans.narukami.server.dispatcher.DispatcherUnloadObjectsManagedEvent
 import jp.assasans.narukami.server.lobby.*
 import jp.assasans.narukami.server.lobby.communication.ChatNode
 import jp.assasans.narukami.server.net.session.userNotNull
@@ -51,6 +51,12 @@ data class BattleInfoNode(
   val battleParamInfo: BattleParamInfoModelCC,
   val battleEntrance: BattleEntranceModelCC,
 ) : Node()
+
+data class BattleSpaceComponent(val space: ISpace) : IComponent
+data class BattleInfoGroupComponent(override val reference: IGameObject) : IGroupComponent
+
+data class AddBattleUserEvent(val battleUser: BattleUserNode) : IEvent
+data class RemoveBattleUserEvent(val battleUser: BattleUserNode) : IEvent
 
 class BattleSelectSystem : AbstractSystem() {
   private val logger = KotlinLogging.logger { }
@@ -112,14 +118,23 @@ class BattleSelectSystem : AbstractSystem() {
           ),
           battleEntrance = BattleEntranceModelCC(),
         ),
-        battleDMInfo = BattleDMInfoModelCC(
-          users = listOf()
-        )
+        battleDMInfo = ClosureModelProvider {
+          val battleUsers = it.adaptSingle<BattleSpaceComponent>()
+            .space.objects.all
+            .filter { it.components.contains(BattleUserComponent::class) }
+            .map { it.adapt<BattleUserNode>() }
+          BattleDMInfoModelCC(
+            users = battleUsers.map { battleUser -> battleUser.asBattleInfoUser() }
+          )
+        }
       )
     )
+    battleInfoObject.addComponent(BattleInfoGroupComponent(battleInfoObject))
     mapInfo.context.space.objects.add(battleInfoObject)
 
     spaces.add(Space(battleId).apply {
+      battleInfoObject.addComponent(BattleSpaceComponent(this))
+
       objects.remove(rootObject)
 
       val battleMapObject = TransientGameObject.instantiate(
@@ -129,6 +144,7 @@ class BattleSelectSystem : AbstractSystem() {
       )
       // TODO: Should BattleMapTemplate just access components from map info object?
       battleMapObject.components.putAll(mapInfo.gameObject.components)
+      battleMapObject.addComponent(BattleInfoGroupComponent(battleInfoObject))
       objects.add(battleMapObject)
 
       val battlefieldObject = TransientGameObject.instantiate(
@@ -142,10 +158,19 @@ class BattleSelectSystem : AbstractSystem() {
               battleFinishSound = gameResourceRepository.get("battle.sound.finish", mapOf(), SoundRes, Eager),
               killSound = gameResourceRepository.get("tank.sound.destroy", mapOf(), SoundRes, Eager)
             ),
-            colorTransformMultiplier = 0.0f,
-            idleKickPeriodMsec = 0,
+            colorTransformMultiplier = 1.0f,
+            idleKickPeriodMsec = 5.minutes.inWholeMilliseconds.toInt(),
             map = battleMapObject,
-            mineExplosionLighting = LightingSFXEntity(effects = listOf()),
+            mineExplosionLighting = LightingSFXEntity(
+              effects = listOf(
+                LightingEffectEntity(
+                  "explosion", listOf(
+                    LightEffectItem(300f, 0f, "0xff0000", 0.5f, 0),
+                    LightEffectItem(1f, 2f, "0xff0000", 0f, 500)
+                  )
+                )
+              )
+            ),
             proBattle = true,
             range = Range(min = 1, max = 31),
             reArmorEnabled = false,
@@ -199,6 +224,28 @@ class BattleSelectSystem : AbstractSystem() {
   }
 
   @OnEventFire
+  @Mandatory
+  fun addBattleUser(
+    event: AddBattleUserEvent,
+    battleInfo: BattleInfoNode,
+    @JoinAllChannels @OnlyLoadedObjects battleInfoShared: List<BattleInfoNode>,
+  ) {
+    logger.info { "Adding battle user ${event.battleUser.gameObject.id} to battle ${battleInfo.gameObject.id}, ${(battleInfoShared - battleInfo).size} shared" }
+    BattleDMInfoModelAddUserEvent(event.battleUser.asBattleInfoUser()).schedule(battleInfoShared - battleInfo)
+  }
+
+  @OnEventFire
+  @Mandatory
+  fun removeBattleUser(
+    event: RemoveBattleUserEvent,
+    battleInfo: BattleInfoNode,
+    @JoinAllChannels @OnlyLoadedObjects battleInfoShared: List<BattleInfoNode>,
+  ) {
+    logger.info { "Removing battle user ${event.battleUser.gameObject.id} from battle ${battleInfo.gameObject.id}, ${(battleInfoShared - battleInfo).size} shared" }
+    BattleDMInfoModelRemoveUserEvent(event.battleUser.gameObject.id).schedule(battleInfoShared - battleInfo)
+  }
+
+  @OnEventFire
   @OutOfOrderExecution
   suspend fun battleSelectAdded(
     event: NodeAddedEvent,
@@ -228,9 +275,12 @@ class BattleSelectSystem : AbstractSystem() {
   suspend fun fight(
     event: BattleEntranceModelFightEvent,
     battleInfo: BattleInfoNode,
+    @JoinAllChannels battleInfoShared: List<BattleInfoNode>,
+    user: UserNode,
     @JoinAll lobby: LobbyNode,
     @JoinAll chat: ChatNode,
     @JoinAll battleSelect: SingleNode<BattleSelectModelCC>,
+    @JoinAll battles: List<BattleInfoNode>,
     @JoinAll dispatcher: DispatcherNode,
   ) {
     // TODO: End layout switch immediately to not obstruct screen for debugging purposes,
@@ -239,8 +289,11 @@ class BattleSelectSystem : AbstractSystem() {
     LobbyLayoutNotifyModelEndLayoutSwitchEvent(LayoutState.BATTLE, LayoutState.BATTLE).schedule(lobby)
     LobbyLayoutNotifyModelCancelPredictedLayoutSwitchEvent().schedule(lobby)
 
-    DispatcherModelUnloadObjectsEvent(
-      objects = listOf(chat.gameObject, battleSelect.gameObject)
+    DispatcherUnloadObjectsManagedEvent(
+      listOf(
+        chat.gameObject,
+        battleSelect.gameObject
+      ) + battles.gameObjects
     ).schedule(dispatcher)
 
     DispatcherOpenSpaceEvent(battleInfo.gameObject.id).schedule(dispatcher).await()
@@ -254,6 +307,7 @@ class BattleSelectSystem : AbstractSystem() {
     lobby: LobbyNode,
     @JoinAll chat: ChatNode,
     @JoinAll battleSelect: SingleNode<BattleSelectModelCC>,
+    @JoinAll battles: List<BattleInfoNode>,
     @JoinAll dispatcher: DispatcherNode,
   ) {
     // TODO: End layout switch immediately to not obstruct screen for debugging purposes,
@@ -267,12 +321,12 @@ class BattleSelectSystem : AbstractSystem() {
 
     val user = battleChannel.sessionNotNull.userNotNull.adapt<UserNode>(battleChannel)
     val battleUser = battleChannel.space.objects.all.findBy<BattleUserNode, UserGroupComponent>(user)
-    RemoveBattleUserEvent().schedule(battleUser)
+    UnloadBattleUserEvent().schedule(battleUser)
 
     // Mirrors loading logic
     DispatcherLoadObjectsManagedEvent(
       chat.gameObject,
-      battleSelect.gameObject,
+      battleSelect.gameObject
     ).schedule(dispatcher).await()
 
     // TODO: NodeAddedEvent is not yet automatically scheduled

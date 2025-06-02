@@ -18,10 +18,21 @@
 
 package jp.assasans.narukami.server.battleselect
 
+import jp.assasans.narukami.server.core.IClientEvent
 import jp.assasans.narukami.server.core.IModelConstructor
+import jp.assasans.narukami.server.net.command.ProtocolEvent
 import jp.assasans.narukami.server.net.command.ProtocolModel
 
 @ProtocolModel(994751080759166914)
 data class BattleDMInfoModelCC(
   val users: List<BattleInfoUser>,
 ) : IModelConstructor
+
+@ProtocolEvent(5500506947295869799)
+data class BattleDMInfoModelAddUserEvent(val infoUser: BattleInfoUser) : IClientEvent
+
+@ProtocolEvent(3174409532068648254)
+data class BattleDMInfoModelRemoveUserEvent(val userId: Long) : IClientEvent
+
+@ProtocolEvent(6635862338174306891)
+data class BattleDMInfoModelUpdateUserScoreEvent(val userId: Long, val kills: Int) : IClientEvent

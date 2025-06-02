@@ -18,7 +18,9 @@
 
 package jp.assasans.narukami.server.lobby.user
 
+import jp.assasans.narukami.server.core.IClientEvent
 import jp.assasans.narukami.server.core.IModelConstructor
+import jp.assasans.narukami.server.net.command.ProtocolEvent
 import jp.assasans.narukami.server.net.command.ProtocolModel
 
 @ProtocolModel(258682513334072065)
@@ -26,3 +28,8 @@ data class RankNotifierModelCC(
   val rank: Int,
   val userId: Long,
 ) : IModelConstructor
+
+@ProtocolEvent(5543735653822042458)
+data class RankNotifierModelSetRankEvent(val users: List<RankNotifierModelCC>) : IClientEvent {
+  constructor(vararg users: RankNotifierModelCC) : this(users.toList())
+}

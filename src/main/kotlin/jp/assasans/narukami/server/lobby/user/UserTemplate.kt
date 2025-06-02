@@ -33,6 +33,7 @@ data class UserTemplate(
   val uidNotifier: IModelProvider<UidNotifierModelCC>,
   val rankNotifier: IModelProvider<RankNotifierModelCC>,
   val proBattleNotifier: IModelProvider<ProBattleNotifierModelCC>,
+  val onlineNotifier: IModelProvider<OnlineNotifierModelCC>,
 ) : ITemplate {
   companion object {
     val Provider = ITemplateProvider {
@@ -72,6 +73,7 @@ data class UserTemplate(
         proBattleNotifier = ClosureModelProvider {
           ProBattleNotifierModelCC(abonementRemainingTimeInSec = 2112.days.inWholeSeconds.toInt())
         },
+        onlineNotifier = StaticModelProvider(OnlineNotifierModelCC())
       )
     }
   }

@@ -18,6 +18,7 @@
 
 package jp.assasans.narukami.server.battleselect
 
+import jp.assasans.narukami.server.core.IModelProvider
 import jp.assasans.narukami.server.core.ITemplate
 import jp.assasans.narukami.server.net.command.ProtocolClass
 
@@ -31,5 +32,5 @@ data class BattleInfoTemplate(
 @ProtocolClass(88)
 data class DMBattleInfoTemplate(
   val common: BattleInfoTemplate,
-  val battleDMInfo: BattleDMInfoModelCC,
+  val battleDMInfo: IModelProvider<BattleDMInfoModelCC>,
 ) : ITemplate
