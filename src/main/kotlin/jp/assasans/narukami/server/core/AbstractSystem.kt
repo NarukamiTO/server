@@ -68,20 +68,22 @@ annotation class JoinAll
 annotation class JoinBy(val component: KClass<out IGroupComponent>)
 
 /**
- * Marks a node to be searched for in all existing space channels of the space.
+ * Marks a node to be created for all existing space channels.
+ * Used for broadcasting events to all channels.
  */
 @Target(AnnotationTarget.VALUE_PARAMETER)
 @Retention(AnnotationRetention.RUNTIME)
-annotation class JoinAllChannels
+annotation class PerChannel
 
+// XXX: Bad design
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.RUNTIME)
 annotation class OnlySpaceContext
 
 /**
- * Requires that object in loaded on the client before creating a node.
+ * Includes unloaded objects while creating nodes. Use with caution:
+ * sending an event to an unloaded object will result in an error on the client.
  */
-// TODO: This should be a default behavior, negated with [@AllowUnloadedObjects] instead
 @Target(AnnotationTarget.VALUE_PARAMETER)
 @Retention(AnnotationRetention.RUNTIME)
-annotation class OnlyLoadedObjects
+annotation class AllowUnloaded

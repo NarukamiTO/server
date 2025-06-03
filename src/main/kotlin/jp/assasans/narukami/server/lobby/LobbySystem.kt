@@ -52,11 +52,11 @@ class LobbySystem : AbstractSystem() {
   suspend fun channelAdded(
     event: ChannelAddedEvent,
     dispatcher: DispatcherNode,
-    @JoinAll gpuDetector: SingleNode<GPUDetectorModelCC>,
-    @JoinAll lobby: LobbyNode,
-    @JoinAll chat: ChatNode,
-    @JoinAll rankLoader: SingleNode<RankLoaderModelCC>,
-    @JoinAll battleSelect: SingleNode<BattleSelectModelCC>,
+    @JoinAll @AllowUnloaded gpuDetector: SingleNode<GPUDetectorModelCC>,
+    @JoinAll @AllowUnloaded lobby: LobbyNode,
+    @JoinAll @AllowUnloaded chat: ChatNode,
+    @JoinAll @AllowUnloaded rankLoader: SingleNode<RankLoaderModelCC>,
+    @JoinAll @AllowUnloaded battleSelect: SingleNode<BattleSelectModelCC>,
   ) {
     // User object is created in [LoginSystem#login]
     val userObject = dispatcher.context.requireSpaceChannel.sessionNotNull.userNotNull

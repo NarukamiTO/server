@@ -37,7 +37,7 @@ class BattlefieldMovementSystem : AbstractSystem() {
   fun move(
     event: TankModelMoveCommandEvent,
     tank: TankNode,
-    @JoinAllChannels @OnlyLoadedObjects tankShared: List<TankNode>,
+    @PerChannel tankShared: List<TankNode>,
   ) {
     logger.trace { "Move tank $event" }
 
@@ -62,7 +62,7 @@ class BattlefieldMovementSystem : AbstractSystem() {
   fun control(
     event: TankModelMovementControlCommandEvent,
     tank: TankNode,
-    @JoinAllChannels @OnlyLoadedObjects tankShared: List<TankNode>,
+    @PerChannel tankShared: List<TankNode>,
   ) {
     logger.trace { "Control command tank $event" }
 
@@ -85,7 +85,7 @@ class BattlefieldMovementSystem : AbstractSystem() {
   fun updateTurret(
     event: RotatingTurretModelUpdateServerEvent,
     turret: RotatingTurretNode,
-    @JoinAllChannels @OnlyLoadedObjects turretShared: List<RotatingTurretNode>,
+    @PerChannel turretShared: List<RotatingTurretNode>,
   ) {
     logger.trace { "Update turret $event" }
 

@@ -32,7 +32,7 @@ class EntranceSystem : AbstractSystem() {
   suspend fun channelAdded(
     event: ChannelAddedEvent,
     dispatcher: DispatcherNode,
-    @JoinAll entrance: EntranceNode
+    @JoinAll @AllowUnloaded entrance: EntranceNode
   ) {
     // Load the first ever game object. This will display a login screen.
     DispatcherLoadObjectsManagedEvent(entrance.gameObject).schedule(dispatcher).await()

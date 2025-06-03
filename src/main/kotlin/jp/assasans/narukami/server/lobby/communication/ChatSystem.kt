@@ -73,7 +73,7 @@ class ChatSystem : AbstractSystem() {
     chat: ChatNode,
     user: UserNode,
     @JoinAll dispatcher: DispatcherNode,
-    @JoinAllChannels chats: List<ChatNode>,
+    @PerChannel chats: List<ChatNode>,
   ) {
     val message = ChatMessage(
       addressMode = event.addressMode,

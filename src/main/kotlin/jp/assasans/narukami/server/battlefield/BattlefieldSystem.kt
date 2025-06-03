@@ -333,12 +333,13 @@ class BattlefieldSystem : AbstractSystem() {
   suspend fun channelAdded(
     event: ChannelAddedEvent,
     dispatcher: DispatcherNode,
-    user: UserNode,
-    @JoinAllChannels dispatcherShared: List<DispatcherNode>,
-    @JoinAll battleMap: BattleMapNode,
-    @JoinAll battlefield: SingleNode<BattlefieldModelCC>,
-    @JoinAll @JoinAllChannels battlefieldShared: List<SingleNode<BattlefieldModelCC>>,
-    @JoinAll battleUsers: List<BattleUserNode>,
+    // XXX: @AllowUnloaded because object is loaded in different space
+    @AllowUnloaded user: UserNode,
+    @PerChannel dispatcherShared: List<DispatcherNode>,
+    @JoinAll @AllowUnloaded battleMap: BattleMapNode,
+    @JoinAll @AllowUnloaded battlefield: SingleNode<BattlefieldModelCC>,
+    @JoinAll @PerChannel battlefieldShared: List<SingleNode<BattlefieldModelCC>>,
+    @JoinAll @AllowUnloaded battleUsers: List<BattleUserNode>,
   ) {
     val text = gameResourceRepository.resolve(battleMap.battleMap.mapResource, "private.json").readText()
     val data = objectMapper.readValue<PrivateMapDataEntity>(text)
@@ -467,7 +468,7 @@ class BattlefieldSystem : AbstractSystem() {
   suspend fun readyToPlace(
     event: TankSpawnerModelSetReadyToPlaceEvent,
     tank: TankNode,
-    @JoinAll @JoinAllChannels battlefieldShared: List<SingleNode<BattlefieldModelCC>>,
+    @JoinAll @PerChannel battlefieldShared: List<SingleNode<BattlefieldModelCC>>,
   ) {
     logger.debug { "Process ready-to-place, ${battlefieldShared.size} shared" }
 
@@ -500,12 +501,13 @@ class BattlefieldSystem : AbstractSystem() {
   @Mandatory
   fun unloadBattleUser(
     event: UnloadBattleUserEvent,
-    battleUser: BattleUserNode,
+    // @AllowUnloaded because it is server-only object
+    @AllowUnloaded battleUser: BattleUserNode,
     @JoinAll battlefield: SingleNode<BattlefieldModelCC>,
     @JoinAll battleMap: BattleMapNode,
     @JoinAll dispatcher: DispatcherNode,
-    @JoinAll @JoinAllChannels dispatcherShared: List<DispatcherNode>,
-    @JoinAll @JoinAllChannels battlefieldShared: List<SingleNode<BattlefieldModelCC>>,
+    @JoinAll @PerChannel dispatcherShared: List<DispatcherNode>,
+    @JoinAll @PerChannel battlefieldShared: List<SingleNode<BattlefieldModelCC>>,
   ) {
     logger.info { "Destroying battle user ${battleUser.userGroup.reference.adapt<UserNode>(battleUser.context).username.username}" }
 

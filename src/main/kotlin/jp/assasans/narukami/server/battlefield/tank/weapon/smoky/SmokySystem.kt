@@ -34,7 +34,7 @@ class SmokySystem : AbstractSystem() {
   fun fire(
     event: SmokyModelFireCommandEvent,
     smoky: SmokyNode,
-    @JoinAllChannels @OnlyLoadedObjects smokyShared: List<SmokyNode>,
+    @PerChannel smokyShared: List<SmokyNode>,
   ) {
     logger.trace { "Fire: $event" }
 
@@ -48,7 +48,7 @@ class SmokySystem : AbstractSystem() {
   fun fireStatic(
     event: SmokyModelFireStaticCommandEvent,
     smoky: SmokyNode,
-    @JoinAllChannels @OnlyLoadedObjects smokyShared: List<SmokyNode>,
+    @PerChannel smokyShared: List<SmokyNode>,
   ) {
     logger.trace { "Fire static: $event" }
 
@@ -63,7 +63,7 @@ class SmokySystem : AbstractSystem() {
   fun fireTarget(
     event: SmokyModelFireTargetCommandEvent,
     smoky: SmokyNode,
-    @JoinAllChannels @OnlyLoadedObjects smokyShared: List<SmokyNode>,
+    @PerChannel smokyShared: List<SmokyNode>,
   ) {
     logger.trace { "Fire target: $event" }
 

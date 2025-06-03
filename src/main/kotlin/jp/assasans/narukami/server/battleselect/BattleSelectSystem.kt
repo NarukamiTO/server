@@ -227,8 +227,10 @@ class BattleSelectSystem : AbstractSystem() {
   @Mandatory
   fun addBattleUser(
     event: AddBattleUserEvent,
-    battleInfo: BattleInfoNode,
-    @JoinAllChannels @OnlyLoadedObjects battleInfoShared: List<BattleInfoNode>,
+    // @AllowUnloaded because object is unloaded for self
+    // XXX: Unless the user is in battle list
+    @AllowUnloaded battleInfo: BattleInfoNode,
+    @PerChannel battleInfoShared: List<BattleInfoNode>,
   ) {
     logger.info { "Adding battle user ${event.battleUser.gameObject.id} to battle ${battleInfo.gameObject.id}, ${(battleInfoShared - battleInfo).size} shared" }
     BattleDMInfoModelAddUserEvent(event.battleUser.asBattleInfoUser()).schedule(battleInfoShared - battleInfo)
@@ -238,8 +240,10 @@ class BattleSelectSystem : AbstractSystem() {
   @Mandatory
   fun removeBattleUser(
     event: RemoveBattleUserEvent,
-    battleInfo: BattleInfoNode,
-    @JoinAllChannels @OnlyLoadedObjects battleInfoShared: List<BattleInfoNode>,
+    // @AllowUnloaded because object is unloaded for self
+    // XXX: Unless the user is in battle list
+    @AllowUnloaded battleInfo: BattleInfoNode,
+    @PerChannel battleInfoShared: List<BattleInfoNode>,
   ) {
     logger.info { "Removing battle user ${event.battleUser.gameObject.id} from battle ${battleInfo.gameObject.id}, ${(battleInfoShared - battleInfo).size} shared" }
     BattleDMInfoModelRemoveUserEvent(event.battleUser.gameObject.id).schedule(battleInfoShared - battleInfo)
@@ -251,9 +255,9 @@ class BattleSelectSystem : AbstractSystem() {
     event: NodeAddedEvent,
     battleSelect: SingleNode<BattleSelectModelCC>,
     @JoinAll dispatcher: DispatcherNode,
-    @JoinAll mapInfo: List<MapInfoNode>,
-    @JoinAll battleInfo: List<BattleInfoNode>,
-    @JoinAll battleCreate: SingleNode<BattleCreateModelCC>,
+    @JoinAll @AllowUnloaded mapInfo: List<MapInfoNode>,
+    @JoinAll @AllowUnloaded battleInfo: List<BattleInfoNode>,
+    @JoinAll @AllowUnloaded battleCreate: SingleNode<BattleCreateModelCC>,
   ) {
     // The order of loading objects is important, map info objects must be loaded
     // before battle create object, otherwise the client won't see any maps in battle create.
@@ -275,7 +279,7 @@ class BattleSelectSystem : AbstractSystem() {
   suspend fun fight(
     event: BattleEntranceModelFightEvent,
     battleInfo: BattleInfoNode,
-    @JoinAllChannels battleInfoShared: List<BattleInfoNode>,
+    @PerChannel battleInfoShared: List<BattleInfoNode>,
     user: UserNode,
     @JoinAll lobby: LobbyNode,
     @JoinAll chat: ChatNode,
@@ -305,9 +309,9 @@ class BattleSelectSystem : AbstractSystem() {
   suspend fun exitFromBattleToLobby(
     event: LobbyLayoutModelExitFromBattleToBattleLobbyEvent,
     lobby: LobbyNode,
-    @JoinAll chat: ChatNode,
-    @JoinAll battleSelect: SingleNode<BattleSelectModelCC>,
-    @JoinAll battles: List<BattleInfoNode>,
+    @JoinAll @AllowUnloaded chat: ChatNode,
+    @JoinAll @AllowUnloaded battleSelect: SingleNode<BattleSelectModelCC>,
+    @JoinAll @AllowUnloaded battles: List<BattleInfoNode>,
     @JoinAll dispatcher: DispatcherNode,
   ) {
     // TODO: End layout switch immediately to not obstruct screen for debugging purposes,

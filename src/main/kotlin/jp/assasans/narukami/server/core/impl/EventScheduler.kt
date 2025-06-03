@@ -83,8 +83,8 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler, KoinC
     val isList: Boolean,
   ) {
     val joinAll = parameter.hasAnnotation<JoinAll>()
-    val joinAllChannels = parameter.hasAnnotation<JoinAllChannels>()
-    val onlyLoadedObjects = parameter.hasAnnotation<OnlyLoadedObjects>()
+    val perChannel = parameter.hasAnnotation<PerChannel>()
+    val allowUnloaded = parameter.hasAnnotation<AllowUnloaded>()
   }
 
   data class EventHandlerDefinition(
@@ -239,8 +239,8 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler, KoinC
         contextObjects
       }
 
-      val contexts = if(nodeParameter.joinAllChannels) {
-        requireNotNull(nodeParameter.isList) { "@JoinAllChannels can only be used with List<T> parameters" }
+      val contexts = if(nodeParameter.perChannel) {
+        requireNotNull(nodeParameter.isList) { "@${PerChannel::class.simpleName} can only be used with List<T> parameters" }
         // TODO: Do we need [ISpace.channels]?
         sessions.all
           .mapNotNull { session -> session.spaces.get(context.space.id) }
@@ -253,7 +253,7 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler, KoinC
       val nodes = mutableListOf<Node>()
       for(context in contexts) {
         for(gameObject in objects) {
-          if(nodeParameter.onlyLoadedObjects) {
+          if(!nodeParameter.allowUnloaded) {
             if(context is SpaceChannelModelContext && !context.channel.loadedObjects.contains(gameObject.id)) {
               logger.debug { "$gameObject is not loaded in ${context.channel}" }
               continue
