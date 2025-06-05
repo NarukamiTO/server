@@ -45,6 +45,7 @@ dependencies {
   implementation("io.ktor:ktor-server-netty:3.1.1")
   implementation("io.ktor:ktor-server-call-logging:3.1.1")
   implementation("io.ktor:ktor-server-default-headers:3.1.1")
+  implementation("io.ktor:ktor-server-status-pages:3.1.1")
   implementation("io.ktor:ktor-client-core:3.1.1")
   implementation("io.ktor:ktor-client-cio:3.1.1")
   implementation("io.ktor:ktor-client-content-negotiation:3.1.1")
@@ -135,6 +136,20 @@ tasks {
   test {
     useJUnitPlatform()
   }
+
+  named<JavaExec>("run") {
+    System.getProperties().forEach { k, v ->
+      val key = k.toString()
+      val value = v.toString()
+      if(key.startsWith("run.")) {
+        systemProperty(key.removePrefix("run."), value)
+      }
+    }
+  }
+}
+
+kotlin {
+  jvmToolchain(23)
 }
 
 sourceSets {

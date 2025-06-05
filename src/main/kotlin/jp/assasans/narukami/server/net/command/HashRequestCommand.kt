@@ -31,10 +31,9 @@ import jp.assasans.narukami.server.protocol.ProtocolBuffer
  *
  * Properties contains the information about the client, official client sends the following properties:
  *
- * Query parameters (non-exhaustive, all specified query parameters are sent):
+ * Query parameters (non-exhaustive, all Flash Player query parameters are sent):
  * - `balancer: http://127.0.0.1:5191/s/status.js`
  * - `debug: true`
- * - `locale: ru`
  * - `resources: 127.0.0.1:5192`
  * - `prefix: main.c`
  * - `config: 127.0.0.1:5191/config.xml`

@@ -36,6 +36,7 @@ import jp.assasans.narukami.server.kdl.KdlReader
 import jp.assasans.narukami.server.kdl.asNode
 import jp.assasans.narukami.server.kdl.getTypedCodec
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 data class ResourceInfo(
   val name: String,
   val id: Long,
@@ -196,7 +197,7 @@ class RemoteGameResourceRepository(
 
   private val resources: MutableMap<String, Set<Resource<*, *>>> = mutableMapOf()
 
-  private val root: Path = Paths.get(requireNotNull(System.getenv("RESOURCES_ROOT")) { "No \"RESOURCES_ROOT\" environment variable set" })
+  private val root: Path = Paths.get(requireNotNull(System.getProperty("res.root")) { "\"res.root\" system property is not set" })
 
   // @OptIn(FlowPreview::class)
   // suspend fun init() {

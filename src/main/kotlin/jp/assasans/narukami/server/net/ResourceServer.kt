@@ -28,6 +28,8 @@ import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.calllogging.*
 import io.ktor.server.plugins.defaultheaders.*
+import io.ktor.server.plugins.statuspages.*
+import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.datetime.Clock
@@ -44,7 +46,7 @@ class ResourceServer(
 
   private lateinit var engine: EmbeddedServer<*, *>
 
-  private val root: Path = Paths.get(requireNotNull(System.getenv("RESOURCES_ROOT")) { "\"RESOURCES_ROOT\" environment variable is not set" })
+  private val root: Path = Paths.get(requireNotNull(System.getProperty("res.root")) { "\"res.root\" system property is not set" })
 
   suspend fun start() {
     logger.info { "Starting resource server..." }
@@ -52,6 +54,11 @@ class ResourceServer(
       install(CallLogging)
       install(DefaultHeaders) {
         header(HttpHeaders.Server, "Narukami TO, resource server, AGPLv3+")
+      }
+      install(StatusPages) {
+        exception<Throwable> { call, exception ->
+          logger.error(exception) { "An error occurred while processing ${call.request.uri}" }
+        }
       }
 
       routing {

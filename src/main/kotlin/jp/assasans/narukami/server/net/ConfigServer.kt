@@ -29,6 +29,8 @@ import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.calllogging.*
 import io.ktor.server.plugins.defaultheaders.*
+import io.ktor.server.plugins.statuspages.*
+import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
@@ -37,12 +39,19 @@ class ConfigServer {
 
   private lateinit var engine: EmbeddedServer<*, *>
 
+  val gamePublicEndpoint = System.getProperty("game.url") ?: error("\"game.url\" system property is not set")
+
   suspend fun start() {
     logger.info { "Starting config server..." }
     engine = embeddedServer(Netty, port = 5191, host = "0.0.0.0") {
       install(CallLogging)
       install(DefaultHeaders) {
         header(HttpHeaders.Server, "Narukami TO, config server, AGPLv3+")
+      }
+      install(StatusPages) {
+        exception<Throwable> { call, exception ->
+          logger.error(exception) { "An error occurred while processing ${call.request.uri}" }
+        }
       }
 
       routing {
@@ -63,14 +72,18 @@ class ConfigServer {
          * This endpoint is shared between all nodes.
          */
         get("/s/status.js") {
+          val parts = gamePublicEndpoint.split(':')
+          val host = parts[0]
+          val port = if(parts.size > 1) parts[1].toInt() else 5190
+
           call.respond(
             Status(
               nodes = mapOf(
                 "main.c1" to StatusNode(
                   endpoint = NodeEndpoint(
-                    host = "127.0.0.1",
+                    host = host,
                     status = "NORMAL",
-                    tcpPorts = listOf(5190),
+                    tcpPorts = listOf(port),
                     wsPorts = listOf()
                   )
                 )
@@ -83,14 +96,18 @@ class ConfigServer {
          * Used by the game client to get server's endpoints.
          */
         get("config.xml") {
+          val parts = gamePublicEndpoint.split(':')
+          val host = parts[0]
+          val port = if(parts.size > 1) parts[1].toInt() else 5190
+
           call.respondText(ContentType.Application.Xml) {
             val stream = ByteArrayOutputStream()
             JAXBContext.newInstance(NodeConfig::class.java).createMarshaller().marshal(
               NodeConfig(
                 server = NodeConfig.Server(
-                  address = "127.0.0.1",
+                  address = host,
                   tcpPorts = listOf(
-                    NodeConfig.Server.Port(5190)
+                    NodeConfig.Server.Port(port)
                   ),
                   webSocketPorts = listOf()
                 )
@@ -113,6 +130,27 @@ class ConfigServer {
           call.respondOutputStream(ContentType(ContentType.Application.TYPE, "java-archive")) {
             inputStream.copyTo(this)
           }
+        }
+
+        get("/play.swf") {
+          val configPublicUrl = System.getProperty("config.url") ?: error("\"config.url\" system property is not set")
+          val resourcesPublicUrl = System.getProperty("res.url") ?: error("\"res.url\" system property is not set")
+
+          val url = "$resourcesPublicUrl/libs/AlternativaLoader.swf"
+          val params = mutableMapOf(
+            "config" to "$configPublicUrl/config.xml",
+            "resources" to resourcesPublicUrl,
+            "balancer" to "$configPublicUrl/s/status.js",
+            "prefix" to "main.c",
+          )
+
+          call.request.queryParameters.forEach { key, value -> params[key] = value.first() }
+
+          val query = params.entries.joinToString("&") { (key, value) ->
+            "${key}=${value.encodeURLParameter()}"
+          }
+
+          call.respondRedirect("$url?$query")
         }
       }
     }.start(true)

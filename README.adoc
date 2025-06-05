@@ -8,29 +8,42 @@ a Tanki X server reimplementation community.
 
 == Running
 
-You need to set the `RESOURCES_ROOT` environment variable to the `out` directory of the
-link:https://github.com/NarukamiTO/resource-generator[resource generator].
+The server uses JVM system properties for configuration. You need to set:
 
-You may configure log levels using `KOTLIN_LOG` environment variable with syntax
-similar to `RUST_LOG`: `root_log_level,my.package=log_level`.
+* `res.root` to the `out` directory of the
+link:https://github.com/NarukamiTO/resource-generator[resource generator].
+* `res.url` to publicly accessible URL of the resources server (e.g., `http://127.0.1:5192` for local).
+* `config.url` to publicly accessible URL of the config server (e.g., `http://127.0.0.1:5191` for local).
+* `game.url` to publicly accessible endpoint of the game server (e.g., `127.0.0.1:5190` for local).
+
+Prefix properties with `run.` to pass them to the server when running with `run` Gradle task.
 
 Example:
 
 [source,shell]
 ----
-RESOURCES_ROOT=$(realpath ../resource-generator/out) ./gradlew run
+./gradlew run \
+  -Drun.res.root=$(realpath ../resource-generator/out)
+  -Drun.res.url=http://127.0.0.1:5192 \
+  -Drun.config.url=http://127.0.0.1:5191 \
+  -Drun.game.url=127.0.0.1:5190
 ----
+
+You may configure log levels using `KOTLIN_LOG` environment variable with syntax
+similar to `RUST_LOG`: `root_log_level,my.package=log_level`.
 
 == Connecting
 
 Standalone Flash Player / Ruffle::
 
-  `http://127.0.0.1:5192/libs/AlternativaLoader.swf?config=127.0.0.1:5191/config.xml&resources=127.0.0.1:5192&balancer=http://127.0.0.1:5191/s/status.js&prefix=main.c&locale=ru&lang=ru&debug=true`
-//   or `http://127.0.0.1:5191/play.swf` which will automatically redirect to the URL above.
+  * `http://127.0.0.1:5191/play.swf` which will automatically redirect URL similar to one below.
+  * `http://127.0.0.1:5192/libs/AlternativaLoader.swf?config=127.0.0.1:5191/config.xml&resources=127.0.0.1:5192&balancer=http://127.0.0.1:5191/s/status.js&prefix=main.c&lang=ru&debug=true`
 
 Optional query parameters:
 
-* `autologin=username:password` - automatically log in with the given username and optional password
+* `lang` - client language, defaults to `en`.
+* `debug` - whether to enable (useless?) debug mode, defaults to `false`.
+* `autologin=username:password` - automatically log in with the given username and optional password.
 
 == License
 

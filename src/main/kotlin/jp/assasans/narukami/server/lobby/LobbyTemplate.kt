@@ -39,9 +39,9 @@ data class LobbyTemplate(
         panel = PanelModelCC(),
         onceADayAction = OnceADayActionModelCC(todayRestartTime = 0),
         reconnect = ClosureModelProvider {
+          val configPublicUrl = System.getProperty("config.url") ?: error("\"config.url\" system property is not set")
           ReconnectModelCC(
-            // TODO: How to specify public-facing URLs?
-            configUrlTemplate = requireSpaceChannel.sessionNotNull.properties["config"] ?: "127.0.0.1:5191/config.xml",
+            configUrlTemplate = requireSpaceChannel.sessionNotNull.properties["config"] ?: "$configPublicUrl/config.xml",
             serverNumber = 1,
           )
         },
