@@ -18,6 +18,7 @@
 
 package jp.assasans.narukami.server.battlefield
 
+import jp.assasans.narukami.server.battlefield.chat.BattleChatModelCC
 import jp.assasans.narukami.server.battleservice.StatisticsDMModel
 import jp.assasans.narukami.server.battleservice.StatisticsModelCC
 import jp.assasans.narukami.server.core.IModelProvider

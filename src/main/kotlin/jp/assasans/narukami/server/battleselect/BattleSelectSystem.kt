@@ -24,6 +24,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.koin.core.component.inject
 import jp.assasans.narukami.server.battlefield.*
+import jp.assasans.narukami.server.battlefield.chat.BattleChatModelCC
 import jp.assasans.narukami.server.battleservice.StatisticsDMModel
 import jp.assasans.narukami.server.battleservice.StatisticsModelCC
 import jp.assasans.narukami.server.core.*
