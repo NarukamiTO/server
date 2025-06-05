@@ -10,10 +10,23 @@
       <PatternLayout disableAnsi="false"
                      pattern="%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd HH:mm:ss.SSS}} %highlight{${LOG_LEVEL_PATTERN:-%5p}}{FATAL=red bold, ERROR=red, WARN=yellow bold, INFO=green, DEBUG=blue bold, TRACE=cyan} [%t] %style{%c}{cyan}: %highlight{%m}{FATAL=red bold, ERROR=red bold, WARN=yellow, INFO=reset, DEBUG=reset, TRACE=reset}%n${LOG_EXCEPTION_CONVERSION_WORD:-%xEx}" />
       <Filters>
-        <RegexFilter regex=".*Unknown server event.*" onMatch="DENY" onMismatch="NEUTRAL" />
-        <RegexFilter regex=".*Unhandled.*" onMatch="DENY" onMismatch="NEUTRAL" />
-        <RegexFilter regex=".*Processing server event.*" onMatch="DENY" onMismatch="NEUTRAL" />
+        <!-- Useful for development -->
+        <!-- <RegexFilter regex=".*Unknown server event.*" onMatch="DENY" onMismatch="NEUTRAL" /> -->
+        <!-- <RegexFilter regex=".*Unhandled.*" onMatch="DENY" onMismatch="NEUTRAL" /> -->
+        <!-- <RegexFilter regex=".*Processing server event.*" onMatch="DENY" onMismatch="NEUTRAL" /> -->
+
+        <!-- Ignore too verbose events -->
+        <RegexFilter
+          regex=".*Processing server event: (TankModelHandleCollisionWithOtherTankEvent|RotatingTurretModelUpdateServerEvent|TankModelMoveCommandEvent|TankModelMovementControlCommandEvent).*"
+          onMatch="DENY"
+          onMismatch="NEUTRAL" />
         <RegexFilter regex=".*Move tank.*" onMatch="DENY" onMismatch="NEUTRAL" />
+
+        <!-- Performance tracing -->
+        <!-- <RegexFilter -->
+        <!--   regex=".*\stook \(resolve\)\s.*" -->
+        <!--   onMatch="ACCEPT" -->
+        <!--   onMismatch="DENY" /> -->
       </Filters>
     </Console>
     <File name="MAIN" fileName="logs/main.log">

@@ -22,6 +22,8 @@ import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 import kotlin.reflect.KParameter
 import kotlin.reflect.full.*
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.microseconds
 import kotlin.time.Duration.Companion.seconds
 import io.github.classgraph.ClassGraph
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -31,6 +33,8 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.onFailure
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import jp.assasans.narukami.server.core.*
@@ -171,8 +175,13 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler, KoinC
   private suspend fun processServerEvent(event: IEvent, context: IModelContext, gameObject: IGameObject) {
     logger.info { "Processing server event: $event on $context" }
 
+    val startTotal = Clock.System.now()
+    var startResolve: Instant
+    val durationsResolve = mutableListOf<Duration>()
+
     var handled = false
     for(handler in handlers) {
+      startResolve = Clock.System.now()
       if(!event::class.isSubclassOf(handler.event)) continue
 
       if(handler.onlySpaceContext && context !is SpaceModelContext) {
@@ -212,12 +221,21 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler, KoinC
       val instance = handler.system.createInstance()
       args[instanceParameter] = instance
 
+      durationsResolve.add(Clock.System.now() - startResolve)
       invokeHandler(event, context, handler, args)
       handled = true
     }
 
     if(!handled) {
       logger.warn { "Unhandled $event on $context" }
+    }
+
+    val durationTotal = Clock.System.now() - startTotal
+    val durationResolve = durationsResolve.fold(Duration.ZERO) { acc, duration -> acc + duration }
+    logger.trace { "Processing ${event::class.qualifiedName} took (resolve) $durationResolve" }
+    logger.trace { "Processing ${event::class.qualifiedName} took (total) $durationTotal" }
+    if(durationResolve > 500.microseconds) {
+      logger.warn { "Event ${event::class.qualifiedName} took (resolve) $durationResolve" }
     }
   }
 
