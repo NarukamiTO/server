@@ -149,7 +149,6 @@ class LobbySystem : AbstractSystem() {
     // To logout, we need to close all spaces and reopen the entrance space
     for(channel in session.spaces.all) {
       channel.close()
-      session.spaces.remove(channel)
     }
 
     // Same as the bootstrapping code in [ControlChannel]

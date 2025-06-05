@@ -39,35 +39,35 @@ interface IEvent
 val KClass<out IEvent>.protocolId: Long
   get() = requireNotNull(findAnnotation<ProtocolEvent>()) { "$this has no @ProtocolEvent annotation" }.id
 
-context(AbstractSystem)
+context(system: AbstractSystem)
 fun <T : IEvent> T.schedule(node: Node): T {
-  eventScheduler.schedule(this, node.context, node.gameObject)
+  system.eventScheduler.schedule(this, node.context, node.gameObject)
   return this
 }
 
-context(AbstractSystem)
+context(system: AbstractSystem)
 fun <T : IEvent> T.schedule(nodes: Iterable<Node>): T {
   for(node in nodes) {
-    eventScheduler.schedule(this, node.context, node.gameObject)
+    system.eventScheduler.schedule(this, node.context, node.gameObject)
   }
   return this
 }
 
-context(AbstractSystem)
+context(system: AbstractSystem)
 fun <T : IEvent> T.schedule(context: IModelContext, gameObject: IGameObject): T {
-  eventScheduler.schedule(this, context, gameObject)
+  system.eventScheduler.schedule(this, context, gameObject)
   return this
 }
 
-context(AbstractSystem)
+context(system: AbstractSystem)
 fun <T : IEvent> T.schedule(sender: SpaceChannel, gameObject: IGameObject): T {
-  eventScheduler.schedule(this, SpaceChannelModelContext(sender), gameObject)
+  system.eventScheduler.schedule(this, SpaceChannelModelContext(sender), gameObject)
   return this
 }
 
-context(SpaceChannel)
+context(channel: SpaceChannel)
 fun <T : IEvent> T.schedule(gameObject: IGameObject): T {
-  eventScheduler.schedule(this, SpaceChannelModelContext(this@SpaceChannel), gameObject)
+  channel.eventScheduler.schedule(this, SpaceChannelModelContext(channel), gameObject)
   return this
 }
 

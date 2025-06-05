@@ -59,9 +59,9 @@ inline fun <reified T : Node> IGameObject.adapt(sender: SpaceChannel): T {
  *
  * This is useful for performing a type-safe conversion from a game object to a node.
  */
-context(IModelContext)
+context(context: IModelContext)
 inline fun <reified T : Node> IGameObject.adapt(): T {
-  return adapt(this@IModelContext, T::class)
+  return adapt(context, T::class)
 }
 
 /**
@@ -76,15 +76,15 @@ inline fun <reified T : IModelConstructor> IGameObject.adaptSingle(context: IMod
 /**
  * Returns a single data unit [T] from the [IGameObject] for the current space channel.
  */
-context(SpaceChannel)
+context(channel: SpaceChannel)
 inline fun <reified T : IModelConstructor> IGameObject.adaptSingle(): T {
-  return adaptSingle(SpaceChannelModelContext(this@SpaceChannel))
+  return adaptSingle(SpaceChannelModelContext(channel))
 }
 
 /**
  * Returns a single data unit [T] from the [IGameObject] for the current context.
  */
-context(IModelContext)
+context(context: IModelContext)
 inline fun <reified T : IModelConstructor> IGameObject.adaptSingle(): T {
-  return adaptSingle(this@IModelContext)
+  return adaptSingle(context)
 }

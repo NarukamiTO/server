@@ -21,8 +21,8 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 plugins {
-  kotlin("jvm") version "2.1.10"
-  id("com.google.devtools.ksp") version "2.1.10-1.0.31"
+  kotlin("jvm") version "2.2.0-RC2"
+  id("com.google.devtools.ksp") version "2.2.0-RC-2.0.1" // TODO: Update to RC2 when available
   application
   idea
 }
@@ -54,8 +54,8 @@ dependencies {
   /* Serialization */
   implementation("com.fasterxml.jackson.core:jackson-core:2.18.3")
   implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.18.3")
-  // KDL4J is not published to Maven Central and even so releases are outdated,
-  // so we pin to a specific commit.
+  // KDL4J is not published to Maven Central so we have to pin to a specific commit
+  // XXX: Cannot update further because of toolchain misconfiguration in KDL4J
   implementation("com.github.kdl-org:kdl4j:ef4a876")
   implementation("javax.xml.bind:jaxb-api:2.3.1")
   implementation("org.glassfish.jaxb:jaxb-runtime:2.3.1")
@@ -122,7 +122,7 @@ tasks {
 
   compileKotlin {
     compilerOptions {
-      freeCompilerArgs.add("-Xcontext-receivers")
+      freeCompilerArgs.add("-Xcontext-parameters")
     }
   }
 
