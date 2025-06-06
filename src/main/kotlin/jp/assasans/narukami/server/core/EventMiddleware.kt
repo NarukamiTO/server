@@ -16,14 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package jp.assasans.narukami.server.battlefield
+package jp.assasans.narukami.server.core
 
-import jp.assasans.narukami.server.core.ITemplate
-import jp.assasans.narukami.server.net.command.ProtocolClass
-
-@ProtocolClass(525252)
-data class BattleEnterRequestTemplate(
-  val battleEnterRequest: BattleEnterRequestComponent,
-  val userGroup: UserGroupComponent,
-  val team: TeamComponent,
-) : ITemplate
+interface EventMiddleware {
+  fun process(eventScheduler: IEventScheduler, event: IEvent, gameObject: IGameObject, context: IModelContext)
+}

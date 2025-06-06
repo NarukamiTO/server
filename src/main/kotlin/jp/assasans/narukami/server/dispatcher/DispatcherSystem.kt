@@ -24,13 +24,16 @@ import kotlin.reflect.full.isSubclassOf
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.sync.Mutex
+import jp.assasans.narukami.server.battlefield.ReplaySocketClient
 import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.core.impl.TemplatedGameClass
 import jp.assasans.narukami.server.core.impl.TransientGameObject
 import jp.assasans.narukami.server.extensions.kotlinClass
+import jp.assasans.narukami.server.lobby.UsernameComponent
 import jp.assasans.narukami.server.net.SpaceChannel
 import jp.assasans.narukami.server.net.command.ProtocolClass
 import jp.assasans.narukami.server.net.command.ProtocolModel
+import jp.assasans.narukami.server.net.session.userNotNull
 import jp.assasans.narukami.server.net.sessionNotNull
 import jp.assasans.narukami.server.res.Resource
 
@@ -48,7 +51,11 @@ data class DeferredDependenciesTemplate(
 
 class DispatcherNode(
   val dispatcher: DispatcherModelCC,
-) : Node()
+) : Node() {
+  override fun toString(): String {
+    return "DispatcherNode(username=${context.requireSpaceChannel.sessionNotNull.userNotNull.getComponent<UsernameComponent>().username})"
+  }
+}
 
 class DispatcherWithMutexNode(
   val dispatcher: DispatcherModelCC,
@@ -121,11 +128,22 @@ class DispatcherSystem : AbstractSystem() {
     ).schedule(dispatcher)
 
     logger.debug { "Dependencies ${event.callbackId} ${event.resources.map { it.id.id }} load request scheduled" }
+
+    if(dispatcher.context.requireSpaceChannel.socket is ReplaySocketClient) {
+      logger.info { "Simulating dependencies load for replay socket client: $event" }
+      mutex.unlock()
+      event.deferred.complete(Unit)
+    }
   }
 
   @OnEventFire
   @Mandatory
   fun dependenciesLoaded(event: DispatcherModelDependenciesLoadedEvent, dispatcher: DispatcherWithMutexNode) {
+    if(dispatcher.context.requireSpaceChannel.socket is ReplaySocketClient) {
+      logger.info { "Skipping dependencies loaded event for replay socket client: $event" }
+      return
+    }
+
     logger.debug { "Dependencies loaded: ${event.callbackId}" }
 
     val deferredDependenciesObject = dispatcher.context.space.objects.get(event.callbackId.toLong())
@@ -162,6 +180,7 @@ class DispatcherSystem : AbstractSystem() {
 
     val context = dispatcher.context
     if(context is SpaceChannelModelContext) {
+      logger.info { "Adding loaded objects to channel: ${event.objects.map { it.id }}" }
       context.channel.loadedObjects.addAll(event.objects.map { it.id })
     }
 

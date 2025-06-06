@@ -17,7 +17,7 @@
 
         <!-- Ignore too verbose events -->
         <RegexFilter
-          regex=".*Processing server event: (TankModelHandleCollisionWithOtherTankEvent|RotatingTurretModelUpdateServerEvent|TankModelMoveCommandEvent|TankModelMovementControlCommandEvent).*"
+          regex=".*(TankModelHandleCollisionWithOtherTankEvent|RotatingTurretModelUpdateServerEvent|TankModelMoveCommandEvent|TankModelMovementControlCommandEvent).*"
           onMatch="DENY"
           onMismatch="NEUTRAL" />
         <RegexFilter regex=".*Move tank.*" onMatch="DENY" onMismatch="NEUTRAL" />

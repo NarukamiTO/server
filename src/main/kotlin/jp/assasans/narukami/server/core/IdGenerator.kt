@@ -37,3 +37,20 @@ fun makeStableId(identifier: String): Long {
 
   return id
 }
+
+fun makeStableTransientId(identifier: String): Long {
+  val logger = KotlinLogging.logger { }
+
+  val key = longArrayOf(
+    0x11111111_11111111,
+    0x42424242_42424242,
+    0x21122019_21122019,
+    0x42424242_42424242,
+  )
+  val data = identifier.toByteArray()
+  val hash = HighwayHash.hash64(data, 0, data.size, key)
+  val id = hash and 0xffffffe
+  logger.trace { "Generated stable transient ID $id for $identifier" }
+
+  return -id
+}

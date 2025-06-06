@@ -18,10 +18,15 @@
 
 package jp.assasans.narukami.server.battleselect
 
+import kotlin.random.Random
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
 import org.koin.core.component.inject
 import jp.assasans.narukami.server.battlefield.*
 import jp.assasans.narukami.server.battlefield.chat.BattleChatModelCC
@@ -35,8 +40,10 @@ import jp.assasans.narukami.server.dispatcher.DispatcherLoadObjectsManagedEvent
 import jp.assasans.narukami.server.dispatcher.DispatcherNode
 import jp.assasans.narukami.server.dispatcher.DispatcherOpenSpaceEvent
 import jp.assasans.narukami.server.dispatcher.DispatcherUnloadObjectsManagedEvent
+import jp.assasans.narukami.server.extensions.roundToNearest
 import jp.assasans.narukami.server.lobby.*
 import jp.assasans.narukami.server.lobby.communication.ChatNode
+import jp.assasans.narukami.server.lobby.user.UserTemplate
 import jp.assasans.narukami.server.net.session.userNotNull
 import jp.assasans.narukami.server.net.sessionNotNull
 import jp.assasans.narukami.server.res.Eager
@@ -140,7 +147,7 @@ class BattleSelectSystem : AbstractSystem() {
       objects.remove(rootObject)
 
       val battleMapObject = TransientGameObject.instantiate(
-        id = TransientGameObject.freeId(),
+        id = TransientGameObject.transientId("Map:${mapInfo.gameObject.id}"),
         parent = TemplatedGameClass.fromTemplate(BattleMapTemplate::class),
         template = BattleMapTemplate.Provider.create()
       )
@@ -323,7 +330,7 @@ class BattleSelectSystem : AbstractSystem() {
     val battleSpace = spaces.get(battleInfo.gameObject.id) ?: throw IllegalStateException("Battle space ${battleInfo.gameObject.id} not found")
 
     val battleUserObject = TransientGameObject.instantiate(
-      id = TransientGameObject.freeId(),
+      id = TransientGameObject.transientId("BattleUser:${user.gameObject.id}:${Clock.System.now().toEpochMilliseconds()}"),
       parent = TemplatedGameClass.fromTemplate(BattleUserTemplate::class),
       BattleUserTemplate(
         battleUser = BattleUserComponent(),
@@ -335,6 +342,12 @@ class BattleSelectSystem : AbstractSystem() {
     battleSpace.objects.add(battleUserObject)
 
     DispatcherOpenSpaceEvent(battleInfo.gameObject.id).schedule(dispatcher).await()
+    if(BattlefieldReplayMiddleware.replayWriter != null) {
+      BattlefieldReplayMiddleware.replayWriter!!.writeComment("user id: ${user.gameObject.id}")
+      BattlefieldReplayMiddleware.replayWriter!!.writeComment("battle user id: ${battleUserObject.id}")
+    } else {
+      startReplay(battleSpace)
+    }
   }
 
   // TODO: Repeats logic from [fight]
@@ -368,7 +381,7 @@ class BattleSelectSystem : AbstractSystem() {
     val battleSpace = spaces.get(battleInfo.gameObject.id) ?: throw IllegalStateException("Battle space ${battleInfo.gameObject.id} not found")
 
     val battleUserObject = TransientGameObject.instantiate(
-      id = TransientGameObject.freeId(),
+      id = TransientGameObject.transientId("BattleUser:${user.gameObject.id}:${Clock.System.now().toEpochMilliseconds()}"),
       parent = TemplatedGameClass.fromTemplate(BattleUserTemplate::class),
       BattleUserTemplate(
         battleUser = BattleUserComponent(),
@@ -380,6 +393,41 @@ class BattleSelectSystem : AbstractSystem() {
     battleSpace.objects.add(battleUserObject)
 
     DispatcherOpenSpaceEvent(battleInfo.gameObject.id).schedule(dispatcher).await()
+    startReplay(battleSpace)
+  }
+
+  private fun startReplay(battleSpace: ISpace) {
+    GlobalScope.launch {
+      delay(3000)
+      val userObject = TransientGameObject.instantiate(
+        185858060,
+        parent = TemplatedGameClass.fromTemplate(UserTemplate::class),
+        template = UserTemplate.Provider.create(),
+        components = setOf(
+          UsernameComponent("REPLAY_User1"),
+          ScoreComponent(Random.nextInt(10_000, 1_000_000).roundToNearest(100)),
+          CrystalsComponent(Random.nextInt(100_000, 10_000_000).roundToNearest(100)),
+        )
+      )
+      userObject.addComponent(UserGroupComponent(userObject))
+
+      val battleUserObject = TransientGameObject.instantiate(
+        id = -218052496,
+        parent = TemplatedGameClass.fromTemplate(BattleUserTemplate::class),
+        BattleUserTemplate(
+          battleUser = BattleUserComponent(),
+          userGroup = UserGroupComponent(userObject),
+          team = TeamComponent(BattleTeam.NONE),
+          spectator = null,
+        )
+      )
+      battleSpace.objects.add(battleUserObject)
+
+      val reader = ReplayReader(battleSpace, userObject)
+      reader.readEvents().collect { event ->
+        eventScheduler.schedule(event.event, SpaceChannelModelContext(event.sender), event.gameObject)
+      }
+    }
   }
 
   @OnEventFire

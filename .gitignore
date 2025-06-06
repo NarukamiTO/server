@@ -11,3 +11,7 @@ build/
 # Runtime
 logs/
 out/
+
+*.replay
+# Demo replay
+!battle.replay

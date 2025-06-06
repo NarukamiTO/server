@@ -37,6 +37,7 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import jp.assasans.narukami.server.battlefield.BattlefieldReplayMiddleware
 import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.extensions.kotlinClass
 import jp.assasans.narukami.server.extensions.singleOrNullOrThrow
@@ -112,6 +113,7 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler, KoinC
   private val nodeBuilder = NodeBuilder()
   private val systems: List<KClass<out AbstractSystem>>
   private val handlers: List<EventHandlerDefinition>
+  private val middleware: List<EventMiddleware>
 
   init {
     systems = ClassGraph()
@@ -137,6 +139,10 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler, KoinC
     for(handler in handlers) {
       logger.info { "Discovered event handler: ${handler.system.qualifiedName}::${handler.function.name} for ${handler.event.qualifiedName} with ${handler.nodes.map { it.nodeDefinition }}" }
     }
+
+    middleware = listOf(
+      BattlefieldReplayMiddleware,
+    )
   }
 
   fun makeHandlerDefinition(system: KClass<out AbstractSystem>, function: KFunction<*>): EventHandlerDefinition {
@@ -181,6 +187,15 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler, KoinC
     logger.info { "Processing server event: $event on $context" }
 
     val startTotal = Clock.System.now()
+    for(middleware in middleware) {
+      try {
+        logger.trace { "Processing $event by middleware $middleware" }
+        middleware.process(this, event, gameObject, context)
+      } catch(exception: Exception) {
+        logger.error(exception) { "Error processing middleware $middleware for $event" }
+      }
+    }
+
     var startResolve: Instant
     val durationsResolve = mutableListOf<Duration>()
 
@@ -296,34 +311,39 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler, KoinC
         for(gameObject in objects) {
           if(!nodeParameter.allowUnloaded) {
             if(context is SpaceChannelModelContext && !context.channel.loadedObjects.contains(gameObject.id)) {
-              logger.debug { "$gameObject is not loaded in ${context.channel}" }
+              logger.info { "[${nodeDefinition.type.kotlinClass.simpleName}] $gameObject is not loaded in ${context.channel}, excluding" }
               continue
             }
           }
 
           val node = nodeBuilder.tryBuildLazy(nodeDefinition, gameObject, context)
-          if(node != null) nodes.add(node)
+          if(node != null) {
+            nodes.add(node)
+            logger.info { "[${nodeDefinition.type.kotlinClass.simpleName}] Built node $node for $gameObject in $context" }
+          } else {
+            logger.info { "[${nodeDefinition.type.kotlinClass.simpleName}] Failed to build for $gameObject in $context" }
+          }
         }
       }
 
       if(nodeParameter.isList) {
         args[parameter] = nodes
-        logger.trace { "Built nodes $nodes for ${parameter.name}" }
+        logger.info { "[${nodeDefinition.type.kotlinClass.simpleName}] Built nodes $nodes for '${parameter.name}' of ${handler.system.qualifiedName}::${handler.function.name}" }
       } else {
         val node = when(nodes.size) {
           0    -> {
-            if(handler.mandatory) throw IllegalArgumentException("Failed to build node $nodeDefinition for ${handler.system.qualifiedName}::${handler.function.name}")
+            if(handler.mandatory) throw IllegalArgumentException("Failed to build node $nodeDefinition for '${parameter.name}' of ${handler.system.qualifiedName}::${handler.function.name}")
 
-            logger.trace { "Failed to build node $nodeDefinition" }
+            logger.info { "[${nodeDefinition.type.kotlinClass.simpleName}] Failed to build for '${parameter.name}' of ${handler.system.qualifiedName}::${handler.function.name}" }
             return false
           }
 
           1    -> nodes[0]
-          else -> throw IllegalArgumentException("Expected one game object for ${parameter.name} of ${handler.system.qualifiedName}::${handler.function.name}, got ${nodes.size}")
+          else -> throw IllegalArgumentException("Expected one game object for '${parameter.name}' of ${handler.system.qualifiedName}::${handler.function.name}, got ${nodes.size}")
         }
 
         args[parameter] = node
-        logger.trace { "Built node $node for ${parameter.name}" }
+        logger.info { "[${nodeDefinition.type.kotlinClass.simpleName}] Built node $node for '${parameter.name}' of ${handler.system.qualifiedName}::${handler.function.name}" }
       }
 
       previousObjects = nodes.gameObjects.toSet()

@@ -39,9 +39,12 @@ class TransientGameObject(
      *
      * Transient IDs are negative, as opposed to persistent IDs, which are positive.
      */
+    @Deprecated("Use transientId() instead", ReplaceWith("transientId(identifier)"), level = DeprecationLevel.ERROR)
     fun freeId(): Long {
       return lastId.getAndDecrement()
     }
+
+    fun transientId(identifier: String): Long = makeStableTransientId("GameObject:$identifier")
 
     /**
      * Generates a stable ID for a game object.

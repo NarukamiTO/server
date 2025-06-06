@@ -62,8 +62,8 @@ data class TankNode(
   val tankConfiguration: TankConfigurationModelCC,
 ) : Node()
 
-private fun createTankHull(gameResourceRepository: IGameResourceRepository) = TransientGameObject.instantiate(
-  id = TransientGameObject.freeId(),
+private fun createTankHull(battleUser: IGameObject, gameResourceRepository: IGameResourceRepository) = TransientGameObject.instantiate(
+  id = TransientGameObject.transientId("Hull:${battleUser.id}"),
   parent = TemplatedGameClass.fromTemplate(HullTemplate::class),
   HullTemplate(
     hullCommon = HullCommonModelCC(
@@ -114,8 +114,8 @@ private fun createTankHull(gameResourceRepository: IGameResourceRepository) = Tr
   )
 )
 
-private fun createTankWeapon(gameResourceRepository: IGameResourceRepository) = TransientGameObject.instantiate(
-  id = TransientGameObject.freeId(),
+private fun createTankWeapon(battleUser: IGameObject, gameResourceRepository: IGameResourceRepository) = TransientGameObject.instantiate(
+  id = TransientGameObject.transientId("Weapon:${battleUser.id}"),
   parent = TemplatedGameClass.fromTemplate(SmokyTemplate::class),
   SmokyTemplate(
     weaponCommon = WeaponCommonModelCC(
@@ -189,8 +189,8 @@ private fun createTankWeapon(gameResourceRepository: IGameResourceRepository) = 
   )
 )
 
-private fun createTankPaint(gameResourceRepository: IGameResourceRepository) = TransientGameObject.instantiate(
-  id = TransientGameObject.freeId(),
+private fun createTankPaint(battleUser: IGameObject, gameResourceRepository: IGameResourceRepository) = TransientGameObject.instantiate(
+  id = TransientGameObject.transientId("Paint:${battleUser.id}"),
   parent = TemplatedGameClass.fromTemplate(ColoringTemplate::class),
   ColoringTemplate(
     coloring = ColoringModelCC.static(
@@ -345,6 +345,11 @@ class BattlefieldSystem : AbstractSystem() {
     @JoinAll @PerChannel battlefieldShared: List<SingleNode<BattlefieldModelCC>>,
     @JoinAll @AllowUnloaded battleUsers: List<BattleUserNode>,
   ) {
+    if(dispatcher.context.requireSpaceChannel.socket is ReplaySocketClient) {
+      logger.info { "Dispatchers shared: $dispatcherShared" }
+      check(dispatcherShared.size == 2)
+    }
+
     val text = gameResourceRepository.resolve(battleMap.battleMap.mapResource, "private.json").readText()
     val data = objectMapper.readValue<PrivateMapDataEntity>(text)
 
@@ -373,14 +378,16 @@ class BattlefieldSystem : AbstractSystem() {
     if(battleUser.team != null) {
       check(battleUser.spectator == null)
 
-      // TODO: There is no good API for cross-space communication. I don't like this code, should refactor it.
-      //  In this case, we need to send an event from the battle space to all channels in the lobby space, excluding self.
-      val lobbyChannel = event.channel.sessionNotNull.spaces.get(Space.stableId("lobby")) ?: throw IllegalStateException("No lobby channel")
-      AddBattleUserEvent(battleUser).schedule(lobbyChannel, battleMap.battleInfoGroup.reference)
+      if(dispatcher.context.requireSpaceChannel.socket !is ReplaySocketClient) {
+        // TODO: There is no good API for cross-space communication. I don't like this code, should refactor it.
+        //  In this case, we need to send an event from the battle space to all channels in the lobby space, excluding self.
+        val lobbyChannel = event.channel.sessionNotNull.spaces.get(Space.stableId("lobby")) ?: throw IllegalStateException("No lobby channel")
+        AddBattleUserEvent(battleUser).schedule(lobbyChannel, battleMap.battleInfoGroup.reference)
+      }
 
-      val hullObject = createTankHull(gameResourceRepository)
-      val weaponObject = createTankWeapon(gameResourceRepository)
-      val paintObject = createTankPaint(gameResourceRepository)
+      val hullObject = createTankHull(user.gameObject, gameResourceRepository)
+      val weaponObject = createTankWeapon(user.gameObject, gameResourceRepository)
+      val paintObject = createTankPaint(user.gameObject, gameResourceRepository)
       val tankObject = createTank(
         user,
         TankConfigurationModelCC(
@@ -400,7 +407,7 @@ class BattlefieldSystem : AbstractSystem() {
       event.channel.space.objects.add(paintObject)
       event.channel.space.objects.add(tankObject)
 
-      /* Forward loading: load current player to existing */
+      /* Forward loading: load current player to self and existing */
       // UserConnect must be sent before loading the tank object, otherwise an
       // unhelpful error #1009 in [ActionOutputLine::createUserLabel] occurs.
       // Tank object ID must match the user object ID, this is hardcoded in the client.
@@ -411,7 +418,7 @@ class BattlefieldSystem : AbstractSystem() {
         usersInfoForward
       ).schedule(battlefieldShared)
 
-      logger.debug { "${event.channel.sessionNotNull.userNotNull.getComponent<UsernameComponent>()} Loading tank parts" }
+      logger.debug { "${event.channel.sessionNotNull.userNotNull.getComponent<UsernameComponent>()} Loading tank parts for $dispatcherShared" }
       for(dispatcherRemote in dispatcherShared) {
         logger.debug { "Loading tank parts to ${dispatcherRemote.context.requireSpaceChannel.sessionNotNull.userNotNull.getComponent<UsernameComponent>()}" }
         DispatcherLoadObjectsManagedEvent(
