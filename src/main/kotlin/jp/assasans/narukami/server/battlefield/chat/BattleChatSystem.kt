@@ -19,9 +19,15 @@
 package jp.assasans.narukami.server.battlefield.chat
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import jp.assasans.narukami.server.battlefield.BattleUserNode
+import jp.assasans.narukami.server.battlefield.UserGroupComponent
 import jp.assasans.narukami.server.battleselect.BattleTeam
 import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.lobby.UserNode
+
+data class BattleDebugMessageEvent(
+  val message: String,
+) : IEvent
 
 class BattleChatSystem : AbstractSystem() {
   private val logger = KotlinLogging.logger { }
@@ -33,6 +39,8 @@ class BattleChatSystem : AbstractSystem() {
     chat: SingleNode<BattleChatModelCC>,
     // XXX: @AllowUnloaded because object is loaded in different space
     @AllowUnloaded user: UserNode,
+    // @AllowUnloaded because it is server-only object
+    @JoinAll @JoinBy(UserGroupComponent::class) @AllowUnloaded battleUser: BattleUserNode,
     @PerChannel chatShared: List<SingleNode<BattleChatModelCC>>,
   ) {
     logger.debug { "Send message to battle chat: $event" }
@@ -41,5 +49,14 @@ class BattleChatSystem : AbstractSystem() {
       message = event.message,
       type = BattleTeam.NONE,
     ).schedule(chatShared)
+  }
+
+  @OnEventFire
+  @Mandatory
+  fun debugMessage(
+    event: BattleDebugMessageEvent,
+    chat: SingleNode<BattleChatModelCC>,
+  ) {
+    BattleChatModelAddSystemMessageEvent(message = event.message).schedule(chat)
   }
 }

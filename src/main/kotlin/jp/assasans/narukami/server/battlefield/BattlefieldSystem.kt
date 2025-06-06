@@ -24,10 +24,13 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.delay
 import org.koin.core.component.inject
+import jp.assasans.narukami.server.battlefield.chat.BattleDebugMessageEvent
 import jp.assasans.narukami.server.battlefield.tank.*
 import jp.assasans.narukami.server.battlefield.tank.hull.*
 import jp.assasans.narukami.server.battlefield.tank.paint.ColoringModelCC
 import jp.assasans.narukami.server.battlefield.tank.paint.ColoringTemplate
+import jp.assasans.narukami.server.battlefield.tank.pause.TankPauseModelCC
+import jp.assasans.narukami.server.battlefield.tank.suicide.SuicideModelCC
 import jp.assasans.narukami.server.battlefield.tank.weapon.*
 import jp.assasans.narukami.server.battlefield.tank.weapon.smoky.SmokyModelCC
 import jp.assasans.narukami.server.battlefield.tank.weapon.smoky.SmokyShootSFXModelCC
@@ -202,18 +205,33 @@ interface IGroupComponent : IComponent {
   val reference: IGameObject
 }
 
+data object BattleEnterRequestComponent : IComponent
+
+data class BattleEnterRequestNode(
+  val battleEnterRequest: BattleEnterRequestComponent,
+  val userGroup: UserGroupComponent,
+  val team: TeamComponent,
+) : Node()
+
 class BattleUserComponent : IComponent
-data class UserGroupComponent(override val reference: IGameObject) : IGroupComponent
+data class TeamComponent(val team: BattleTeam) : IComponent
+data class UserGroupComponent(override val reference: IGameObject) : IGroupComponent {
+  override fun toString(): String {
+    return "UserGroupComponent(reference=${reference.id}, username=${reference.getComponent<UsernameComponent>().username})"
+  }
+}
 
 @ProtocolClass(6464)
 data class BattleUserTemplate(
   val battleUser: BattleUserComponent,
   val userGroup: UserGroupComponent,
+  val team: TeamComponent,
 ) : ITemplate
 
 data class BattleUserNode(
   val battleUser: BattleUserComponent,
   val userGroup: UserGroupComponent,
+  val team: TeamComponent,
 ) : Node()
 
 fun BattleUserNode.asUserInfo(objects: Iterable<IGameObject>): UserInfo {
@@ -307,12 +325,13 @@ private fun createTank(user: UserNode, configuration: TankConfigurationModelCC) 
   )
 )
 
-private fun createBattleUser(user: UserNode) = TransientGameObject.instantiate(
+private fun createBattleUser(user: UserNode, team: BattleTeam) = TransientGameObject.instantiate(
   id = TransientGameObject.freeId(),
   parent = TemplatedGameClass.fromTemplate(BattleUserTemplate::class),
   BattleUserTemplate(
     battleUser = BattleUserComponent(),
     userGroup = UserGroupComponent(user.gameObject),
+    team = TeamComponent(team),
   )
 )
 
@@ -335,6 +354,7 @@ class BattlefieldSystem : AbstractSystem() {
     dispatcher: DispatcherNode,
     // XXX: @AllowUnloaded because object is loaded in different space
     @AllowUnloaded user: UserNode,
+    @JoinAll @JoinBy(UserGroupComponent::class) @AllowUnloaded battleEnterRequest: BattleEnterRequestNode,
     @PerChannel dispatcherShared: List<DispatcherNode>,
     @JoinAll @AllowUnloaded battleMap: BattleMapNode,
     @JoinAll @AllowUnloaded battlefield: SingleNode<BattlefieldModelCC>,
@@ -361,7 +381,13 @@ class BattlefieldSystem : AbstractSystem() {
       battlefield.gameObject,
     ).schedule(dispatcher).await()
 
-    val battleUserObject = createBattleUser(user)
+    logger.debug { "Battle enter request: $battleEnterRequest" }
+    BattleDebugMessageEvent(
+      "Battle enter request: ${battleEnterRequest.userGroup.reference.getComponent<UsernameComponent>().username}, team: ${battleEnterRequest.team.team}"
+    ).schedule(battlefield)
+    event.channel.space.objects.remove(battleEnterRequest.gameObject)
+
+    val battleUserObject = createBattleUser(user, battleEnterRequest.team.team)
     val battleUser = battleUserObject.adapt<BattleUserNode>(event.channel)
 
     // TODO: There is no good API for cross-space communication. I don't like this code, should refactor it.
@@ -495,6 +521,12 @@ class BattlefieldSystem : AbstractSystem() {
     for(battlefieldRemote in battlefieldShared) {
       TankModelActivateTankEvent().schedule(battlefieldRemote.context, tank.gameObject)
     }
+  }
+
+  @OnEventFire
+  @Mandatory
+  fun confirmSpawn(event: TankSpawnerModelConfirmSpawnEvent, tank: TankNode) {
+    // TODO: Unimplemented, not sure what it is used for
   }
 
   @OnEventFire

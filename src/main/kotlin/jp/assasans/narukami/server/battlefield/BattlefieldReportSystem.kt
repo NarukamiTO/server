@@ -16,12 +16,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package jp.assasans.narukami.server.battlefield.tank
+package jp.assasans.narukami.server.battlefield
 
-import jp.assasans.narukami.server.core.IModelConstructor
-import jp.assasans.narukami.server.net.command.ProtocolModel
+import io.github.oshai.kotlinlogging.KotlinLogging
+import jp.assasans.narukami.server.core.*
+import jp.assasans.narukami.server.lobby.UserNode
 
-@ProtocolModel(2271787261806799336)
-data class SuicideModelCC(
-  val suicideDelayMS: Int,
-) : IModelConstructor
+class BattlefieldReportSystem : AbstractSystem() {
+  private val logger = KotlinLogging.logger { }
+
+  @OnEventFire
+  @Mandatory
+  fun sendTimeStatistics(
+    event: BattlefieldModelSendTimeStatisticsCommandEvent,
+    battlefield: SingleNode<BattlefieldModelCC>,
+    // XXX: @AllowUnloaded because object is loaded in different space
+    @AllowUnloaded user: UserNode,
+  ) {
+    logger.info { "Time statistics: ${event.averageFPS} FPS on ${event.statisticType} for ${user.username.username}" }
+  }
+}

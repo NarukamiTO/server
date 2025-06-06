@@ -39,6 +39,7 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.extensions.kotlinClass
+import jp.assasans.narukami.server.extensions.singleOrNullOrThrow
 import jp.assasans.narukami.server.net.sessionNotNull
 
 data class ScheduledEvent(
@@ -87,6 +88,10 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler, KoinC
     val isList: Boolean,
   ) {
     val joinAll = parameter.hasAnnotation<JoinAll>()
+    val joinBy = parameter.annotations
+      .filterIsInstance<JoinBy>()
+      .map { it.component }
+      .singleOrNullOrThrow()
     val perChannel = parameter.hasAnnotation<PerChannel>()
     val allowUnloaded = parameter.hasAnnotation<AllowUnloaded>()
   }
@@ -248,13 +253,31 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler, KoinC
     handler: EventHandlerDefinition,
     args: MutableMap<KParameter, Any?>
   ): Boolean {
+    var previousObjects: Set<IGameObject>? = null
     for(nodeParameter in handler.nodes) {
       val (parameter, nodeDefinition) = nodeParameter
 
-      val objects = if(nodeParameter.joinAll) {
+      val unfilteredObjects = if(nodeParameter.joinAll) {
         context.space.objects.all
       } else {
         contextObjects
+      }
+
+      val objects = if(nodeParameter.joinBy != null) {
+        requireNotNull(previousObjects) { "JoinBy requires previous node to act as a key" }
+        val previousObject = if(previousObjects.size == 1) {
+          previousObjects.single()
+        } else {
+          throw IllegalArgumentException("JoinBy requires exactly one key object, got ${previousObjects.size}")
+        }
+
+        val keyGroup = previousObject.getComponent(nodeParameter.joinBy)
+        unfilteredObjects.filter { gameObject ->
+          val targetGroup = gameObject.getComponentOrNull(nodeParameter.joinBy)
+          targetGroup == keyGroup
+        }.toSet()
+      } else {
+        unfilteredObjects
       }
 
       val contexts = if(nodeParameter.perChannel) {
@@ -302,6 +325,8 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler, KoinC
         args[parameter] = node
         logger.trace { "Built node $node for ${parameter.name}" }
       }
+
+      previousObjects = nodes.gameObjects.toSet()
     }
 
     return true

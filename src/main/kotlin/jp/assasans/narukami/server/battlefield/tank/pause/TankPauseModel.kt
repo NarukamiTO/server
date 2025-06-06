@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package jp.assasans.narukami.server.battlefield.tank
+package jp.assasans.narukami.server.battlefield.tank.pause
 
 import jp.assasans.narukami.server.core.IModelConstructor
 import jp.assasans.narukami.server.core.IServerEvent

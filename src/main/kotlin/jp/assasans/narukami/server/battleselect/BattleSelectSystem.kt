@@ -301,6 +301,19 @@ class BattleSelectSystem : AbstractSystem() {
       ) + battles.gameObjects
     ).schedule(dispatcher)
 
+    val battleSpace = spaces.get(battleInfo.gameObject.id) ?: throw IllegalStateException("Battle space ${battleInfo.gameObject.id} not found")
+
+    val enterRequestObject = TransientGameObject.instantiate(
+      id = TransientGameObject.freeId(),
+      parent = TemplatedGameClass.fromTemplate(BattleEnterRequestTemplate::class),
+      BattleEnterRequestTemplate(
+        battleEnterRequest = BattleEnterRequestComponent,
+        userGroup = UserGroupComponent(user.gameObject),
+        team = TeamComponent(event.team),
+      )
+    )
+    battleSpace.objects.add(enterRequestObject)
+
     DispatcherOpenSpaceEvent(battleInfo.gameObject.id).schedule(dispatcher).await()
   }
 

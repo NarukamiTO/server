@@ -19,10 +19,11 @@
 package jp.assasans.narukami.server.battlefield
 
 import jp.assasans.narukami.server.battleselect.Range
+import jp.assasans.narukami.server.core.IClientEvent
 import jp.assasans.narukami.server.core.IGameObject
 import jp.assasans.narukami.server.core.IModelConstructor
-import jp.assasans.narukami.server.net.command.ProtocolModel
-import jp.assasans.narukami.server.net.command.ProtocolStruct
+import jp.assasans.narukami.server.core.IServerEvent
+import jp.assasans.narukami.server.net.command.*
 import jp.assasans.narukami.server.res.Eager
 import jp.assasans.narukami.server.res.Resource
 import jp.assasans.narukami.server.res.SoundRes
@@ -54,6 +55,70 @@ data class BattlefieldModelCC(
     )
   }
 }
+
+@ProtocolEvent(5523262832935222243)
+class BattlefieldModelBattleFinishEvent() : IClientEvent
+
+@ProtocolEvent(5200451168146380991)
+class BattlefieldModelBattleRestartEvent : IClientEvent
+
+@ProtocolEvent(773226029258926866)
+data class BattlefieldModelBattleStartEvent(val params: BattleRoundParameters) : IClientEvent
+
+@ProtocolEvent(3057042862073659526)
+class BattlefieldModelTraceHitEvent(val hitTraceData: HitTraceData) : IClientEvent
+
+/**
+ * Speed hack report event.
+ */
+@ProtocolEvent(1342713417991483261)
+data class BattlefieldModelDgEvent(val deltas: List<Int>) : IServerEvent
+
+/**
+ * Data validation report event.
+ */
+@ProtocolEvent(1342713417991483047)
+data class BattlefieldModelKdEvent(val type: Int) : IServerEvent
+
+/**
+ * Sent every 60 seconds and on battle finish.
+ */
+@ProtocolEvent(7686916658208568653)
+data class BattlefieldModelSendTimeStatisticsCommandEvent(
+  val statisticType: FpsStatisticType,
+  val averageFPS: Float,
+) : IServerEvent
+
+/**
+ * Unused report event.
+ */
+@ProtocolEvent(1342713417991482645)
+class BattlefieldModelXcEvent : IServerEvent
+
+@ProtocolEnum
+enum class FpsStatisticType(override val value: Int) : IProtocolEnum<Int> {
+  SOFTWARE(0),
+  HARDWARE_CONSTRAINT(1),
+  HARDWARE_BASELINE(2),
+}
+
+@ProtocolStruct
+data class BattleRoundParameters(
+  val reArmorEnabled: Boolean,
+)
+
+@ProtocolStruct
+data class HitTraceData(
+  val armorPreEffectDamage: Float,
+  val colorResistDamage: Float,
+  val hullResistDamage: Float,
+  val killerTurretName: String,
+  val origDamage: Float,
+  val postHealth: Float,
+  val targetHealth: Float,
+  val targetHullName: String,
+  val weaponEffectsDamage: Float,
+)
 
 @ProtocolStruct
 data class LightingSFXEntity(
