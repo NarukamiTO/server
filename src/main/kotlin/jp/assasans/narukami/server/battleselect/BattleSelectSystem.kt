@@ -124,6 +124,7 @@ class BattleSelectSystem : AbstractSystem() {
             .space.objects.all
             .filterHasComponent<BattleUserComponent>()
             .map { it.adapt<BattleUserNode>() }
+            .filter { it.team != null }
           BattleDMInfoModelCC(
             users = battleUsers.map { battleUser -> battleUser.asBattleInfoUser() }
           )
@@ -152,67 +153,85 @@ class BattleSelectSystem : AbstractSystem() {
         id,
         parent = TemplatedGameClass.fromTemplate(BattlefieldTemplate::class),
         BattlefieldTemplate(
-          battlefield = BattlefieldModelCC(
-            active = true,
-            battleId = id,
-            battlefieldSounds = BattlefieldSounds(
-              battleFinishSound = gameResourceRepository.get("battle.sound.finish", mapOf(), SoundRes, Eager),
-              killSound = gameResourceRepository.get("tank.sound.destroy", mapOf(), SoundRes, Eager)
-            ),
-            colorTransformMultiplier = 1.0f,
-            idleKickPeriodMsec = 5.minutes.inWholeMilliseconds.toInt(),
-            map = battleMapObject,
-            mineExplosionLighting = LightingSFXEntity(
-              effects = listOf(
-                LightingEffectEntity(
-                  "explosion", listOf(
-                    LightEffectItem(300f, 0f, "0xff0000", 0.5f, 0),
-                    LightEffectItem(1f, 2f, "0xff0000", 0f, 500)
+          battlefield = ClosureModelProvider {
+            // TODO: Design of model providers is broken
+            val fakeUser = SingleNode(UserGroupComponent(requireSpaceChannel.sessionNotNull.userNotNull))
+            fakeUser.init(this, fakeUser.node.reference)
+            val battleUser = space.objects.all.findBy<BattleUserNode, UserGroupComponent>(fakeUser)
+
+            BattlefieldModelCC(
+              active = true,
+              battleId = id,
+              battlefieldSounds = BattlefieldSounds(
+                battleFinishSound = gameResourceRepository.get("battle.sound.finish", mapOf(), SoundRes, Eager),
+                killSound = gameResourceRepository.get("tank.sound.destroy", mapOf(), SoundRes, Eager)
+              ),
+              colorTransformMultiplier = 1.0f,
+              idleKickPeriodMsec = 5.minutes.inWholeMilliseconds.toInt(),
+              map = battleMapObject,
+              mineExplosionLighting = LightingSFXEntity(
+                effects = listOf(
+                  LightingEffectEntity(
+                    "explosion", listOf(
+                      LightEffectItem(300f, 0f, "0xff0000", 0.5f, 0),
+                      LightEffectItem(1f, 2f, "0xff0000", 0f, 500)
+                    )
                   )
                 )
-              )
-            ),
-            proBattle = true,
-            range = Range(min = 1, max = 31),
-            reArmorEnabled = false,
-            respawnDuration = 2000,
-            shadowMapCorrectionFactor = 0.0f,
-            showAddressLink = false,
-            spectator = false,
-            withoutBonuses = false,
-            withoutDrones = false,
-            withoutSupplies = false
-          ),
+              ),
+              proBattle = true,
+              range = Range(min = 1, max = 31),
+              reArmorEnabled = false,
+              respawnDuration = 2000,
+              shadowMapCorrectionFactor = 0.0f,
+              showAddressLink = false,
+              spectator = battleUser.spectator != null,
+              withoutBonuses = false,
+              withoutDrones = false,
+              withoutSupplies = false
+            )
+          },
           battlefieldBonuses = BattlefieldBonusesModelCC(
             bonusFallSpeed = 0.0f,
             bonuses = listOf()
           ),
           battleFacilities = BattleFacilitiesModelCC(),
           battleChat = BattleChatModelCC(),
-          statistics = StatisticsModelCC(
-            battleName = null,
-            equipmentConstraintsMode = null,
-            fund = 42,
-            limits = BattleLimits(
-              scoreLimit = 999,
-              timeLimitInSec = (21.minutes + 12.seconds).inWholeSeconds.toInt()
-            ),
-            mapName = "BattlefieldTemplate",
-            matchBattle = false,
-            maxPeopleCount = 0,
-            modeName = "DM",
-            parkourMode = false,
-            running = true,
-            spectator = false,
-            suspiciousUserIds = listOf(),
-            timeLeft = (21.minutes + 12.seconds).inWholeSeconds.toInt(),
-            valuableRound = true
-          ),
+          statistics = ClosureModelProvider {
+            // TODO: Design of model providers is broken
+            val fakeUser = SingleNode(UserGroupComponent(requireSpaceChannel.sessionNotNull.userNotNull))
+            fakeUser.init(this, fakeUser.node.reference)
+            val battleUser = space.objects.all.findBy<BattleUserNode, UserGroupComponent>(fakeUser)
+
+            StatisticsModelCC(
+              battleName = null,
+              equipmentConstraintsMode = null,
+              fund = 42,
+              limits = BattleLimits(
+                scoreLimit = 999,
+                timeLimitInSec = (21.minutes + 12.seconds).inWholeSeconds.toInt()
+              ),
+              mapName = "BattlefieldTemplate",
+              matchBattle = false,
+              maxPeopleCount = 0,
+              modeName = "DM",
+              parkourMode = false,
+              running = true,
+              spectator = battleUser.spectator != null,
+              suspiciousUserIds = listOf(),
+              timeLeft = (21.minutes + 12.seconds).inWholeSeconds.toInt(),
+              valuableRound = true
+            )
+          },
           statisticsDM = ClosureModelProvider {
+            val tanks = space.objects.all.filter { it.hasComponent<TankLogicStateComponent>() }
             StatisticsDMModel(
               usersInfo = space.objects.all
                 .filterHasComponent<BattleUserComponent>()
                 .map { it.adapt<BattleUserNode>() }
+                // Exclude battle users that have no tank object
+                // TODO: Workaround, works for now
+                .filter { battleUser -> tanks.any { it.getComponent<UserGroupComponent>() == battleUser.userGroup } }
                 .map { it.asUserInfo(space.objects.all) }
             )
           },
@@ -303,16 +322,62 @@ class BattleSelectSystem : AbstractSystem() {
 
     val battleSpace = spaces.get(battleInfo.gameObject.id) ?: throw IllegalStateException("Battle space ${battleInfo.gameObject.id} not found")
 
-    val enterRequestObject = TransientGameObject.instantiate(
+    val battleUserObject = TransientGameObject.instantiate(
       id = TransientGameObject.freeId(),
-      parent = TemplatedGameClass.fromTemplate(BattleEnterRequestTemplate::class),
-      BattleEnterRequestTemplate(
-        battleEnterRequest = BattleEnterRequestComponent,
+      parent = TemplatedGameClass.fromTemplate(BattleUserTemplate::class),
+      BattleUserTemplate(
+        battleUser = BattleUserComponent(),
         userGroup = UserGroupComponent(user.gameObject),
         team = TeamComponent(event.team),
+        spectator = null,
       )
     )
-    battleSpace.objects.add(enterRequestObject)
+    battleSpace.objects.add(battleUserObject)
+
+    DispatcherOpenSpaceEvent(battleInfo.gameObject.id).schedule(dispatcher).await()
+  }
+
+  // TODO: Repeats logic from [fight]
+  @OnEventFire
+  @Mandatory
+  @OutOfOrderExecution
+  suspend fun joinAsSpectator(
+    event: BattleEntranceModelJoinAsSpectatorEvent,
+    battleInfo: BattleInfoNode,
+    @PerChannel battleInfoShared: List<BattleInfoNode>,
+    user: UserNode,
+    @JoinAll lobby: LobbyNode,
+    @JoinAll chat: ChatNode,
+    @JoinAll battleSelect: SingleNode<BattleSelectModelCC>,
+    @JoinAll battles: List<BattleInfoNode>,
+    @JoinAll dispatcher: DispatcherNode,
+  ) {
+    // TODO: End layout switch immediately to not obstruct screen for debugging purposes,
+    //  and anyway that new loading screen sucks.
+    LobbyLayoutNotifyModelBeginLayoutSwitchEvent(LayoutState.BATTLE).schedule(lobby)
+    LobbyLayoutNotifyModelEndLayoutSwitchEvent(LayoutState.BATTLE, LayoutState.BATTLE).schedule(lobby)
+    LobbyLayoutNotifyModelCancelPredictedLayoutSwitchEvent().schedule(lobby)
+
+    DispatcherUnloadObjectsManagedEvent(
+      listOf(
+        chat.gameObject,
+        battleSelect.gameObject
+      ) + battles.gameObjects
+    ).schedule(dispatcher)
+
+    val battleSpace = spaces.get(battleInfo.gameObject.id) ?: throw IllegalStateException("Battle space ${battleInfo.gameObject.id} not found")
+
+    val battleUserObject = TransientGameObject.instantiate(
+      id = TransientGameObject.freeId(),
+      parent = TemplatedGameClass.fromTemplate(BattleUserTemplate::class),
+      BattleUserTemplate(
+        battleUser = BattleUserComponent(),
+        userGroup = UserGroupComponent(user.gameObject),
+        team = null,
+        spectator = SpectatorComponent(),
+      )
+    )
+    battleSpace.objects.add(battleUserObject)
 
     DispatcherOpenSpaceEvent(battleInfo.gameObject.id).schedule(dispatcher).await()
   }

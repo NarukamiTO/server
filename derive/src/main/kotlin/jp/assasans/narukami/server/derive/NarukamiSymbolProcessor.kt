@@ -116,10 +116,12 @@ class NarukamiSymbolProcessor(
       if(!typeName.equals("jp.assasans.narukami.server.core.IModelProvider")) {
         // Check for composite template
         if(templateType.asStarProjectedType().isAssignableFrom(type)) {
+          check(!type.isMarkedNullable) { "Template type cannot be nullable" }
           file += "    ${clazz.qualifiedName?.asString()}::${valueParameter.name?.asString()} to TemplateMember.Template($typeName::class),\n"
-        } else if(componentType.asStarProjectedType().isAssignableFrom(type)) {
-          file += "    ${clazz.qualifiedName?.asString()}::${valueParameter.name?.asString()} to TemplateMember.Component($typeName::class),\n"
+        } else if(componentType.asStarProjectedType().isAssignableFrom(type.makeNotNullable())) {
+          file += "    ${clazz.qualifiedName?.asString()}::${valueParameter.name?.asString()} to TemplateMember.Component($typeName::class, ${type.isMarkedNullable}),\n"
         } else {
+          check(!type.isMarkedNullable) { "Model type cannot be nullable" }
           file += "    ${clazz.qualifiedName?.asString()}::${valueParameter.name?.asString()} to TemplateMember.Model($typeName::class),\n"
         }
         return

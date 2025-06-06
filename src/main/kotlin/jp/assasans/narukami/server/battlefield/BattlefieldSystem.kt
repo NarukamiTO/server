@@ -205,15 +205,8 @@ interface IGroupComponent : IComponent {
   val reference: IGameObject
 }
 
-data object BattleEnterRequestComponent : IComponent
-
-data class BattleEnterRequestNode(
-  val battleEnterRequest: BattleEnterRequestComponent,
-  val userGroup: UserGroupComponent,
-  val team: TeamComponent,
-) : Node()
-
 class BattleUserComponent : IComponent
+class SpectatorComponent : IComponent
 data class TeamComponent(val team: BattleTeam) : IComponent
 data class UserGroupComponent(override val reference: IGameObject) : IGroupComponent {
   override fun toString(): String {
@@ -225,13 +218,15 @@ data class UserGroupComponent(override val reference: IGameObject) : IGroupCompo
 data class BattleUserTemplate(
   val battleUser: BattleUserComponent,
   val userGroup: UserGroupComponent,
-  val team: TeamComponent,
+  val team: TeamComponent?,
+  val spectator: SpectatorComponent?,
 ) : ITemplate
 
 data class BattleUserNode(
   val battleUser: BattleUserComponent,
   val userGroup: UserGroupComponent,
-  val team: TeamComponent,
+  val team: TeamComponent?,
+  val spectator: SpectatorComponent?,
 ) : Node()
 
 fun BattleUserNode.asUserInfo(objects: Iterable<IGameObject>): UserInfo {
@@ -325,16 +320,6 @@ private fun createTank(user: UserNode, configuration: TankConfigurationModelCC) 
   )
 )
 
-private fun createBattleUser(user: UserNode, team: BattleTeam) = TransientGameObject.instantiate(
-  id = TransientGameObject.freeId(),
-  parent = TemplatedGameClass.fromTemplate(BattleUserTemplate::class),
-  BattleUserTemplate(
-    battleUser = BattleUserComponent(),
-    userGroup = UserGroupComponent(user.gameObject),
-    team = TeamComponent(team),
-  )
-)
-
 data class BattleMapNode(
   val battleMap: BattleMapModelCC,
   val battleInfoGroup: BattleInfoGroupComponent,
@@ -345,7 +330,6 @@ class BattlefieldSystem : AbstractSystem() {
 
   private val gameResourceRepository: RemoteGameResourceRepository by inject()
   private val objectMapper: ObjectMapper by inject()
-  private val spaces: IRegistry<ISpace> by inject()
 
   @OnEventFire
   @OutOfOrderExecution
@@ -354,7 +338,7 @@ class BattlefieldSystem : AbstractSystem() {
     dispatcher: DispatcherNode,
     // XXX: @AllowUnloaded because object is loaded in different space
     @AllowUnloaded user: UserNode,
-    @JoinAll @JoinBy(UserGroupComponent::class) @AllowUnloaded battleEnterRequest: BattleEnterRequestNode,
+    @JoinAll @JoinBy(UserGroupComponent::class) @AllowUnloaded battleUser: BattleUserNode,
     @PerChannel dispatcherShared: List<DispatcherNode>,
     @JoinAll @AllowUnloaded battleMap: BattleMapNode,
     @JoinAll @AllowUnloaded battlefield: SingleNode<BattlefieldModelCC>,
@@ -381,72 +365,71 @@ class BattlefieldSystem : AbstractSystem() {
       battlefield.gameObject,
     ).schedule(dispatcher).await()
 
-    logger.debug { "Battle enter request: $battleEnterRequest" }
+    logger.debug { "Battle user: $battleUser" }
     BattleDebugMessageEvent(
-      "Battle enter request: ${battleEnterRequest.userGroup.reference.getComponent<UsernameComponent>().username}, team: ${battleEnterRequest.team.team}"
+      "Battle user: ${battleUser.userGroup.reference.getComponent<UsernameComponent>().username}, team: ${battleUser.team?.team}, spectator: ${battleUser.spectator != null}"
     ).schedule(battlefield)
-    event.channel.space.objects.remove(battleEnterRequest.gameObject)
 
-    val battleUserObject = createBattleUser(user, battleEnterRequest.team.team)
-    val battleUser = battleUserObject.adapt<BattleUserNode>(event.channel)
+    if(battleUser.team != null) {
+      check(battleUser.spectator == null)
 
-    // TODO: There is no good API for cross-space communication. I don't like this code, should refactor it.
-    //  In this case, we need to send an event from the battle space to all channels in the lobby space, excluding self.
-    val lobbyChannel = event.channel.sessionNotNull.spaces.get(Space.stableId("lobby")) ?: throw IllegalStateException("No lobby channel")
-    AddBattleUserEvent(battleUser).schedule(lobbyChannel, battleMap.battleInfoGroup.reference)
+      // TODO: There is no good API for cross-space communication. I don't like this code, should refactor it.
+      //  In this case, we need to send an event from the battle space to all channels in the lobby space, excluding self.
+      val lobbyChannel = event.channel.sessionNotNull.spaces.get(Space.stableId("lobby")) ?: throw IllegalStateException("No lobby channel")
+      AddBattleUserEvent(battleUser).schedule(lobbyChannel, battleMap.battleInfoGroup.reference)
 
-    val hullObject = createTankHull(gameResourceRepository)
-    val weaponObject = createTankWeapon(gameResourceRepository)
-    val paintObject = createTankPaint(gameResourceRepository)
-    val tankObject = createTank(
-      user,
-      TankConfigurationModelCC(
-        coloringId = paintObject.id,
-        droneId = 0,
-        hullId = hullObject.id,
-        weaponId = weaponObject.id,
+      val hullObject = createTankHull(gameResourceRepository)
+      val weaponObject = createTankWeapon(gameResourceRepository)
+      val paintObject = createTankPaint(gameResourceRepository)
+      val tankObject = createTank(
+        user,
+        TankConfigurationModelCC(
+          coloringId = paintObject.id,
+          droneId = 0,
+          hullId = hullObject.id,
+          weaponId = weaponObject.id,
+        )
       )
-    )
-    tankObject.addComponent(TankGroupComponent(tankObject))
-    hullObject.addComponent(TankGroupComponent(tankObject))
-    weaponObject.addComponent(TankGroupComponent(tankObject))
-    paintObject.addComponent(TankGroupComponent(tankObject))
+      tankObject.addComponent(TankGroupComponent(tankObject))
+      hullObject.addComponent(TankGroupComponent(tankObject))
+      weaponObject.addComponent(TankGroupComponent(tankObject))
+      paintObject.addComponent(TankGroupComponent(tankObject))
 
-    event.channel.space.objects.add(battleUserObject)
-    event.channel.space.objects.add(hullObject)
-    event.channel.space.objects.add(weaponObject)
-    event.channel.space.objects.add(paintObject)
-    event.channel.space.objects.add(tankObject)
+      event.channel.space.objects.add(hullObject)
+      event.channel.space.objects.add(weaponObject)
+      event.channel.space.objects.add(paintObject)
+      event.channel.space.objects.add(tankObject)
 
-    delay(1)
+      /* Forward loading: load current player to existing */
+      // UserConnect must be sent before loading the tank object, otherwise an
+      // unhelpful error #1009 in [ActionOutputLine::createUserLabel] occurs.
+      // Tank object ID must match the user object ID, this is hardcoded in the client.
+      val usersInfoForward = battleUsers.filter { it.team != null }.map { it.asUserInfo(event.channel.space.objects.all) }
+      logger.debug { "Forward: $usersInfoForward" }
+      StatisticsDMModelUserConnectEvent(
+        tankObject.id,
+        usersInfoForward
+      ).schedule(battlefieldShared)
 
-    val tanks = event.channel.space.objects.all.findAllBy<TankNode, UserGroupComponent>(battleUsers)
-
-    /* Forward loading: load current player to existing */
-    // UserConnect must be sent before loading the tank object, otherwise an
-    // unhelpful error #1009 in [ActionOutputLine::createUserLabel] occurs.
-    // Tank object ID must match the user object ID, this is hardcoded in the client.
-    val usersInfoForward = battleUsers.map { it.asUserInfo(event.channel.space.objects.all) } + battleUser.asUserInfo(event.channel.space.objects.all)
-    logger.debug { "Forward: $usersInfoForward" }
-    StatisticsDMModelUserConnectEvent(
-      tankObject.id,
-      usersInfoForward
-    ).schedule(battlefieldShared)
-
-    logger.debug { "${event.channel.sessionNotNull.userNotNull.getComponent<UsernameComponent>()} Loading tank parts" }
-    for(dispatcherRemote in dispatcherShared) {
-      logger.debug { "Loading tank parts to ${dispatcherRemote.context.requireSpaceChannel.sessionNotNull.userNotNull.getComponent<UsernameComponent>()}" }
-      DispatcherLoadObjectsManagedEvent(
-        hullObject,
-        weaponObject,
-        paintObject,
-        tankObject,
-      ).schedule(dispatcherRemote).await()
+      logger.debug { "${event.channel.sessionNotNull.userNotNull.getComponent<UsernameComponent>()} Loading tank parts" }
+      for(dispatcherRemote in dispatcherShared) {
+        logger.debug { "Loading tank parts to ${dispatcherRemote.context.requireSpaceChannel.sessionNotNull.userNotNull.getComponent<UsernameComponent>()}" }
+        DispatcherLoadObjectsManagedEvent(
+          hullObject,
+          weaponObject,
+          paintObject,
+          tankObject,
+        ).schedule(dispatcherRemote).await()
+      }
+      logger.debug { "${event.channel.sessionNotNull.userNotNull.getComponent<UsernameComponent>()} Loaded tank parts, ${dispatcherShared.size} shared" }
+    } else {
+      check(battleUser.spectator != null)
     }
-    logger.debug { "${event.channel.sessionNotNull.userNotNull.getComponent<UsernameComponent>()} Loaded tank parts, ${dispatcherShared.size} shared" }
 
-    /* Backward loading: load existing players to current - notes above apply */
-    for(tank in tanks - tankObject) {
+    val backwardTanks = event.channel.space.objects.all.findAllBy<TankNode, UserGroupComponent>(battleUsers.filter { it.team != null } - battleUser)
+
+    /* Backward loading: load existing players to current - forward loading rules apply */
+    for(tank in backwardTanks) {
       DispatcherLoadObjectsManagedEvent(
         // TODO: Workaround, works for now
         requireNotNull(tank.context.space.objects.get(tank.tankConfiguration.hullId)) { "No hull" },
@@ -544,30 +527,34 @@ class BattlefieldSystem : AbstractSystem() {
     logger.info { "Destroying battle user ${battleUser.userGroup.reference.adapt<UserNode>(battleUser.context).username.username}" }
 
     val space = battleUser.context.space
-    val tank = space.objects.all.findBy<TankNode, UserGroupComponent>(battleUser)
-
-    StatisticsDMModelUserDisconnectEvent(tank.gameObject.id).schedule(battlefieldShared - battlefield)
-
-    // TODO: There is no good API for cross-space communication. I don't like this code, should refactor it.
-    //  In this case, we need to send an event from the battle space to all channels in the lobby space, excluding self.
-    val lobbyChannel = battleUser.context.requireSpaceChannel.sessionNotNull.spaces.get(Space.stableId("lobby")) ?: throw IllegalStateException("No lobby channel")
-    RemoveBattleUserEvent(battleUser).schedule(lobbyChannel, battleMap.battleInfoGroup.reference)
-
-    val hullObject = requireNotNull(space.objects.get(tank.tankConfiguration.hullId)) { "No hull" }
-    val weaponObject = requireNotNull(space.objects.get(tank.tankConfiguration.weaponId)) { "No weapon" }
-    val paintObject = requireNotNull(space.objects.get(tank.tankConfiguration.coloringId)) { "No paint" }
-
     space.objects.remove(battleUser.gameObject)
-    space.objects.remove(tank.gameObject)
-    space.objects.remove(hullObject)
-    space.objects.remove(weaponObject)
-    space.objects.remove(paintObject)
 
-    DispatcherUnloadObjectsManagedEvent(
-      hullObject,
-      weaponObject,
-      paintObject,
-      tank.gameObject,
-    ).schedule(dispatcherShared - dispatcher)
+    // TODO: Do not use component nullability checks
+    if(battleUser.team != null) {
+      val tank = space.objects.all.findBy<TankNode, UserGroupComponent>(battleUser)
+
+      StatisticsDMModelUserDisconnectEvent(tank.gameObject.id).schedule(battlefieldShared - battlefield)
+
+      // TODO: There is no good API for cross-space communication. I don't like this code, should refactor it.
+      //  In this case, we need to send an event from the battle space to all channels in the lobby space, excluding self.
+      val lobbyChannel = battleUser.context.requireSpaceChannel.sessionNotNull.spaces.get(Space.stableId("lobby")) ?: throw IllegalStateException("No lobby channel")
+      RemoveBattleUserEvent(battleUser).schedule(lobbyChannel, battleMap.battleInfoGroup.reference)
+
+      val hullObject = requireNotNull(space.objects.get(tank.tankConfiguration.hullId)) { "No hull" }
+      val weaponObject = requireNotNull(space.objects.get(tank.tankConfiguration.weaponId)) { "No weapon" }
+      val paintObject = requireNotNull(space.objects.get(tank.tankConfiguration.coloringId)) { "No paint" }
+
+      space.objects.remove(tank.gameObject)
+      space.objects.remove(hullObject)
+      space.objects.remove(weaponObject)
+      space.objects.remove(paintObject)
+
+      DispatcherUnloadObjectsManagedEvent(
+        hullObject,
+        weaponObject,
+        paintObject,
+        tank.gameObject,
+      ).schedule(dispatcherShared - dispatcher)
+    }
   }
 }

@@ -160,7 +160,12 @@ private fun collectComponents(template: ITemplate): Map<KClass<out IComponent>, 
       }
 
       is TemplateMember.Component -> {
-        result[member.component] = property.get(template) as IComponent
+        val component = property.get(template) as IComponent?
+        if(component == null) {
+          if(!member.nullable) throw IllegalStateException("Component ${member.component} is not nullable but is null in $template")
+        } else {
+          result[member.component] = component
+        }
       }
 
       is TemplateMember.Template  -> {

@@ -49,7 +49,7 @@ data class UserTemplate(
             daysFromRegistration = 0,
             gearScore = 0,
             goldsTakenRating = 0,
-            hasSpectatorPermissions = false,
+            hasSpectatorPermissions = true,
             id = it.id,
             rank = 1,
             rankBounds = RankBounds(lowBound = user.score.score / 2, topBound = user.score.score * 2),

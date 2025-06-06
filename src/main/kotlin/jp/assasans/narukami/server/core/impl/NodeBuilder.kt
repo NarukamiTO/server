@@ -69,7 +69,6 @@ class NodeBuilder {
 
     val components = mutableListOf<ComponentDefinition>()
     for(parameter in parameters) {
-      check(!parameter.type.isMarkedNullable) { "Parameter $parameter is marked as nullable" }
       check(!parameter.isVararg) { "Parameter $parameter is marked as vararg" }
       check(!parameter.isOptional) { "Parameter $parameter is marked as optional" }
       check(parameter.type.arguments.isEmpty()) { "Parameter $parameter has type arguments" }
@@ -136,7 +135,7 @@ class NodeBuilder {
     val constructor = nodeDefinition.type.kotlinClass.primaryConstructor ?: return null
     val parameters = constructor.parameters
 
-    val args = mutableMapOf<KParameter, IDataUnit>()
+    val args = mutableMapOf<KParameter, IDataUnit?>()
     for(parameter in parameters) {
       val type = normalizeParameterType(parameter, nodeDefinition.type)
       if(type.isSubclassOf(IModelConstructor::class)) {
@@ -149,12 +148,15 @@ class NodeBuilder {
         args[parameter] = provider()
       } else if(type.isSubclassOf(IComponent::class)) {
         val component = components[type]
-        if(component == null) {
-          logger.trace { "Component $type not found" }
-          return null
+        args[parameter] = if(component != null) {
+          component
+        } else {
+          if(!parameter.type.isMarkedNullable) {
+            logger.trace { "Component $type not found" }
+            return null
+          }
+          null
         }
-
-        args[parameter] = component
       } else {
         throw IllegalArgumentException("Parameter $parameter is neither IModelConstructor nor IComponent")
       }

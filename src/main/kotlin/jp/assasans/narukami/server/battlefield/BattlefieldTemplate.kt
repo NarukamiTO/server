@@ -27,12 +27,12 @@ import jp.assasans.narukami.server.net.command.ProtocolClass
 
 @ProtocolClass(42)
 data class BattlefieldTemplate(
-  val battlefield: BattlefieldModelCC,
+  val battlefield: IModelProvider<BattlefieldModelCC>,
   val battlefieldBonuses: BattlefieldBonusesModelCC,
   val battleFacilities: BattleFacilitiesModelCC,
   val battleChat: BattleChatModelCC,
   // Absence of [StatisticsModel] causes an unhelpful error, pointing to [TankModel#registerUser].
-  val statistics: StatisticsModelCC,
+  val statistics: IModelProvider<StatisticsModelCC>,
   val statisticsDM: IModelProvider<StatisticsDMModel>,
   // Absence of [InventoryModel] causes an unhelpful error, pointing to [DroneIndicatorModel#updateBatteryIndicator].
   val inventory: InventoryModelCC,

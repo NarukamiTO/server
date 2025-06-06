@@ -25,6 +25,6 @@ import jp.assasans.narukami.server.core.ITemplate
 
 sealed interface TemplateMember {
   data class Model(val model: KClass<out IModelConstructor>) : TemplateMember
-  data class Component(val component: KClass<out IComponent>) : TemplateMember
+  data class Component(val component: KClass<out IComponent>, val nullable: Boolean) : TemplateMember
   data class Template(val template: KClass<out ITemplate>) : TemplateMember
 }

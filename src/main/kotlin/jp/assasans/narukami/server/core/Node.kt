@@ -18,6 +18,8 @@
 
 package jp.assasans.narukami.server.core
 
+import jp.assasans.narukami.server.core.internal.IDataUnit
+
 /**
  * Node is a type-safe view of a [IGameObject] for a certain [IModelContext].
  *
@@ -57,7 +59,7 @@ open class Node {
   }
 }
 
-data class SingleNode<T : IModelConstructor>(
+data class SingleNode<T : IDataUnit>(
   val node: T
 ) : Node()
 
