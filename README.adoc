@@ -36,8 +36,9 @@ similar to `RUST_LOG`: `root_log_level,my.package=log_level`.
 
 Standalone Flash Player / Ruffle::
 
-  * `http://127.0.0.1:5191/play.swf` which will automatically redirect URL similar to one below.
-  * `http://127.0.0.1:5192/libs/AlternativaLoader.swf?config=127.0.0.1:5191/config.xml&resources=127.0.0.1:5192&balancer=http://127.0.0.1:5191/s/status.js&prefix=main.c&lang=ru&debug=true`
+* `http://127.0.0.1:5191/play.swf` which will automatically redirect URL similar to one below.
+Parameters are passed as URL parts, i.e., `/play.swf/lang=ru/debug=true/autologin=username:password` because of bad client design.
+* `http://127.0.0.1:5192/libs/AlternativaLoader.swf?config=127.0.0.1:5191/config.xml&resources=127.0.0.1:5192&balancer=http://127.0.0.1:5191/s/status.js&prefix=main.c&lang=ru&debug=true`
 
 Optional query parameters:
 

@@ -132,7 +132,7 @@ class ConfigServer {
           }
         }
 
-        get("/play.swf") {
+        get("/play.swf/{params...}") {
           val configPublicUrl = System.getProperty("config.url") ?: error("\"config.url\" system property is not set")
           val resourcesPublicUrl = System.getProperty("res.url") ?: error("\"res.url\" system property is not set")
 
@@ -144,7 +144,13 @@ class ConfigServer {
             "prefix" to "main.c",
           )
 
-          call.request.queryParameters.forEach { key, value -> params[key] = value.first() }
+          val overrideParams = call.parameters.getAll("params") ?: emptyList()
+          for(param in overrideParams) {
+            if(param.isBlank()) continue
+            val key = param.substringBefore('=')
+            val value = param.substringAfter('=', "")
+            params[key] = value
+          }
 
           val query = params.entries.joinToString("&") { (key, value) ->
             "${key}=${value.encodeURLParameter()}"
