@@ -18,16 +18,63 @@
 
 package jp.assasans.narukami.server.battlefield.tank.hull
 
-import jp.assasans.narukami.server.core.ITemplate
-import jp.assasans.narukami.server.net.command.ProtocolClass
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import jp.assasans.narukami.server.battlefield.LightEffectItem
+import jp.assasans.narukami.server.battlefield.LightingEffectEntity
+import jp.assasans.narukami.server.battlefield.LightingSFXEntity
+import jp.assasans.narukami.server.core.PersistentTemplateV2
+import jp.assasans.narukami.server.core.addModel
+import jp.assasans.narukami.server.res.*
 
-@ProtocolClass(52)
-data class HullTemplate(
-  val hullCommon: HullCommonModelCC,
-  val simpleArmor: SimpleArmorModelCC,
-  val engine: EngineModelCC,
-  val object3DS: Object3DSModelCC,
-  val hullSmoke: HullSmokeModelCC,
-  val tankExplosion: TankExplosionModelCC,
-  val trackedChassis: TrackedChassisModelCC,
-) : ITemplate
+object HullTemplate : PersistentTemplateV2(), KoinComponent {
+  private val gameResourceRepository: RemoteGameResourceRepository by inject()
+
+  override fun instantiate(id: Long) = gameObject(id).apply {
+    addModel(HullCommonModelCC(
+      deadColoring = gameResourceRepository.get("tank.dead", mapOf(), TextureRes, Eager),
+      deathSound = gameResourceRepository.get("tank.sound.destroy", mapOf(), SoundRes, Eager),
+      lightingSFXEntity = LightingSFXEntity(
+        effects = listOf(
+          LightingEffectEntity(
+            "explosion", listOf(
+              LightEffectItem(1f, 2f, "0xCCA538", 0f, 0),
+              LightEffectItem(500f, 1500f, "0xCCA538", 1.2f, 100),
+              LightEffectItem(1f, 2f, "0xCCA538", 0f, 1200)
+            )
+          )
+        )
+      ),
+      mass = 100000f,
+      stunEffectTexture = gameResourceRepository.get("tank.stun.texture", mapOf(), TextureRes, Eager),
+      stunSound = gameResourceRepository.get("tank.stun.sound", mapOf(), SoundRes, Eager),
+      ultimateHudIndicator = gameResourceRepository.get("tank.dead", mapOf(), TextureRes, Eager), // TODO: Wrong
+      ultimateIconIndex = 0,
+    ))
+    addModel(SimpleArmorModelCC(maxHealth = 1000))
+    addModel(EngineModelCC(
+      engineIdleSound = gameResourceRepository.get("tank.sound.idle", mapOf(), SoundRes, Eager),
+      engineMovingSound = gameResourceRepository.get("tank.sound.moving", mapOf(), SoundRes, Eager),
+      engineStartMovingSound = gameResourceRepository.get("tank.sound.start-move", mapOf(), SoundRes, Eager),
+      engineStartSound = gameResourceRepository.get("tank.sound.start-move", mapOf(), SoundRes, Eager),
+      engineStopMovingSound = gameResourceRepository.get("tank.sound.idle", mapOf(), SoundRes, Eager),
+    ))
+    addModel(gameResourceRepository.get("tank.hull.viking", mapOf("gen" to "1.0", "modification" to "0"), Object3DRes, Eager).asModel())
+    addModel(HullSmokeModelCC(
+      alpha = 0.5f,
+      density = 1f,
+      enabled = true,
+      fadeTime = 1000,
+      farDistance = 1000f,
+      nearDistance = 1f,
+      particle = gameResourceRepository.get("tank.smoke", mapOf(), MultiframeTextureRes, Eager),
+      size = 1f,
+    ))
+    addModel(TankExplosionModelCC(
+      explosionTexture = gameResourceRepository.get("tank.explosion", mapOf(), MultiframeTextureRes, Eager),
+      shockWaveTexture = gameResourceRepository.get("tank.shock-wave", mapOf(), MultiframeTextureRes, Eager),
+      smokeTextureId = gameResourceRepository.get("tank.smoke", mapOf(), MultiframeTextureRes, Eager),
+    ))
+    addModel(TrackedChassisModelCC(damping = 3000f))
+  }
+}

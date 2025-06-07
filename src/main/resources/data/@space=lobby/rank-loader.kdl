@@ -1,4 +1,4 @@
-template "jp.assasans.narukami.server.lobby.user.RankLoaderTemplate::Provider"
+template2 "jp.assasans.narukami.server.lobby.user.RankLoaderTemplate"
 components {
   jp.assasans.narukami.server.lobby.user.RankLoaderComponent {
     ranks {

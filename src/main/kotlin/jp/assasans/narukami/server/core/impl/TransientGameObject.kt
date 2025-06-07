@@ -42,7 +42,7 @@ class GameClassCache {
 
 class GameObjectV2(
   override val id: Long,
-  override val template: ITemplateV2,
+  override val template: TemplateV2,
 ) : IGameObject, KoinComponent {
   private val gameClassCache: GameClassCache by inject()
 
@@ -127,7 +127,7 @@ class TransientGameObject(
      */
     fun stableId(identifier: String): Long = makeStableId("GameObject:$identifier")
 
-    @Deprecated("Use ITemplateV2.create() instead")
+    @Deprecated("Use TemplateV2.create() instead")
     fun <T : ITemplate> instantiate(
       id: Long,
       parent: TemplatedGameClass<T>,
@@ -160,7 +160,7 @@ class TransientGameObject(
     }
   }
 
-  override val template: ITemplateV2
+  override val template: TemplateV2
     get() = TODO("Not supported")
 
   val components: MutableMap<KClass<out IComponent>, IComponent> = mutableMapOf()

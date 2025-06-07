@@ -1,3 +1,3 @@
-template "jp.assasans.narukami.server.lobby.LobbyTemplate::Provider"
+template2 "jp.assasans.narukami.server.lobby.LobbyTemplate"
 components {
 }

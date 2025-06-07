@@ -1,3 +1,3 @@
-template "jp.assasans.narukami.server.garage.GarageTemplate::Provider"
+template2 "jp.assasans.narukami.server.garage.GarageTemplate"
 components {
 }

@@ -49,7 +49,7 @@ class KdlReader {
     /* Custom types */
     factories.add(KdlResourceCodec.Factory)
     factories.add(KdlGameObjectCodec.Factory)
-    factories.add(KdlTemplateV2Codec.Factory)
+    factories.add(KdlPersistentTemplateV2Codec.Factory)
     factories.add(KdlTemplateCodec.Factory)
 
     /* Catch-all */

@@ -18,10 +18,27 @@
 
 package jp.assasans.narukami.server.battlefield.tank.paint
 
-import jp.assasans.narukami.server.core.ITemplate
-import jp.assasans.narukami.server.net.command.ProtocolClass
+import jp.assasans.narukami.server.core.*
+import jp.assasans.narukami.server.res.Eager
+import jp.assasans.narukami.server.res.MultiframeTextureRes
+import jp.assasans.narukami.server.res.Resource
+import jp.assasans.narukami.server.res.TextureRes
 
-@ProtocolClass(51)
-data class ColoringTemplate(
-  val coloring: ColoringModelCC,
-) : ITemplate
+data class StaticColoringComponent(val resource: Resource<TextureRes, Eager>) : IComponent
+data class AnimatedColoringComponent(val resource: Resource<MultiframeTextureRes, Eager>) : IComponent
+
+object ColoringTemplate : PersistentTemplateV2() {
+  override fun instantiate(id: Long) = gameObject(id).apply {
+    addModel(ClosureModelProvider {
+      val staticColoring = it.getComponentOrNull<StaticColoringComponent>()
+      val animatedColoring = it.getComponentOrNull<AnimatedColoringComponent>()
+      require(staticColoring != null || animatedColoring != null) { "At least one of StaticColoringComponent or AnimatedColoringComponent must be present" }
+      require(staticColoring == null || animatedColoring == null) { "Cannot have both StaticColoringComponent and AnimatedColoringComponent" }
+
+      ColoringModelCC(
+        animatedColoring = animatedColoring?.resource,
+        coloring = staticColoring?.resource
+      )
+    })
+  }
+}

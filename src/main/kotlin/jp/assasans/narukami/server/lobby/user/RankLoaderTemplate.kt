@@ -19,23 +19,15 @@
 package jp.assasans.narukami.server.lobby.user
 
 import jp.assasans.narukami.server.core.*
-import jp.assasans.narukami.server.net.command.ProtocolClass
 
 data class RankLoaderComponent(
   val ranks: List<RankInfo>
 ) : IComponent
 
-@ProtocolClass(6)
-data class RankLoaderTemplate(
-  val rankLoader: IModelProvider<RankLoaderModelCC>,
-) : ITemplate {
-  companion object {
-    val Provider = ITemplateProvider {
-      RankLoaderTemplate(
-        rankLoader = ClosureModelProvider {
-          RankLoaderModelCC(ranks = it.getComponent<RankLoaderComponent>().ranks)
-        }
-      )
-    }
+object RankLoaderTemplate : PersistentTemplateV2() {
+  override fun instantiate(id: Long) = gameObject(id).apply {
+    addModel(ClosureModelProvider {
+      RankLoaderModelCC(ranks = it.getComponent<RankLoaderComponent>().ranks)
+    })
   }
 }

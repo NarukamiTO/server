@@ -18,21 +18,88 @@
 
 package jp.assasans.narukami.server.battlefield.tank.weapon.smoky
 
-import jp.assasans.narukami.server.battlefield.tank.hull.Object3DSModelCC
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import jp.assasans.narukami.server.battlefield.LightEffectItem
+import jp.assasans.narukami.server.battlefield.LightingEffectEntity
+import jp.assasans.narukami.server.battlefield.LightingSFXEntity
+import jp.assasans.narukami.server.battlefield.tank.hull.asModel
 import jp.assasans.narukami.server.battlefield.tank.weapon.*
-import jp.assasans.narukami.server.core.ITemplate
-import jp.assasans.narukami.server.net.command.ProtocolClass
+import jp.assasans.narukami.server.core.PersistentTemplateV2
+import jp.assasans.narukami.server.core.addModel
+import jp.assasans.narukami.server.res.*
 
-@ProtocolClass(50)
-data class SmokyTemplate(
-  val weaponCommon: WeaponCommonModelCC,
-  val object3DS: Object3DSModelCC,
-  val verticalAutoAiming: VerticalAutoAimingModelCC,
-  val rotatingTurret: RotatingTurretModelCC,
-  val discreteShot: DiscreteShotModelCC,
-  val weaponWeakening: WeaponWeakeningModelCC,
-  val weaponVerticalAngles: WeaponVerticalAnglesModelCC,
-  val splash: SplashModel,
-  val smoky: SmokyModelCC,
-  val smokyShootSFX: SmokyShootSFXModelCC,
-) : ITemplate
+object SmokyTemplate : PersistentTemplateV2(), KoinComponent {
+  private val gameResourceRepository: RemoteGameResourceRepository by inject()
+
+  override fun instantiate(id: Long) = gameObject(id).apply {
+    addModel(WeaponCommonModelCC(
+      buffShotCooldownMs = 0,
+      buffed = false,
+      highlightingDistance = 1000f,
+      impactForce = 500f,
+      kickback = 500f,
+      turretRotationAcceleration = 1f,
+      turretRotationSound = gameResourceRepository.get("tank.sound.weapon-rotate", mapOf(), SoundRes, Eager),
+      turretRotationSpeed = 1f
+    ))
+    addModel(gameResourceRepository.get("tank.weapon.smoky", mapOf("gen" to "1.0", "modification" to "0"), Object3DRes, Eager).asModel())
+    addModel(VerticalAutoAimingModelCC())
+    addModel(RotatingTurretModelCC(
+      turretState = TurretStateCommand(
+        controlInput = 0f,
+        controlType = TurretControlType.ROTATION_DIRECTION,
+        direction = 0f,
+        rotationSpeedNumber = 100
+      )
+    ))
+    addModel(DiscreteShotModelCC(reloadMsec = 500))
+    addModel(WeaponWeakeningModelCC(
+      maximumDamageRadius = 500.0f,
+      minimumDamagePercent = 10.0f,
+      minimumDamageRadius = 1000.0f
+    ))
+    addModel(WeaponVerticalAnglesModelCC(
+      angleDown = 0.2f,
+      angleUp = 0.2f
+    ))
+    addModel(SplashModel(
+      impactForce = 100f,
+      minSplashDamagePercent = 5f,
+      radiusOfMaxSplashDamage = 100f,
+      splashDamageRadius = 1000f,
+    ))
+    addModel(SmokyModelCC())
+    addModel(SmokyShootSFXModelCC(
+      criticalHitSize = 1000,
+      criticalHitTexture = gameResourceRepository.get("tank.weapon.smoky.sfx.critical", mapOf(), MultiframeTextureRes, Eager),
+      explosionMarkTexture = gameResourceRepository.get("tank.weapon.smoky.sfx.hit-mark", mapOf(), TextureRes, Eager),
+      explosionSize = 375,
+      explosionSound = gameResourceRepository.get("tank.weapon.smoky.sfx.sound.hit", mapOf(), SoundRes, Eager),
+      explosionTexture = gameResourceRepository.get("tank.weapon.smoky.sfx.NC_explosion", mapOf(), MultiframeTextureRes, Eager),
+      lightingSFXEntity = LightingSFXEntity(
+        listOf(
+          LightingEffectEntity(
+            "hit", listOf(
+              LightEffectItem(attenuationBegin = 170f, attenuationEnd = 300f, color = "0xffbf00", intensity = 1.7f, time = 0),
+              LightEffectItem(attenuationBegin = 100f, attenuationEnd = 300f, color = "0xffbf00", intensity = 0f, time = 400)
+            )
+          ),
+          LightingEffectEntity(
+            "shot", listOf(
+              LightEffectItem(attenuationBegin = 190f, attenuationEnd = 450f, color = "0xfcdd76", intensity = 1.9f, time = 0),
+              LightEffectItem(attenuationBegin = 1f, attenuationEnd = 2f, color = "0xfcdd76", intensity = 0f, time = 300)
+            )
+          ),
+          LightingEffectEntity(
+            "shell", listOf(
+              LightEffectItem(attenuationBegin = 0f, attenuationEnd = 0f, color = "0xfcdd76", intensity = 0f, time = 0)
+            )
+          )
+        )
+      ),
+      shotSound = gameResourceRepository.get("tank.weapon.smoky.sfx.sound.shot", mapOf(), SoundRes, Eager),
+      shotTexture = gameResourceRepository.get("tank.weapon.smoky.sfx.shot", mapOf(), TextureRes, Eager)
+    ))
+  }
+}

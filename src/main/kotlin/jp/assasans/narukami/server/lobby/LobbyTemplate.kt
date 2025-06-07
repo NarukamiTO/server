@@ -18,35 +18,25 @@
 
 package jp.assasans.narukami.server.lobby
 
-import jp.assasans.narukami.server.core.*
-import jp.assasans.narukami.server.net.command.ProtocolClass
+import jp.assasans.narukami.server.core.ClosureModelProvider
+import jp.assasans.narukami.server.core.PersistentTemplateV2
+import jp.assasans.narukami.server.core.addModel
+import jp.assasans.narukami.server.core.requireSpaceChannel
 import jp.assasans.narukami.server.net.sessionNotNull
 
-@ProtocolClass(3)
-data class LobbyTemplate(
-  val lobbyLayoutNotify: LobbyLayoutNotifyModelCC,
-  val lobbyLayout: LobbyLayoutModelCC,
-  val panel: PanelModelCC,
-  val onceADayAction: OnceADayActionModelCC,
-  val reconnect: IModelProvider<ReconnectModelCC>,
-  val gpuDetector: GPUDetectorModelCC,
-) : ITemplate {
-  companion object {
-    val Provider = ITemplateProvider {
-      LobbyTemplate(
-        lobbyLayoutNotify = LobbyLayoutNotifyModelCC(),
-        lobbyLayout = LobbyLayoutModelCC(),
-        panel = PanelModelCC(),
-        onceADayAction = OnceADayActionModelCC(todayRestartTime = 0),
-        reconnect = ClosureModelProvider {
-          val configPublicUrl = System.getProperty("config.url") ?: error("\"config.url\" system property is not set")
-          ReconnectModelCC(
-            configUrlTemplate = requireSpaceChannel.sessionNotNull.properties["config"] ?: "$configPublicUrl/config.xml",
-            serverNumber = 1,
-          )
-        },
-        gpuDetector = GPUDetectorModelCC(),
+object LobbyTemplate : PersistentTemplateV2() {
+  override fun instantiate(id: Long) = gameObject(id).apply {
+    addModel(LobbyLayoutNotifyModelCC())
+    addModel(LobbyLayoutModelCC())
+    addModel(PanelModelCC())
+    addModel(OnceADayActionModelCC(todayRestartTime = 0))
+    addModel(ClosureModelProvider {
+      val configPublicUrl = System.getProperty("config.url") ?: error("\"config.url\" system property is not set")
+      ReconnectModelCC(
+        configUrlTemplate = requireSpaceChannel.sessionNotNull.properties["config"] ?: "$configPublicUrl/config.xml",
+        serverNumber = 1,
       )
-    }
+    })
+    addModel(GPUDetectorModelCC())
   }
 }

@@ -23,37 +23,34 @@ import kotlin.reflect.KType
 import kotlin.reflect.full.isSubclassOf
 import dev.kdl.KdlNode
 import io.github.oshai.kotlinlogging.KotlinLogging
-import jp.assasans.narukami.server.core.ITemplateV2
+import jp.assasans.narukami.server.core.PersistentTemplateV2
 import jp.assasans.narukami.server.extensions.kotlinClass
 
-class KdlTemplateV2Codec : IKdlCodec<ITemplateV2> {
+class KdlPersistentTemplateV2Codec : IKdlCodec<PersistentTemplateV2> {
   companion object {
-    val Factory = object : IKdlCodecFactory<ITemplateV2> {
-      override fun create(reader: KdlReader, type: KType): IKdlCodec<ITemplateV2>? {
-        if(!type.kotlinClass.isSubclassOf(ITemplateV2::class)) return null
+    val Factory = object : IKdlCodecFactory<PersistentTemplateV2> {
+      override fun create(reader: KdlReader, type: KType): IKdlCodec<PersistentTemplateV2>? {
+        if(!type.kotlinClass.isSubclassOf(PersistentTemplateV2::class)) return null
         assert(!type.isMarkedNullable)
 
-        return KdlTemplateV2Codec()
+        return KdlPersistentTemplateV2Codec()
       }
     }
   }
 
   private val logger = KotlinLogging.logger { }
 
-  override fun decode(reader: KdlReader, node: KdlNode): ITemplateV2 {
+  override fun decode(reader: KdlReader, node: KdlNode): PersistentTemplateV2 {
     val templateName = node.arguments.single().value() as String
-    val template = if(templateName.contains("::")) {
-      TODO()
-    } else {
-      val clazz = Class.forName(templateName).kotlin
-      if(!clazz.isSubclassOf(ITemplateV2::class)) throw IllegalArgumentException("$clazz is not a template")
-      @Suppress("UNCHECKED_CAST")
-      clazz as KClass<out ITemplateV2>
 
-      logger.debug { "Loaded template class $clazz" }
+    val clazz = Class.forName(templateName).kotlin
+    if(!clazz.isSubclassOf(PersistentTemplateV2::class)) throw IllegalArgumentException("$clazz is not a template")
+    @Suppress("UNCHECKED_CAST")
+    clazz as KClass<out PersistentTemplateV2>
 
-      requireNotNull(clazz.objectInstance) { "Template $clazz is not an object declaration" }
-    }
+    logger.debug { "Loaded template class $clazz" }
+
+    val template = requireNotNull(clazz.objectInstance) { "Template $clazz is not an object declaration" }
     logger.debug { "Template $template" }
 
     return template

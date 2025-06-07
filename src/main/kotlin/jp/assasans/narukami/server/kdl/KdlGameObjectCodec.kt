@@ -47,54 +47,58 @@ class KdlGameObjectCodec : IKdlCodec<IGameObject> {
   var name: String? = null
 
   override fun decode(reader: KdlReader, node: KdlNode): IGameObject {
-    val id = TransientGameObject.stableId(requireNotNull(name) { "Game object name is not set" })
+    try {
+      val id = TransientGameObject.stableId(requireNotNull(name) { "Game object name is not set" })
 
-    val componentsNodes = node.children.singleOrNullOrThrow { it.name == "components" }?.children ?: emptyList()
-    val components = componentsNodes.map { rootNode ->
-      logger.trace { "Decoding component: $rootNode" }
+      val componentsNodes = node.children.singleOrNullOrThrow { it.name == "components" }?.children ?: emptyList()
+      val components = componentsNodes.map { rootNode ->
+        logger.trace { "Decoding component: $rootNode" }
 
-      val clazz = Class.forName(rootNode.name).kotlin
-      logger.debug { "Loaded component class: $clazz" }
+        val clazz = Class.forName(rootNode.name).kotlin
+        logger.debug { "Loaded component class: $clazz" }
 
-      if(!clazz.isSubclassOf(IComponent::class)) {
-        throw IllegalArgumentException("Class $clazz is not a component")
+        if(!clazz.isSubclassOf(IComponent::class)) {
+          throw IllegalArgumentException("Class $clazz is not a component")
+        }
+
+        @Suppress("UNCHECKED_CAST")
+        val codec = reader.getCodec(clazz.createType()) as IKdlCodec<out IComponent>
+        val component = codec.decode(reader, rootNode)
+        logger.debug { "Decoded component: $component" }
+
+        component
+      }.toSet()
+
+      val templateNode = node.children.singleOrNullOrThrow { it.name == "template" }
+      val gameObject = if(templateNode != null) {
+        // Template V1
+        val template = reader.getTypedCodec<ITemplate>().decode(reader, templateNode)
+
+        @Suppress("UNCHECKED_CAST")
+        val templateClass = template::class as KClass<ITemplate>
+
+        val parent = TemplatedGameClass.fromTemplate(templateClass)
+        TransientGameObject.instantiate(
+          id,
+          parent,
+          template,
+          components
+        )
+      } else {
+        // Template V2
+        val templateNode = node.children.single { it.name == "template2" }
+        val template = reader.getTypedCodec<PersistentTemplateV2>().decode(reader, templateNode)
+
+        val gameObject = template.instantiate(id)
+        gameObject.addAllComponents(components)
+
+        gameObject
       }
+      logger.debug { "Decoded game object: $gameObject" }
 
-      @Suppress("UNCHECKED_CAST")
-      val codec = reader.getCodec(clazz.createType()) as IKdlCodec<out IComponent>
-      val component = codec.decode(reader, rootNode)
-      logger.debug { "Decoded component: $component" }
-
-      component
-    }.toSet()
-
-    val templateNode = node.children.singleOrNullOrThrow { it.name == "template" }
-    val gameObject = if(templateNode != null) {
-      // Template V1
-      val template = reader.getTypedCodec<ITemplate>().decode(reader, templateNode)
-
-      @Suppress("UNCHECKED_CAST")
-      val templateClass = template::class as KClass<ITemplate>
-
-      val parent = TemplatedGameClass.fromTemplate(templateClass)
-      TransientGameObject.instantiate(
-        id,
-        parent,
-        template,
-        components
-      )
-    } else {
-      // Template V2
-      val templateNode = node.children.single { it.name == "template2" }
-      val template = reader.getTypedCodec<ITemplateV2>().decode(reader, templateNode)
-
-      val gameObject = template.instantiate(id)
-      gameObject.addAllComponents(components)
-
-      gameObject
+      return gameObject
+    } catch(exception: Exception) {
+      throw IllegalArgumentException("Failed to decode game object $name", exception)
     }
-    logger.debug { "Decoded game object: $gameObject" }
-
-    return gameObject
   }
 }

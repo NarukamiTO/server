@@ -23,58 +23,37 @@ import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.lobby.UserNode
 import jp.assasans.narukami.server.lobby.UsernameComponent
 import jp.assasans.narukami.server.net.NettySocketClient
-import jp.assasans.narukami.server.net.command.ProtocolClass
 import jp.assasans.narukami.server.net.sessionNotNull
 
-@ProtocolClass(4)
-data class UserTemplate(
-  val userProperties: IModelProvider<UserPropertiesModelCC>,
-  val userNotifier: IModelProvider<UserNotifierModelCC>,
-  val uidNotifier: IModelProvider<UidNotifierModelCC>,
-  val rankNotifier: IModelProvider<RankNotifierModelCC>,
-  val proBattleNotifier: IModelProvider<ProBattleNotifierModelCC>,
-  val onlineNotifier: IModelProvider<OnlineNotifierModelCC>,
-) : ITemplate {
-  companion object {
-    val Provider = ITemplateProvider {
-      UserTemplate(
-        userProperties = ClosureModelProvider {
-          val user = it.adapt<UserNode>()
-          val ip = (requireSpaceChannel.sessionNotNull.controlChannel.socket as NettySocketClient).channel.remoteAddress()
-          UserPropertiesModelCC(
-            canUseGroup = false,
-            crystals = user.crystals.crystals,
-            crystalsRating = 0,
-            daysFromLastVisit = 0,
-            daysFromRegistration = 0,
-            gearScore = 0,
-            goldsTakenRating = 0,
-            hasSpectatorPermissions = true,
-            id = it.id,
-            rank = 1,
-            rankBounds = RankBounds(lowBound = user.score.score / 2, topBound = user.score.score * 2),
-            registrationTimestamp = 10,
-            score = user.score.score,
-            scoreRating = 10,
-            uid = "${user.username.username} ($ip)",
-            userProfileUrl = "",
-            userRating = 0
-          )
-        },
-        userNotifier = ClosureModelProvider {
-          UserNotifierModelCC(currentUserId = it.id)
-        },
-        uidNotifier = ClosureModelProvider {
-          UidNotifierModelCC(uid = it.getComponent<UsernameComponent>().username, userId = it.id)
-        },
-        rankNotifier = ClosureModelProvider {
-          RankNotifierModelCC(rank = 1, userId = it.id)
-        },
-        proBattleNotifier = ClosureModelProvider {
-          ProBattleNotifierModelCC(abonementRemainingTimeInSec = 2112.days.inWholeSeconds.toInt())
-        },
-        onlineNotifier = StaticModelProvider(OnlineNotifierModelCC())
+object UserTemplate : PersistentTemplateV2() {
+  override fun instantiate(id: Long) = gameObject(id).apply {
+    addModel(ClosureModelProvider {
+      val user = it.adapt<UserNode>()
+      val ip = (requireSpaceChannel.sessionNotNull.controlChannel.socket as NettySocketClient).channel.remoteAddress()
+      UserPropertiesModelCC(
+        canUseGroup = false,
+        crystals = user.crystals.crystals,
+        crystalsRating = 0,
+        daysFromLastVisit = 0,
+        daysFromRegistration = 0,
+        gearScore = 0,
+        goldsTakenRating = 0,
+        hasSpectatorPermissions = true,
+        id = it.id,
+        rank = 1,
+        rankBounds = RankBounds(lowBound = user.score.score / 2, topBound = user.score.score * 2),
+        registrationTimestamp = 10,
+        score = user.score.score,
+        scoreRating = 10,
+        uid = "${user.username.username} ($ip)",
+        userProfileUrl = "",
+        userRating = 0
       )
-    }
+    })
+    addModel(ClosureModelProvider { UserNotifierModelCC(currentUserId = it.id) })
+    addModel(ClosureModelProvider { UidNotifierModelCC(uid = it.getComponent<UsernameComponent>().username, userId = it.id) })
+    addModel(ClosureModelProvider { RankNotifierModelCC(rank = 1, userId = it.id) })
+    addModel(ClosureModelProvider { ProBattleNotifierModelCC(abonementRemainingTimeInSec = 2112.days.inWholeSeconds.toInt()) })
+    addModel(OnlineNotifierModelCC())
   }
 }

@@ -20,54 +20,44 @@ package jp.assasans.narukami.server.garage
 
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
-import jp.assasans.narukami.server.core.ITemplate
-import jp.assasans.narukami.server.core.ITemplateProvider
-import jp.assasans.narukami.server.net.command.ProtocolClass
+import jp.assasans.narukami.server.core.PersistentTemplateV2
+import jp.assasans.narukami.server.core.addModel
 import jp.assasans.narukami.server.res.Eager
 import jp.assasans.narukami.server.res.Object3DRes
 import jp.assasans.narukami.server.res.RemoteGameResourceRepository
 import jp.assasans.narukami.server.res.TextureRes
 
-@ProtocolClass(514153)
-data class GarageTemplate(
-  val garage: GarageModelCC,
-  val upgradeGarageItem: UpgradeGarageItemModelCC,
-  val passToShop: PassToShopModelCC,
-) : ITemplate {
-  companion object : KoinComponent {
-    private val gameResourceRepository: RemoteGameResourceRepository by inject()
+object GarageTemplate : PersistentTemplateV2(), KoinComponent {
+  private val gameResourceRepository: RemoteGameResourceRepository by inject()
 
-    val Provider = ITemplateProvider {
-      GarageTemplate(
-        // Commented out are old garage parameters, old garage requires "ext-garage-holiday" client extension
-        garage = GarageModelCC(
-          cameraAltitude = -250f,
-          // cameraAltitude = 0f,
-          cameraDistance = -950f,
-          // cameraDistance = -730f,
-          cameraFov = 1.7453293f,
-          // cameraFov = 1.5707964f,
-          cameraPitch = 260f,
-          // cameraPitch = -135f,
-          garageBox = gameResourceRepository.get("garage.box", mapOf("gen" to "2.1"), Object3DRes, Eager),
-          hideLinks = false,
-          mountableCategories = listOf(
-            ItemCategoryEnum.ARMOR,
-            ItemCategoryEnum.WEAPON,
-            ItemCategoryEnum.PAINT
-          ),
-          skyboxBackSide = gameResourceRepository.get("skybox.mountains.back", mapOf("gen" to "1.0"), TextureRes, Eager),
-          skyboxBottomSide = gameResourceRepository.get("skybox.mountains.bottom", mapOf("gen" to "1.0"), TextureRes, Eager),
-          skyboxFrontSide = gameResourceRepository.get("skybox.mountains.front", mapOf("gen" to "1.0"), TextureRes, Eager),
-          skyboxLeftSide = gameResourceRepository.get("skybox.mountains.left", mapOf("gen" to "1.0"), TextureRes, Eager),
-          skyboxRightSide = gameResourceRepository.get("skybox.mountains.right", mapOf("gen" to "1.0"), TextureRes, Eager),
-          skyboxTopSide = gameResourceRepository.get("skybox.mountains.top", mapOf("gen" to "1.0"), TextureRes, Eager)
+  override fun instantiate(id: Long) = gameObject(id).apply {
+    // Commented out are old garage parameters, old garage requires "ext-garage-holiday" client extension
+    addModel(
+      GarageModelCC(
+        cameraAltitude = -250f,
+        // cameraAltitude = 0f,
+        cameraDistance = -950f,
+        // cameraDistance = -730f,
+        cameraFov = 1.7453293f,
+        // cameraFov = 1.5707964f,
+        cameraPitch = 260f,
+        // cameraPitch = -135f,
+        garageBox = gameResourceRepository.get("garage.box", mapOf("gen" to "2.1"), Object3DRes, Eager),
+        hideLinks = false,
+        mountableCategories = listOf(
+          ItemCategoryEnum.ARMOR,
+          ItemCategoryEnum.WEAPON,
+          ItemCategoryEnum.PAINT
         ),
-        upgradeGarageItem = UpgradeGarageItemModelCC(),
-        passToShop = PassToShopModelCC(
-          passToShopEnabled = false,
-        ),
+        skyboxBackSide = gameResourceRepository.get("skybox.mountains.back", mapOf("gen" to "1.0"), TextureRes, Eager),
+        skyboxBottomSide = gameResourceRepository.get("skybox.mountains.bottom", mapOf("gen" to "1.0"), TextureRes, Eager),
+        skyboxFrontSide = gameResourceRepository.get("skybox.mountains.front", mapOf("gen" to "1.0"), TextureRes, Eager),
+        skyboxLeftSide = gameResourceRepository.get("skybox.mountains.left", mapOf("gen" to "1.0"), TextureRes, Eager),
+        skyboxRightSide = gameResourceRepository.get("skybox.mountains.right", mapOf("gen" to "1.0"), TextureRes, Eager),
+        skyboxTopSide = gameResourceRepository.get("skybox.mountains.top", mapOf("gen" to "1.0"), TextureRes, Eager)
       )
-    }
+    )
+    addModel(UpgradeGarageItemModelCC())
+    addModel(PassToShopModelCC(passToShopEnabled = false))
   }
 }

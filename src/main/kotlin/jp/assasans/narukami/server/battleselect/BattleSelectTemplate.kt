@@ -18,19 +18,11 @@
 
 package jp.assasans.narukami.server.battleselect
 
-import jp.assasans.narukami.server.core.ITemplate
-import jp.assasans.narukami.server.core.ITemplateProvider
-import jp.assasans.narukami.server.net.command.ProtocolClass
+import jp.assasans.narukami.server.core.PersistentTemplateV2
+import jp.assasans.narukami.server.core.addModel
 
-@ProtocolClass(7)
-data class BattleSelectTemplate(
-  val battleSelect: BattleSelectModelCC,
-) : ITemplate {
-  companion object {
-    val Provider = ITemplateProvider {
-      BattleSelectTemplate(
-        battleSelect = BattleSelectModelCC()
-      )
-    }
+object BattleSelectTemplate : PersistentTemplateV2() {
+  override fun instantiate(id: Long) = gameObject(id).apply {
+    addModel(BattleSelectModelCC())
   }
 }

@@ -21,28 +21,32 @@ package jp.assasans.narukami.server.core
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.findAnnotation
-import jp.assasans.narukami.server.core.impl.GameObjectV2
+import jp.assasans.narukami.server  .core.impl.GameObjectV2
 import jp.assasans.narukami.server.core.internal.TemplateMember
 import jp.assasans.narukami.server.net.command.ProtocolClass
 
-interface ITemplateV2 {
-  fun instantiate(id: Long): IGameObject
+abstract class TemplateV2 {
+  protected fun TemplateV2.gameObject(id: Long): IGameObject {
+    return GameObjectV2(id, this)
+  }
 }
 
-fun ITemplateV2.gameObject(id: Long): IGameObject {
-  return GameObjectV2(id, this)
+abstract class PersistentTemplateV2 : TemplateV2() {
+  abstract fun instantiate(id: Long): IGameObject
 }
 
 /**
  * A template provides a set of models.
  */
-@Deprecated("Use ITemplateV2 instead")
+@Deprecated("Use TemplateV2 instead")
 interface ITemplate
 
+@Deprecated("Use TemplateV2 instead")
 @get:JvmName("KClass_IClass_protocolId")
 val KClass<out ITemplate>.protocolId: Long
   get() = requireNotNull(findAnnotation<ProtocolClass>()) { "$this has no @ProtocolClass annotation" }.id
 
+@Deprecated("Use TemplateV2 instead")
 val KClass<out ITemplate>.models: Map<KProperty1<out ITemplate, *>, KClass<out IModelConstructor>>
   get() {
     val members = requireNotNull(jp.assasans.narukami.server.derive.templateToMembers[this]) {

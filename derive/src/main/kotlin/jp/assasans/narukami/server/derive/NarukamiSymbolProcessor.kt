@@ -23,11 +23,14 @@ import com.google.devtools.ksp.processing.*
 import com.google.devtools.ksp.symbol.*
 import com.google.devtools.ksp.validate
 
+@Deprecated("Use TemplateV2 instead")
 class NarukamiSymbolProcessor(
   private val options: Map<String, String>,
   private val logger: KSPLogger,
   private val codeGenerator: CodeGenerator,
 ) : SymbolProcessor {
+  private var generated: Boolean = false
+
   private operator fun OutputStream.plusAssign(value: String) {
     write(value.toByteArray())
   }
@@ -45,8 +48,8 @@ class NarukamiSymbolProcessor(
     val componentType = resolver.getClassDeclarationByName(componentTypeName)
                         ?: throw IllegalStateException("Unable to find ${componentTypeName.asString()}")
 
-    // Exit from the processor in case nothing is annotated
-    if(!symbols.iterator().hasNext()) return emptyList()
+    if(generated && !symbols.iterator().hasNext()) return emptyList()
+    generated = true
 
     // The generated file will be located at:
     // build/generated/ksp/main/kotlin/jp/assasans/narukami/server/derive/GeneratedFunctions.kt

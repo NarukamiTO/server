@@ -26,12 +26,9 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.sync.Mutex
 import jp.assasans.narukami.server.battlefield.ReplaySocketClient
 import jp.assasans.narukami.server.core.*
-import jp.assasans.narukami.server.core.impl.TemplatedGameClass
-import jp.assasans.narukami.server.core.impl.TransientGameObject
 import jp.assasans.narukami.server.extensions.kotlinClass
 import jp.assasans.narukami.server.lobby.UsernameComponent
 import jp.assasans.narukami.server.net.SpaceChannel
-import jp.assasans.narukami.server.net.command.ProtocolClass
 import jp.assasans.narukami.server.net.command.ProtocolModel
 import jp.assasans.narukami.server.net.session.userNotNull
 import jp.assasans.narukami.server.net.sessionNotNull
@@ -44,10 +41,16 @@ data class DeferredDependenciesCC(
   val deferred: CompletableDeferred<Unit>,
 ) : IModelConstructor
 
-@ProtocolClass(-1)
-data class DeferredDependenciesTemplate(
-  val deferredDependencies: DeferredDependenciesCC,
-) : ITemplate
+object DeferredDependenciesTemplate : TemplateV2() {
+  fun create(id: Long, event: DispatcherLoadDependenciesManagedEvent) = gameObject(id).apply {
+    addModel(
+      DeferredDependenciesCC(
+        callbackId = event.callbackId,
+        deferred = event.deferred
+      )
+    )
+  }
+}
 
 class DispatcherNode(
   val dispatcher: DispatcherModelCC,
@@ -97,17 +100,7 @@ class DispatcherSystem : AbstractSystem() {
   suspend fun loadDependenciesManaged(event: DispatcherLoadDependenciesManagedEvent, dispatcher: DispatcherWithMutexNode) {
     logger.info { "Load dependencies managed: $event" }
 
-    val deferredDependenciesClass = TemplatedGameClass.fromTemplate(DeferredDependenciesTemplate::class)
-    val deferredDependenciesObject = TransientGameObject.instantiate(
-      id = event.callbackId.toLong(),
-      deferredDependenciesClass,
-      DeferredDependenciesTemplate(
-        deferredDependencies = DeferredDependenciesCC(
-          callbackId = event.callbackId,
-          deferred = event.deferred
-        )
-      )
-    )
+    val deferredDependenciesObject = DeferredDependenciesTemplate.create(id = event.callbackId.toLong(), event)
     dispatcher.context.space.objects.add(deferredDependenciesObject)
 
     // The client can only track one dependency load batch at a time

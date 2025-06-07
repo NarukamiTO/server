@@ -20,7 +20,6 @@ package jp.assasans.narukami.server.garage
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import jp.assasans.narukami.server.core.*
-import jp.assasans.narukami.server.core.impl.TemplatedGameClass
 import jp.assasans.narukami.server.core.impl.TransientGameObject
 import jp.assasans.narukami.server.dispatcher.DispatcherLoadObjectsManagedEvent
 import jp.assasans.narukami.server.dispatcher.DispatcherNode
@@ -43,11 +42,7 @@ class GarageSystem : AbstractSystem() {
   ) {
     DispatcherLoadObjectsManagedEvent(garage.gameObject).schedule(dispatcher).await()
 
-    val item = TransientGameObject.instantiate(
-      id = TransientGameObject.transientId("Item:0"),
-      parent = TemplatedGameClass.fromTemplate(GarageItemTemplate::class),
-      template = GarageItemTemplate.Provider.create()
-    )
+    val item = GarageItemTemplate.instantiate(TransientGameObject.transientId("Item:0"))
 
     DispatcherLoadObjectsManagedEvent(
       item

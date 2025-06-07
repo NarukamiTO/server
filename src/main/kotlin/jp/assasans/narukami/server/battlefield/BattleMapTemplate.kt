@@ -18,50 +18,43 @@
 
 package jp.assasans.narukami.server.battlefield
 
-import jp.assasans.narukami.server.core.*
-import jp.assasans.narukami.server.net.command.ProtocolClass
+import jp.assasans.narukami.server.core.ClosureModelProvider
+import jp.assasans.narukami.server.core.PersistentTemplateV2
+import jp.assasans.narukami.server.core.addModel
+import jp.assasans.narukami.server.core.getComponent
 
-@ProtocolClass(4200)
-data class BattleMapTemplate(
-  val battleMap: IModelProvider<BattleMapModelCC>,
-  val colorAdjust: IModelProvider<ColorAdjustModelCC>,
-  val mapBonusLight: IModelProvider<MapBonusLightModelCC>,
-) : ITemplate {
-  companion object {
-    val Provider = ITemplateProvider {
-      BattleMapTemplate(
-        battleMap = ClosureModelProvider {
-          val skyboxRotation = it.getComponent<SkyboxRotationComponent>()
+object BattleMapTemplate : PersistentTemplateV2() {
+  override fun instantiate(id: Long) = gameObject(id).apply {
+    addModel(ClosureModelProvider {
+      val skyboxRotation = it.getComponent<SkyboxRotationComponent>()
 
-          BattleMapModelCC(
-            dustParams = it.getComponent<DustParamsComponent>(),
-            dynamicShadowParams = it.getComponent<DynamicShadowParamsComponent>(),
-            environmentSound = it.getComponent<MapEnvironmentComponent>().sound,
-            fogParams = it.getComponent<FogParamsComponent>(),
-            gravity = 1000.0f,
-            mapResource = it.getComponent<MapResourceComponent>().resource,
-            skyBoxRevolutionAxis = Vector3d(skyboxRotation.x, skyboxRotation.y, skyboxRotation.z),
-            skyBoxRevolutionSpeed = skyboxRotation.speed,
-            skyboxSides = it.getComponent<SkyboxSidesComponent>(),
-            ssaoColor = 3025184
-          )
-        },
-        colorAdjust = ClosureModelProvider {
-          ColorAdjustModelCC(
-            frostParamsHW = ColorAdjustParams(1f, 0f, 1.5f, 100f, 1f, 80f, 1f, 20f),
-            frostParamsSoft = ColorAdjustParams(1f, 0f, 1.5f, 100f, 1f, 80f, 1f, 20f),
-            heatParamsHW = ColorAdjustParams(1f, 0f, 0.6f, -40f, 0.6f, -20f, 1.5f, 40f),
-            heatParamsSoft = ColorAdjustParams(1f, 0f, 0.6f, -40f, 0.6f, -20f, 1.5f, 40f),
-          )
-        },
-        mapBonusLight = ClosureModelProvider {
-          MapBonusLightModelCC(
-            bonusLightIntensity = 0f,
-            hwColorAdjust = ColorAdjustParams(1f, 0f, 1f, 0f, 1f, 0f, 1f, 0f),
-            softColorAdjust = ColorAdjustParams(1f, 0f, 1f, 0f, 1f, 0f, 1f, 0f),
-          )
-        }
+      BattleMapModelCC(
+        dustParams = it.getComponent<DustParamsComponent>(),
+        dynamicShadowParams = it.getComponent<DynamicShadowParamsComponent>(),
+        environmentSound = it.getComponent<MapEnvironmentComponent>().sound,
+        fogParams = it.getComponent<FogParamsComponent>(),
+        gravity = 1000.0f,
+        mapResource = it.getComponent<MapResourceComponent>().resource,
+        skyBoxRevolutionAxis = Vector3d(skyboxRotation.x, skyboxRotation.y, skyboxRotation.z),
+        skyBoxRevolutionSpeed = skyboxRotation.speed,
+        skyboxSides = it.getComponent<SkyboxSidesComponent>(),
+        ssaoColor = 3025184
       )
-    }
+    })
+    addModel(ClosureModelProvider {
+      ColorAdjustModelCC(
+        frostParamsHW = ColorAdjustParams(1f, 0f, 1.5f, 100f, 1f, 80f, 1f, 20f),
+        frostParamsSoft = ColorAdjustParams(1f, 0f, 1.5f, 100f, 1f, 80f, 1f, 20f),
+        heatParamsHW = ColorAdjustParams(1f, 0f, 0.6f, -40f, 0.6f, -20f, 1.5f, 40f),
+        heatParamsSoft = ColorAdjustParams(1f, 0f, 0.6f, -40f, 0.6f, -20f, 1.5f, 40f),
+      )
+    })
+    addModel(ClosureModelProvider {
+      MapBonusLightModelCC(
+        bonusLightIntensity = 0f,
+        hwColorAdjust = ColorAdjustParams(1f, 0f, 1f, 0f, 1f, 0f, 1f, 0f),
+        softColorAdjust = ColorAdjustParams(1f, 0f, 1f, 0f, 1f, 0f, 1f, 0f),
+      )
+    })
   }
 }

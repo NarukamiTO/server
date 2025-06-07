@@ -26,8 +26,6 @@ import org.koin.core.component.inject
 import jp.assasans.narukami.server.battlefield.UserGroupComponent
 import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.core.impl.Space
-import jp.assasans.narukami.server.core.impl.TemplatedGameClass
-import jp.assasans.narukami.server.core.impl.TransientGameObject
 import jp.assasans.narukami.server.dispatcher.DispatcherNode
 import jp.assasans.narukami.server.dispatcher.DispatcherOpenSpaceEvent
 import jp.assasans.narukami.server.dispatcher.preloadResources
@@ -74,16 +72,11 @@ class LoginSystem : AbstractSystem(), KoinComponent {
     // The user object is destroyed immediately when the session is closed,
     // without a grace period like in battles.
     val id = makeStableId("GameObject:User:${event.uidOrEmail}:${Clock.System.now().toEpochMilliseconds()}")
-    val userObject = TransientGameObject.instantiate(
-      id,
-      parent = TemplatedGameClass.fromTemplate(UserTemplate::class),
-      template = UserTemplate.Provider.create(),
-      components = setOf(
-        UsernameComponent(event.uidOrEmail),
-        ScoreComponent(Random.nextInt(10_000, 1_000_000).roundToNearest(100)),
-        CrystalsComponent(Random.nextInt(100_000, 10_000_000).roundToNearest(100)),
-      )
-    )
+    val userObject = UserTemplate.instantiate(id).apply {
+      addComponent(UsernameComponent(event.uidOrEmail))
+      addComponent(ScoreComponent(Random.nextInt(10_000, 1_000_000).roundToNearest(100)))
+      addComponent(CrystalsComponent(Random.nextInt(100_000, 10_000_000).roundToNearest(100)))
+    }
     userObject.addComponent(UserGroupComponent(userObject))
     entrance.context.requireSpaceChannel.sessionNotNull.user = userObject
 

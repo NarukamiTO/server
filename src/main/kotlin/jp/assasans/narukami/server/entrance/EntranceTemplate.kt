@@ -28,7 +28,7 @@ data class RegistrationPasswordLimitsComponent(
   val maxPasswordLength: Int,
 ) : IComponent
 
-object EntranceTemplate : ITemplateV2 {
+object EntranceTemplate : PersistentTemplateV2() {
   override fun instantiate(id: Long) = gameObject(id).apply {
     addModel(EntranceModelCC(antiAddictionEnabled = false))
     addModel(CaptchaModelCC(stateWithCaptcha = listOf()))

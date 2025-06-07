@@ -18,9 +18,7 @@
 
 package jp.assasans.narukami.server.battleselect
 
-import org.koin.core.component.KoinComponent
 import jp.assasans.narukami.server.core.*
-import jp.assasans.narukami.server.net.command.ProtocolClass
 import jp.assasans.narukami.server.res.ImageRes
 import jp.assasans.narukami.server.res.Lazy
 import jp.assasans.narukami.server.res.Resource
@@ -38,31 +36,24 @@ data class MapLimitsComponent(
   val modes: List<BattleMode>,
 ) : IComponent
 
-@ProtocolClass(9)
-data class MapInfoTemplate(
-  val mapInfo: IModelProvider<MapInfoModelCC>,
-) : ITemplate {
-  companion object : KoinComponent {
-    val Provider = ITemplateProvider {
-      MapInfoTemplate(
-        mapInfo = ClosureModelProvider {
-          val mapInfo = it.getComponent<MapInfoComponent>()
-          val mapLimits = it.getComponent<MapLimitsComponent>()
+object MapInfoTemplate : PersistentTemplateV2() {
+  override fun instantiate(id: Long) = gameObject(id).apply {
+    addModel(ClosureModelProvider {
+      val mapInfo = it.getComponent<MapInfoComponent>()
+      val mapLimits = it.getComponent<MapLimitsComponent>()
 
-          MapInfoModelCC(
-            defaultTheme = mapInfo.defaultTheme,
-            enabled = true,
-            mapId = it.id,
-            mapName = mapInfo.name,
-            matchmakingMark = false,
-            maxPeople = mapLimits.maxPeople,
-            preview = mapInfo.preview,
-            rankLimit = mapLimits.rank,
-            supportedModes = mapLimits.modes,
-            theme = mapInfo.theme,
-          )
-        }
+      MapInfoModelCC(
+        defaultTheme = mapInfo.defaultTheme,
+        enabled = true,
+        mapId = it.id,
+        mapName = mapInfo.name,
+        matchmakingMark = false,
+        maxPeople = mapLimits.maxPeople,
+        preview = mapInfo.preview,
+        rankLimit = mapLimits.rank,
+        supportedModes = mapLimits.modes,
+        theme = mapInfo.theme,
       )
-    }
+    })
   }
 }

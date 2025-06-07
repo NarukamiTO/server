@@ -22,6 +22,7 @@ import kotlin.reflect.KClass
 import io.github.oshai.kotlinlogging.KotlinLogging
 import jp.assasans.narukami.server.core.*
 
+@Deprecated("Use TemplateV2 instead")
 data class TemplatedGameClass<T : ITemplate>(
   override val id: Long,
   override val models: Set<KClass<out IModelConstructor>>,

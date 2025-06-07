@@ -28,7 +28,7 @@ interface IGameObject {
 
   @Deprecated("Use `template` instead", ReplaceWith("template"))
   val parent: IGameClass
-  val template: ITemplateV2
+  val template: TemplateV2
 
   val allComponents: Map<KClass<out IComponent>, IComponent>
   val models: MutableMap<KClass<out IModelConstructor>, IModelProvider<*>>
