@@ -52,3 +52,4 @@ Licensed under GNU Affero General Public License, version 3.0 or later
 (link:LICENSE[] or link:https://www.gnu.org/licenses/agpl-3.0.html[]).
 
 **In short, you must make the entire source code available to your users if you host this server for anybody.**
+**If you copy substantial part of the code, your project must also be licensed under AGPLv3.**

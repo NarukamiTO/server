@@ -16,26 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package jp.assasans.narukami.server.core.impl
+package jp.assasans.narukami.server.garage.item
 
-import io.github.oshai.kotlinlogging.KotlinLogging
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
-import jp.assasans.narukami.server.core.IEvent
-import jp.assasans.narukami.server.core.IRegistry
-import jp.assasans.narukami.server.core.ISpace
-import jp.assasans.narukami.server.res.RemoteGameResourceRepository
+import jp.assasans.narukami.server.core.IModelConstructor
+import jp.assasans.narukami.server.net.command.ProtocolModel
 
-class SpaceInitializer(
-  private val spaces: IRegistry<ISpace>
-) : IEvent, KoinComponent {
-  private val logger = KotlinLogging.logger { }
-
-  private val gameResourceRepository: RemoteGameResourceRepository by inject()
-
-  fun init() {
-    spaces.add(Space(Space.stableId("entrance")))
-    spaces.add(Space(Space.stableId("lobby")))
-    spaces.add(Space(Space.stableId("garage")))
-  }
-}
+@ProtocolModel(2769268442698022653)
+data class BuyableModelCC(
+  val buyable: Boolean,
+  val priceWithoutDiscount: Int,
+) : IModelConstructor

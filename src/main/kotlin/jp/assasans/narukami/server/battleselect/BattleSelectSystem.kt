@@ -41,6 +41,8 @@ import jp.assasans.narukami.server.dispatcher.DispatcherNode
 import jp.assasans.narukami.server.dispatcher.DispatcherOpenSpaceEvent
 import jp.assasans.narukami.server.dispatcher.DispatcherUnloadObjectsManagedEvent
 import jp.assasans.narukami.server.extensions.roundToNearest
+import jp.assasans.narukami.server.extensions.singleOrNullOrThrow
+import jp.assasans.narukami.server.garage.GarageModelCC
 import jp.assasans.narukami.server.lobby.*
 import jp.assasans.narukami.server.lobby.communication.ChatNode
 import jp.assasans.narukami.server.lobby.user.UserTemplate
@@ -447,22 +449,36 @@ class BattleSelectSystem : AbstractSystem() {
     LobbyLayoutNotifyModelEndLayoutSwitchEvent(LayoutState.BATTLE_SELECT, LayoutState.BATTLE_SELECT).schedule(lobby)
 
     // TODO: Workaround, works for now
-    val battleChannel = lobby.context.requireSpaceChannel.sessionNotNull.spaces.all.single { it.space.rootObject.models.contains(BattlefieldModelCC::class) }
-    battleChannel.close()
+    val battleChannel = lobby.context.requireSpaceChannel.sessionNotNull.spaces.all.singleOrNullOrThrow { it.space.rootObject.models.contains(BattlefieldModelCC::class) }
+    if(battleChannel != null) {
+      battleChannel.close()
 
-    val user = battleChannel.sessionNotNull.userNotNull.adapt<UserNode>(battleChannel)
-    val battleUser = battleChannel.space.objects.all.findBy<BattleUserNode, UserGroupComponent>(user)
-    UnloadBattleUserEvent().schedule(battleUser)
+      val user = battleChannel.sessionNotNull.userNotNull.adapt<UserNode>(battleChannel)
+      val battleUser = battleChannel.space.objects.all.findBy<BattleUserNode, UserGroupComponent>(user)
+      UnloadBattleUserEvent().schedule(battleUser)
 
-    // Mirrors loading logic
-    DispatcherLoadObjectsManagedEvent(
-      chat.gameObject,
-      battleSelect.gameObject
-    ).schedule(dispatcher).await()
+      // Mirrors loading logic
+      DispatcherLoadObjectsManagedEvent(
+        chat.gameObject,
+        battleSelect.gameObject
+      ).schedule(dispatcher).await()
 
-    // TODO: NodeAddedEvent is not yet automatically scheduled
-    NodeAddedEvent().schedule(chat)
-    NodeAddedEvent().schedule(battleSelect)
+      // TODO: NodeAddedEvent is not yet automatically scheduled
+      NodeAddedEvent().schedule(chat)
+      NodeAddedEvent().schedule(battleSelect)
+    } else {
+      // TODO: Workaround, works for now
+      val garageChannel = lobby.context.requireSpaceChannel.sessionNotNull.spaces.all.single { it.space.objects.all.any { it.models.contains(GarageModelCC::class) } }
+      garageChannel.close()
+
+      // Garage to lobby transition
+      DispatcherLoadObjectsManagedEvent(
+        battleSelect.gameObject
+      ).schedule(dispatcher).await()
+
+      // TODO: NodeAddedEvent is not yet automatically scheduled
+      NodeAddedEvent().schedule(battleSelect)
+    }
   }
 }
 

@@ -19,12 +19,14 @@
 package jp.assasans.narukami.server.lobby
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import jp.assasans.narukami.server.battleselect.BattleInfoNode
 import jp.assasans.narukami.server.battleselect.BattleSelectModelCC
 import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.core.impl.Space
 import jp.assasans.narukami.server.dispatcher.DispatcherLoadObjectsManagedEvent
 import jp.assasans.narukami.server.dispatcher.DispatcherNode
 import jp.assasans.narukami.server.dispatcher.DispatcherOpenSpaceEvent
+import jp.assasans.narukami.server.dispatcher.DispatcherUnloadObjectsManagedEvent
 import jp.assasans.narukami.server.lobby.communication.ChatNode
 import jp.assasans.narukami.server.lobby.user.RankLoaderModelCC
 import jp.assasans.narukami.server.net.session.userNotNull
@@ -106,18 +108,29 @@ class LobbySystem : AbstractSystem() {
 
   @OnEventFire
   @Mandatory
-  fun showGarage(
+  @OutOfOrderExecution
+  suspend fun showGarage(
     event: LobbyLayoutModelShowGarageEvent,
     lobby: LobbyNode,
+    @JoinAll dispatcher: DispatcherNode,
+    @JoinAll battleSelect: SingleNode<BattleSelectModelCC>,
+    @JoinAll battles: List<BattleInfoNode>,
   ) {
-    logger.warn { "Show garage is not implemented" }
     LobbyLayoutNotifyModelBeginLayoutSwitchEvent(LayoutState.GARAGE).schedule(lobby)
-    LobbyLayoutNotifyModelEndLayoutSwitchEvent(LayoutState.GARAGE, LayoutState.BATTLE_SELECT).schedule(lobby)
+    LobbyLayoutNotifyModelEndLayoutSwitchEvent(LayoutState.GARAGE, LayoutState.GARAGE).schedule(lobby)
+
+    DispatcherUnloadObjectsManagedEvent(
+      listOf(
+        battleSelect.gameObject
+      ) + battles.gameObjects
+    ).schedule(dispatcher)
+
+    DispatcherOpenSpaceEvent(Space.stableId("garage")).schedule(dispatcher).await()
   }
 
   @OnEventFire
   @Mandatory
-  fun showGarage(
+  fun showBattleSelect(
     event: LobbyLayoutModelShowBattleSelectEvent,
     lobby: LobbyNode,
   ) {
