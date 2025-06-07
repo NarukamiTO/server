@@ -1,4 +1,4 @@
-template "jp.assasans.narukami.server.entrance.EntranceTemplate::Provider"
+template2 "jp.assasans.narukami.server.entrance.EntranceTemplate"
 components {
   jp.assasans.narukami.server.entrance.RegistrationBackgroundComponent {
     resource "entrance.background" type="Image" laziness="Eager"

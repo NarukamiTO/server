@@ -31,7 +31,7 @@ class Space(override val id: Long) : ISpace, KoinComponent {
   companion object {
     val ROOT_CLASS = TransientGameClass(
       id = 0,
-      models = listOf(DispatcherModelCC::class)
+      models = setOf(DispatcherModelCC::class)
     )
 
     private val lastId = AtomicLong(-2112)

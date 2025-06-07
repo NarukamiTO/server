@@ -18,54 +18,42 @@
 
 package jp.assasans.narukami.server.kdl
 
-import kotlin.reflect.KProperty1
+import kotlin.reflect.KClass
 import kotlin.reflect.KType
-import kotlin.reflect.full.companionObject
-import kotlin.reflect.full.companionObjectInstance
-import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.full.isSubclassOf
 import dev.kdl.KdlNode
 import io.github.oshai.kotlinlogging.KotlinLogging
-import jp.assasans.narukami.server.core.ITemplate
-import jp.assasans.narukami.server.core.ITemplateProvider
+import jp.assasans.narukami.server.core.ITemplateV2
 import jp.assasans.narukami.server.extensions.kotlinClass
 
-@Deprecated("Use KdlTemplateV2Codec instead")
-class KdlTemplateCodec : IKdlCodec<ITemplate> {
+class KdlTemplateV2Codec : IKdlCodec<ITemplateV2> {
   companion object {
-    val Factory = object : IKdlCodecFactory<ITemplate> {
-      override fun create(reader: KdlReader, type: KType): IKdlCodec<ITemplate>? {
-        if(!type.kotlinClass.isSubclassOf(ITemplate::class)) return null
+    val Factory = object : IKdlCodecFactory<ITemplateV2> {
+      override fun create(reader: KdlReader, type: KType): IKdlCodec<ITemplateV2>? {
+        if(!type.kotlinClass.isSubclassOf(ITemplateV2::class)) return null
         assert(!type.isMarkedNullable)
 
-        return KdlTemplateCodec()
+        return KdlTemplateV2Codec()
       }
     }
   }
 
   private val logger = KotlinLogging.logger { }
 
-  override fun decode(reader: KdlReader, node: KdlNode): ITemplate {
+  override fun decode(reader: KdlReader, node: KdlNode): ITemplateV2 {
     val templateName = node.arguments.single().value() as String
     val template = if(templateName.contains("::")) {
-      val parts = templateName.split("::", limit = 2)
-      val className = parts[0]
-      val propertyName = parts[1]
-      logger.debug { "Template class $className, provider $propertyName" }
+      TODO()
+    } else {
+      val clazz = Class.forName(templateName).kotlin
+      if(!clazz.isSubclassOf(ITemplateV2::class)) throw IllegalArgumentException("$clazz is not a template")
+      @Suppress("UNCHECKED_CAST")
+      clazz as KClass<out ITemplateV2>
 
-      val clazz = Class.forName(className).kotlin
       logger.debug { "Loaded template class $clazz" }
 
-      val companionClass = requireNotNull(clazz.companionObject)
-      val companionInstance = requireNotNull(clazz.companionObjectInstance)
-
-      val property = companionClass.declaredMemberProperties.single { it.name == propertyName }
-      @Suppress("UNCHECKED_CAST")
-      property as KProperty1<Any, ITemplateProvider<*>>
-
-      val provider = property.get(companionInstance)
-      provider.create()
-    } else TODO()
+      requireNotNull(clazz.objectInstance) { "Template $clazz is not an object declaration" }
+    }
     logger.debug { "Template $template" }
 
     return template

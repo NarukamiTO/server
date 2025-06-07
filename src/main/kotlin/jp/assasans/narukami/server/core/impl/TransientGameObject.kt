@@ -22,12 +22,86 @@ import java.util.concurrent.atomic.AtomicLong
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 import io.github.oshai.kotlinlogging.KotlinLogging
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.core.internal.TemplateMember
 
+class GameClassCache {
+  private val cache = mutableMapOf<Set<KClass<out IModelConstructor>>, IGameClass>()
+
+  fun getOrCreate(models: Set<KClass<out IModelConstructor>>): IGameClass {
+    return cache.getOrPut(models) {
+      TransientGameClass(
+        id = TransientGameClass.freeId(),
+        models
+      )
+    }
+  }
+}
+
+class GameObjectV2(
+  override val id: Long,
+  override val template: ITemplateV2,
+) : IGameObject, KoinComponent {
+  private val gameClassCache: GameClassCache by inject()
+
+  @Deprecated("Use `template` instead", replaceWith = ReplaceWith("template"))
+  override val parent: IGameClass
+    get() = gameClassCache.getOrCreate(models.keys)
+
+  val components: MutableMap<KClass<out IComponent>, IComponent> = mutableMapOf()
+  override val models: MutableMap<KClass<out IModelConstructor>, IModelProvider<*>> = mutableMapOf()
+
+  override val allComponents: Map<KClass<out IComponent>, IComponent>
+    get() = components
+
+  override fun addComponent(component: IComponent) {
+    check(components[component::class] == null) { "Component ${component::class} already exists in $this" }
+    components[component::class] = component
+  }
+
+  override fun hasComponent(type: KClass<out IComponent>): Boolean {
+    return components.containsKey(type)
+  }
+
+  override fun <T : IComponent> getComponent(type: KClass<T>): T {
+    @Suppress("UNCHECKED_CAST")
+    return components[type] as T? ?: throw NoSuchElementException("Component $type not found in $this")
+  }
+
+  override fun <T : IComponent> getComponentOrNull(type: KClass<T>): T? {
+    @Suppress("UNCHECKED_CAST")
+    return components[type] as T?
+  }
+
+  override fun <T : IModelConstructor> addModel(type: KClass<T>, model: IModelProvider<T>) {
+    if(models.containsKey(type)) throw IllegalStateException("Model $type already exists in $this")
+    models[type] = model
+  }
+
+  override fun hasModel(type: KClass<out IModelConstructor>): Boolean {
+    return models.containsKey(type)
+  }
+
+  override fun <T : IModelConstructor> getModel(type: KClass<T>): IModelProvider<T> {
+    @Suppress("UNCHECKED_CAST")
+    return models[type] as IModelProvider<T>? ?: throw NoSuchElementException("Model $type not found in $this")
+  }
+
+  override fun <T : IModelConstructor> getModelOrNull(type: KClass<T>): IModelProvider<T>? {
+    @Suppress("UNCHECKED_CAST")
+    return models[type] as IModelProvider<T>?
+  }
+
+  override fun toString(): String {
+    return "${this::class.simpleName}(id=$id, template=${template::class.simpleName}, ${models.size} models, ${components.size} components)"
+  }
+}
+
 class TransientGameObject(
   override val id: Long,
-  override val parent: IGameClass
+  override val parent: IGameClass,
 ) : IGameObject {
   companion object {
     private val logger = KotlinLogging.logger { }
@@ -53,6 +127,7 @@ class TransientGameObject(
      */
     fun stableId(identifier: String): Long = makeStableId("GameObject:$identifier")
 
+    @Deprecated("Use ITemplateV2.create() instead")
     fun <T : ITemplate> instantiate(
       id: Long,
       parent: TemplatedGameClass<T>,
@@ -85,6 +160,9 @@ class TransientGameObject(
     }
   }
 
+  override val template: ITemplateV2
+    get() = TODO("Not supported")
+
   val components: MutableMap<KClass<out IComponent>, IComponent> = mutableMapOf()
   override val models: MutableMap<KClass<out IModelConstructor>, IModelProvider<*>> = mutableMapOf()
 
@@ -108,6 +186,25 @@ class TransientGameObject(
   override fun <T : IComponent> getComponentOrNull(type: KClass<T>): T? {
     @Suppress("UNCHECKED_CAST")
     return components[type] as T?
+  }
+
+  override fun <T : IModelConstructor> addModel(type: KClass<T>, model: IModelProvider<T>) {
+    if(models.containsKey(type)) throw IllegalStateException("Model $type already exists in $this")
+    models[type] = model
+  }
+
+  override fun hasModel(type: KClass<out IModelConstructor>): Boolean {
+    return models.containsKey(type)
+  }
+
+  override fun <T : IModelConstructor> getModel(type: KClass<T>): IModelProvider<T> {
+    @Suppress("UNCHECKED_CAST")
+    return models[type] as IModelProvider<T>? ?: throw NoSuchElementException("Model $type not found in $this")
+  }
+
+  override fun <T : IModelConstructor> getModelOrNull(type: KClass<T>): IModelProvider<T>? {
+    @Suppress("UNCHECKED_CAST")
+    return models[type] as IModelProvider<T>?
   }
 
   override fun toString(): String {

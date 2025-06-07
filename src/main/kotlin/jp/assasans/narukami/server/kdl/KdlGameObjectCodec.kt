@@ -24,9 +24,7 @@ import kotlin.reflect.full.createType
 import kotlin.reflect.full.isSubclassOf
 import dev.kdl.KdlNode
 import io.github.oshai.kotlinlogging.KotlinLogging
-import jp.assasans.narukami.server.core.IComponent
-import jp.assasans.narukami.server.core.IGameObject
-import jp.assasans.narukami.server.core.ITemplate
+import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.core.impl.TemplatedGameClass
 import jp.assasans.narukami.server.core.impl.TransientGameObject
 import jp.assasans.narukami.server.extensions.kotlinClass
@@ -49,8 +47,7 @@ class KdlGameObjectCodec : IKdlCodec<IGameObject> {
   var name: String? = null
 
   override fun decode(reader: KdlReader, node: KdlNode): IGameObject {
-    val templateNode = node.children.single { it.name == "template" }
-    val template = reader.getTypedCodec<ITemplate>().decode(reader, templateNode)
+    val id = TransientGameObject.stableId(requireNotNull(name) { "Game object name is not set" })
 
     val componentsNodes = node.children.singleOrNullOrThrow { it.name == "components" }?.children ?: emptyList()
     val components = componentsNodes.map { rootNode ->
@@ -71,16 +68,31 @@ class KdlGameObjectCodec : IKdlCodec<IGameObject> {
       component
     }.toSet()
 
-    @Suppress("UNCHECKED_CAST")
-    val templateClass = template::class as KClass<ITemplate>
+    val templateNode = node.children.singleOrNullOrThrow { it.name == "template" }
+    val gameObject = if(templateNode != null) {
+      // Template V1
+      val template = reader.getTypedCodec<ITemplate>().decode(reader, templateNode)
 
-    val parent = TemplatedGameClass.fromTemplate(templateClass)
-    val gameObject = TransientGameObject.instantiate(
-      TransientGameObject.stableId(requireNotNull(name) { "Game object name is not set" }),
-      parent,
-      template,
-      components
-    )
+      @Suppress("UNCHECKED_CAST")
+      val templateClass = template::class as KClass<ITemplate>
+
+      val parent = TemplatedGameClass.fromTemplate(templateClass)
+      TransientGameObject.instantiate(
+        id,
+        parent,
+        template,
+        components
+      )
+    } else {
+      // Template V2
+      val templateNode = node.children.single { it.name == "template2" }
+      val template = reader.getTypedCodec<ITemplateV2>().decode(reader, templateNode)
+
+      val gameObject = template.instantiate(id)
+      gameObject.addAllComponents(components)
+
+      gameObject
+    }
     logger.debug { "Decoded game object: $gameObject" }
 
     return gameObject

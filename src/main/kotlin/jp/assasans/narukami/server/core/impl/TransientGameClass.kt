@@ -18,11 +18,23 @@
 
 package jp.assasans.narukami.server.core.impl
 
+import java.util.concurrent.atomic.AtomicLong
 import kotlin.reflect.KClass
 import jp.assasans.narukami.server.core.IGameClass
 import jp.assasans.narukami.server.core.IModelConstructor
 
 data class TransientGameClass(
   override val id: Long,
-  override val models: List<KClass<out IModelConstructor>>,
-) : IGameClass
+  override val models: Set<KClass<out IModelConstructor>>,
+) : IGameClass {
+  companion object {
+    private val lastId = AtomicLong(-21122019)
+
+    /**
+     * Generates a new transient ID for a game class.
+     */
+    fun freeId(): Long {
+      return lastId.getAndDecrement()
+    }
+  }
+}

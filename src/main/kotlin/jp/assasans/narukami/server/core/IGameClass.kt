@@ -22,5 +22,5 @@ import kotlin.reflect.KClass
 
 interface IGameClass {
   val id: Long
-  val models: List<KClass<out IModelConstructor>>
+  val models: Set<KClass<out IModelConstructor>>
 }

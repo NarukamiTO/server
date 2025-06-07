@@ -41,10 +41,7 @@ import jp.assasans.narukami.server.core.IEventScheduler
 import jp.assasans.narukami.server.core.IRegistry
 import jp.assasans.narukami.server.core.ISessionRegistry
 import jp.assasans.narukami.server.core.ISpace
-import jp.assasans.narukami.server.core.impl.EventScheduler
-import jp.assasans.narukami.server.core.impl.Registry
-import jp.assasans.narukami.server.core.impl.SessionRegistry
-import jp.assasans.narukami.server.core.impl.SpaceInitializer
+import jp.assasans.narukami.server.core.impl.*
 import jp.assasans.narukami.server.kdl.KdlReader
 import jp.assasans.narukami.server.net.ConfigServer
 import jp.assasans.narukami.server.net.GameServer
@@ -125,6 +122,7 @@ suspend fun main() {
 
       single<IRegistry<ISpace>> { Registry("Space") { id } }
       singleOf<ISessionRegistry>(::SessionRegistry)
+      singleOf(::GameClassCache)
       singleOf(::SpaceInitializer)
       singleOf(::SpaceEventProcessor)
       // TODO: Probably should use a different coroutine context / dispatcher

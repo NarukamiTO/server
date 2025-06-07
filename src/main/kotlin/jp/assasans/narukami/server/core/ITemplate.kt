@@ -21,12 +21,22 @@ package jp.assasans.narukami.server.core
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.findAnnotation
+import jp.assasans.narukami.server.core.impl.GameObjectV2
 import jp.assasans.narukami.server.core.internal.TemplateMember
 import jp.assasans.narukami.server.net.command.ProtocolClass
+
+interface ITemplateV2 {
+  fun instantiate(id: Long): IGameObject
+}
+
+fun ITemplateV2.gameObject(id: Long): IGameObject {
+  return GameObjectV2(id, this)
+}
 
 /**
  * A template provides a set of models.
  */
+@Deprecated("Use ITemplateV2 instead")
 interface ITemplate
 
 @get:JvmName("KClass_IClass_protocolId")

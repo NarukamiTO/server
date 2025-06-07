@@ -41,6 +41,7 @@ annotation class ProtocolEnum
 @Retention(AnnotationRetention.RUNTIME)
 annotation class ProtocolEvent(val id: Long)
 
+@Deprecated("Moving to ITemplateV2")
 @Target(AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.RUNTIME)
 annotation class ProtocolClass(val id: Long)

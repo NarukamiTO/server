@@ -24,7 +24,7 @@ import jp.assasans.narukami.server.core.*
 
 data class TemplatedGameClass<T : ITemplate>(
   override val id: Long,
-  override val models: List<KClass<out IModelConstructor>>,
+  override val models: Set<KClass<out IModelConstructor>>,
   val template: KClass<T>,
 ) : IGameClass {
   private val logger = KotlinLogging.logger { }
@@ -33,7 +33,7 @@ data class TemplatedGameClass<T : ITemplate>(
     fun <T : ITemplate> fromTemplate(template: KClass<T>): TemplatedGameClass<T> {
       return TemplatedGameClass(
         id = template.protocolId,
-        models = template.models.values.toList(),
+        models = template.models.values.toSet(),
         template = template
       )
     }

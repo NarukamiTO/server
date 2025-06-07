@@ -19,7 +19,6 @@
 package jp.assasans.narukami.server.entrance
 
 import jp.assasans.narukami.server.core.*
-import jp.assasans.narukami.server.net.command.ProtocolClass
 import jp.assasans.narukami.server.res.ImageRes
 import jp.assasans.narukami.server.res.Resource
 
@@ -29,32 +28,21 @@ data class RegistrationPasswordLimitsComponent(
   val maxPasswordLength: Int,
 ) : IComponent
 
-@ProtocolClass(2)
-data class EntranceTemplate(
-  val entrance: EntranceModelCC,
-  val captcha: CaptchaModelCC,
-  val login: LoginModelCC,
-  val registration: IModelProvider<RegistrationModelCC>,
-  val entranceAlert: EntranceAlertModelCC,
-) : ITemplate {
-  companion object {
-    val Provider = ITemplateProvider {
-      EntranceTemplate(
-        entrance = EntranceModelCC(antiAddictionEnabled = false),
-        captcha = CaptchaModelCC(stateWithCaptcha = listOf()),
-        login = LoginModelCC(),
-        registration = ClosureModelProvider {
-          val limits = it.getComponent<RegistrationPasswordLimitsComponent>()
+object EntranceTemplate : ITemplateV2 {
+  override fun instantiate(id: Long) = gameObject(id).apply {
+    addModel(EntranceModelCC(antiAddictionEnabled = false))
+    addModel(CaptchaModelCC(stateWithCaptcha = listOf()))
+    addModel(LoginModelCC())
+    addModel(ClosureModelProvider {
+      val limits = it.getComponent<RegistrationPasswordLimitsComponent>()
 
-          RegistrationModelCC(
-            bgResource = it.getComponent<RegistrationBackgroundComponent>().resource,
-            enableRequiredEmail = false,
-            minPasswordLength = limits.minPasswordLength,
-            maxPasswordLength = limits.maxPasswordLength,
-          )
-        },
-        entranceAlert = EntranceAlertModelCC()
+      RegistrationModelCC(
+        bgResource = it.getComponent<RegistrationBackgroundComponent>().resource,
+        enableRequiredEmail = false,
+        minPasswordLength = limits.minPasswordLength,
+        maxPasswordLength = limits.maxPasswordLength,
       )
-    }
+    })
+    addModel(EntranceAlertModelCC())
   }
 }
