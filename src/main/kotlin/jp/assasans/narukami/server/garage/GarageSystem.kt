@@ -19,19 +19,28 @@
 package jp.assasans.narukami.server.garage
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import org.koin.core.component.inject
 import jp.assasans.narukami.server.core.*
-import jp.assasans.narukami.server.core.impl.TransientGameObject
 import jp.assasans.narukami.server.dispatcher.DispatcherLoadObjectsManagedEvent
 import jp.assasans.narukami.server.dispatcher.DispatcherNode
-import jp.assasans.narukami.server.garage.item.GarageItemTemplate
+import jp.assasans.narukami.server.garage.item.*
+import jp.assasans.narukami.server.res.ImageRes
+import jp.assasans.narukami.server.res.Lazy
+import jp.assasans.narukami.server.res.RemoteGameResourceRepository
 
 data class GarageNode(
   val garage: GarageModelCC,
   val upgradeGarageItem: UpgradeGarageItemModelCC,
 ) : Node()
 
+data class GarageItemNode(
+  val garageItem: GarageItemComponent,
+) : Node()
+
 class GarageSystem : AbstractSystem() {
   private val logger = KotlinLogging.logger { }
+
+  private val gameResourceRepository: RemoteGameResourceRepository by inject()
 
   @OnEventFire
   @OutOfOrderExecution
@@ -39,16 +48,38 @@ class GarageSystem : AbstractSystem() {
     event: ChannelAddedEvent,
     dispatcher: DispatcherNode,
     @JoinAll @AllowUnloaded garage: GarageNode,
+    @JoinAll @AllowUnloaded items: List<GarageItemNode>,
   ) {
     DispatcherLoadObjectsManagedEvent(garage.gameObject).schedule(dispatcher).await()
 
-    val item = GarageItemTemplate.instantiate(TransientGameObject.transientId("Item:0"))
+    fun IGameObject.fakeData() {
+      addComponent(GarageItemComponent())
+      addComponent(NameComponent(name = "Test Item"))
+      addComponent(DescriptionComponent(description = "This is a test item for the garage system. It has no real functionality."))
+      addComponent(
+        ItemPreviewComponent(
+          resource = gameResourceRepository.get(
+            "tank.hull.viking.preview",
+            mapOf("gen" to "1.0", "modification" to "0"),
+            ImageRes,
+            Lazy
+          )
+        )
+      )
+      addComponent(MinRankComponent(minRank = 1))
+      addComponent(MaxRankComponent(maxRank = 31))
+      addComponent(PositionComponent(position = 0))
+      addComponent(ItemCategoryComponent(category = ItemCategoryEnum.ARMOR))
+      addComponent(BuyableComponent())
+      addComponent(PriceComponent(price = 1000))
+      addComponent(DiscountComponent(discount = 0.1f))
+    }
 
     DispatcherLoadObjectsManagedEvent(
-      item
+      items.gameObjects
     ).schedule(dispatcher).await()
 
-    GarageModelInitMarketEvent(listOf(item)).schedule(garage)
+    GarageModelInitMarketEvent(items.gameObjects).schedule(garage)
     // Additionally, it starts garage preview rendering
     GarageModelInitDepotEvent(listOf()).schedule(garage)
   }

@@ -19,55 +19,62 @@
 package jp.assasans.narukami.server.garage.item
 
 import kotlin.time.Duration.Companion.days
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
-import jp.assasans.narukami.server.core.PersistentTemplateV2
-import jp.assasans.narukami.server.core.addModel
+import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.garage.ItemCategoryEnum
-import jp.assasans.narukami.server.garage.ItemViewCategoryEnum
+import jp.assasans.narukami.server.garage.toViewCategory
 import jp.assasans.narukami.server.res.ImageRes
 import jp.assasans.narukami.server.res.Lazy
-import jp.assasans.narukami.server.res.RemoteGameResourceRepository
+import jp.assasans.narukami.server.res.Resource
 
-object GarageItemTemplate : PersistentTemplateV2(), KoinComponent {
-  private val gameResourceRepository: RemoteGameResourceRepository by inject()
+class GarageItemComponent : IComponent
+data class NameComponent(val name: String) : IComponent
+data class DescriptionComponent(val description: String) : IComponent
+data class ItemPreviewComponent(val resource: Resource<ImageRes, Lazy>) : IComponent
+data class MinRankComponent(val minRank: Int) : IComponent
+data class MaxRankComponent(val maxRank: Int) : IComponent
+data class PositionComponent(val position: Int) : IComponent
+data class ItemCategoryComponent(val category: ItemCategoryEnum) : IComponent
+class BuyableComponent : IComponent
+data class PriceComponent(val price: Int) : IComponent
+data class DiscountComponent(val discount: Float) : IComponent
 
+abstract class GarageItemTemplate : PersistentTemplateV2() {
   override fun instantiate(id: Long) = gameObject(id).apply {
-    addModel(
+    addModel(ClosureModelProvider {
       DescriptionModelCC(
-        name = "GarageItemTemplate",
-        description = "Unimplemented"
+        name = it.getComponent<NameComponent>().name,
+        description = it.getComponentOrNull<DescriptionComponent>()?.description ?: "",
       )
-    )
-    addModel(
+    })
+    addModel(ClosureModelProvider {
       ItemModelCC(
-        minRank = 1,
-        maxRank = 31,
-        position = 0,
-        preview = gameResourceRepository.get(
-          "tank.hull.viking.preview",
-          mapOf("gen" to "1.0", "modification" to "0"),
-          ImageRes,
-          Lazy
-        ),
+        minRank = it.getComponentOrNull<MinRankComponent>()?.minRank ?: 1,
+        maxRank = it.getComponentOrNull<MaxRankComponent>()?.maxRank ?: 31,
+        position = it.getComponentOrNull<PositionComponent>()?.position ?: 0,
+        preview = it.getComponent<ItemPreviewComponent>().resource,
       )
-    )
-    addModel(ItemCategoryModelCC(category = ItemCategoryEnum.ARMOR))
-    addModel(ItemViewCategoryModelCC(category = ItemViewCategoryEnum.ARMOR))
-    addModel(
+    })
+    addModel(ClosureModelProvider {
+      ItemCategoryModelCC(category = it.getComponent<ItemCategoryComponent>().category)
+    })
+    addModel(ClosureModelProvider {
+      ItemViewCategoryModelCC(category = it.getComponent<ItemCategoryComponent>().category.toViewCategory())
+    })
+    addModel(ClosureModelProvider {
       BuyableModelCC(
-        buyable = true,
-        priceWithoutDiscount = 2112,
+        buyable = it.hasComponent<BuyableComponent>(),
+        priceWithoutDiscount = it.getComponent<PriceComponent>().price,
       )
-    )
+    })
     addModel(DiscountCollectorModelCC())
-    addModel(
+    // TODO: DiscountModel should not be added if DiscountComponent is not present
+    addModel(ClosureModelProvider {
       DiscountModelCC(
-        discount = 98f,
+        discount = it.getComponentOrNull<DiscountComponent>()?.discount ?: 0f,
         timeLeftInSeconds = 1.days.inWholeSeconds.toInt(),
         timeToStartInSeconds = 0,
       )
-    )
+    })
     addModel(
       TimePeriodModelCC(
         isEnabled = true,

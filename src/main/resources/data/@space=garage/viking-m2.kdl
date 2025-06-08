@@ -18,11 +18,11 @@ components {
   }
   jp.assasans.narukami.server.garage.item.BuyableComponent {}
   jp.assasans.narukami.server.garage.item.PriceComponent {
-    price 1000
+    price 3000
   }
   jp.assasans.narukami.server.garage.item.ModificationComponent {
     group 1000
-    modification 0
+    modification 2
   }
   jp.assasans.narukami.server.garage.item.GaragePropertiesComponent {
     properties {

@@ -34,3 +34,23 @@ enum class ItemViewCategoryEnum(override val value: Int) : IProtocolEnum<Int> {
   DRONE(8),
   INVISIBLE(9),
 }
+
+fun ItemCategoryEnum.toViewCategory() = when(this) {
+  ItemCategoryEnum.WEAPON            -> ItemViewCategoryEnum.WEAPON
+  ItemCategoryEnum.ARMOR             -> ItemViewCategoryEnum.ARMOR
+  ItemCategoryEnum.PAINT             -> ItemViewCategoryEnum.PAINT
+  ItemCategoryEnum.INVENTORY         -> ItemViewCategoryEnum.INVENTORY
+  ItemCategoryEnum.PLUGIN            -> ItemViewCategoryEnum.INVISIBLE // Unknown
+  ItemCategoryEnum.KIT               -> ItemViewCategoryEnum.KIT
+  ItemCategoryEnum.EMBLEM            -> ItemViewCategoryEnum.INVISIBLE // Unknown
+  ItemCategoryEnum.CRYSTAL           -> ItemViewCategoryEnum.INVISIBLE // Unknown
+  ItemCategoryEnum.PRESENT           -> ItemViewCategoryEnum.SPECIAL
+  ItemCategoryEnum.GIVEN_PRESENT     -> ItemViewCategoryEnum.GIVEN_PRESENTS
+  ItemCategoryEnum.RESISTANCE_MODULE -> ItemViewCategoryEnum.RESISTANCE
+  ItemCategoryEnum.DEVICE            -> ItemViewCategoryEnum.INVISIBLE // Different UI
+  ItemCategoryEnum.LICENSE           -> ItemViewCategoryEnum.SPECIAL
+  ItemCategoryEnum.CONTAINER         -> ItemViewCategoryEnum.SPECIAL
+  ItemCategoryEnum.DRONE             -> ItemViewCategoryEnum.DRONE
+  ItemCategoryEnum.SKIN              -> ItemViewCategoryEnum.INVISIBLE // Different UI
+  ItemCategoryEnum.MOBILE_LOOT_BOX   -> ItemViewCategoryEnum.SPECIAL
+}

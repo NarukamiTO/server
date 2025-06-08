@@ -1,0 +1,23 @@
+template2 "jp.assasans.narukami.server.garage.item.PaintGarageItemTemplate"
+components {
+  jp.assasans.narukami.server.garage.item.GarageItemComponent {}
+  jp.assasans.narukami.server.garage.item.NameComponent {
+    name "Holiday"
+  }
+  jp.assasans.narukami.server.garage.item.DescriptionComponent {
+    description "A paint without any defensive attributes. On normal days it spots a checked texture. However, on holidays and big events, it takes on a completely new look. "
+  }
+  jp.assasans.narukami.server.garage.item.ItemPreviewComponent {
+    resource "tank.paint.holiday.preview" @gen="1.0" type="Image" laziness="Lazy"
+  }
+  jp.assasans.narukami.server.garage.item.PositionComponent {
+    position 0
+  }
+  jp.assasans.narukami.server.garage.item.ItemCategoryComponent {
+    category "PAINT"
+  }
+  jp.assasans.narukami.server.garage.item.BuyableComponent {}
+  jp.assasans.narukami.server.garage.item.PriceComponent {
+    price 0
+  }
+}

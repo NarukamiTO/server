@@ -1,0 +1,23 @@
+template2 "jp.assasans.narukami.server.garage.item.PaintGarageItemTemplate"
+components {
+  jp.assasans.narukami.server.garage.item.GarageItemComponent {}
+  jp.assasans.narukami.server.garage.item.NameComponent {
+    name "Fracture"
+  }
+  jp.assasans.narukami.server.garage.item.DescriptionComponent {
+    description "An experimental camouflage developed for combat in tropical climates."
+  }
+  jp.assasans.narukami.server.garage.item.ItemPreviewComponent {
+    resource "tank.paint.fracture.preview" @gen="2.1" type="Image" laziness="Lazy"
+  }
+  jp.assasans.narukami.server.garage.item.PositionComponent {
+    position 0
+  }
+  jp.assasans.narukami.server.garage.item.ItemCategoryComponent {
+    category "PAINT"
+  }
+  jp.assasans.narukami.server.garage.item.BuyableComponent {}
+  jp.assasans.narukami.server.garage.item.PriceComponent {
+    price 1000
+  }
+}

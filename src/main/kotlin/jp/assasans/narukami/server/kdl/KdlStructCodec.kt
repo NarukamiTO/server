@@ -19,6 +19,7 @@
 package jp.assasans.narukami.server.kdl
 
 import kotlin.reflect.KFunction
+import kotlin.reflect.KParameter
 import kotlin.reflect.KType
 import kotlin.reflect.full.primaryConstructor
 import kotlin.reflect.jvm.jvmName
@@ -47,15 +48,19 @@ class KdlStructCodec<T : Any>(private val type: KType) : IKdlCodec<T> {
     @Suppress("UNCHECKED_CAST")
     constructor as KFunction<T>
 
-    val args = constructor.parameters.associateWith { parameter ->
+    val args = mutableMapOf<KParameter, Any?>()
+    for(parameter in constructor.parameters) {
       val property = node.children.singleOrNull { it.name == parameter.name }
                      ?: node.properties.singleOrNull { it.name == parameter.name }?.asNode()
-                     ?: throw IllegalArgumentException("Missing children or property ${parameter.name} in $node")
+      if(property == null) {
+        if(!parameter.isOptional) throw IllegalArgumentException("Missing children or property ${parameter.name} in $node")
+        continue
+      }
       val codec = reader.getCodec(parameter.type)
       val value = codec.decode(reader, property)
       logger.debug { "Decoded ${type.kotlinClass.qualifiedName}::${property.name}: $value" }
 
-      value
+      args[parameter] = value
     }
 
     return constructor.callBy(args)

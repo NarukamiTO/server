@@ -18,18 +18,18 @@ components {
   }
   jp.assasans.narukami.server.garage.item.BuyableComponent {}
   jp.assasans.narukami.server.garage.item.PriceComponent {
-    price 1000
+    price 4000
   }
   jp.assasans.narukami.server.garage.item.ModificationComponent {
     group 1000
-    modification 0
+    modification 3
   }
   jp.assasans.narukami.server.garage.item.GaragePropertiesComponent {
     properties {
       - {
         property "HULL_ARMOR"
         properties {
-          - property="HULL_ARMOR" initialValue=1000
+          - property="HULL_ARMOR" initialValue=4000
         }
       }
       - {
@@ -41,13 +41,13 @@ components {
       - {
         property "HULL_SPEED"
         properties {
-          - property="HULL_SPEED" initialValue=10
+          - property="HULL_SPEED" initialValue=40
         }
       }
       - {
         property "HULL_TURN_SPEED"
         properties {
-          - property="HULL_TURN_SPEED" initialValue=50
+          - property="HULL_TURN_SPEED" initialValue=80
         }
       }
     }
