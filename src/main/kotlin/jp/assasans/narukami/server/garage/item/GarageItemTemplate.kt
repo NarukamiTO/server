@@ -38,6 +38,10 @@ class BuyableComponent : IComponent
 data class PriceComponent(val price: Int) : IComponent
 data class DiscountComponent(val discount: Float) : IComponent
 
+class CompositeModificationGarageItemComponent(
+  val modifications: Map<Int, Set<IComponent>>
+) : IComponent
+
 abstract class GarageItemTemplate : PersistentTemplateV2() {
   override fun instantiate(id: Long) = gameObject(id).apply {
     addModel(ClosureModelProvider {

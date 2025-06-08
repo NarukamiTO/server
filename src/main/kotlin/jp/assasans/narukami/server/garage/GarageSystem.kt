@@ -21,6 +21,8 @@ package jp.assasans.narukami.server.garage
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.koin.core.component.inject
 import jp.assasans.narukami.server.core.*
+import jp.assasans.narukami.server.core.impl.GameObjectV2
+import jp.assasans.narukami.server.core.impl.TransientGameObject
 import jp.assasans.narukami.server.dispatcher.DispatcherLoadObjectsManagedEvent
 import jp.assasans.narukami.server.dispatcher.DispatcherNode
 import jp.assasans.narukami.server.garage.item.*
@@ -37,10 +39,35 @@ data class GarageItemNode(
   val garageItem: GarageItemComponent,
 ) : Node()
 
+data class CompositeModificationGarageItemNode(
+  val compositeModificationGarageItem: CompositeModificationGarageItemComponent,
+) : Node()
+
 class GarageSystem : AbstractSystem() {
   private val logger = KotlinLogging.logger { }
 
   private val gameResourceRepository: RemoteGameResourceRepository by inject()
+
+  @OnEventFire
+  @OnlySpaceContext
+  fun flattenCompositeItem(
+    event: NodeAddedEvent,
+    compositeItem: CompositeModificationGarageItemNode,
+  ) {
+    // TODO: Workaround, works for now. Garage items must be Template V2 objects.
+    val template = (compositeItem.gameObject as GameObjectV2).template as PersistentTemplateV2
+    for((modification, components) in compositeItem.compositeModificationGarageItem.modifications) {
+      val id = TransientGameObject.transientId("CompositeItem:${compositeItem.gameObject.id}:$modification")
+      val gameObject = template.instantiate(id)
+      gameObject.addComponent(GarageItemComponent())
+      gameObject.addComponent(ModificationComponent(group = compositeItem.gameObject.id, modification = modification))
+      gameObject.addAllComponents(compositeItem.gameObject.allComponents.values.filterNot { it is CompositeModificationGarageItemComponent })
+      gameObject.addAllComponents(components)
+
+      logger.info { "Flattened composite item '${gameObject.getComponent<NameComponent>().name} M$modification': $gameObject" }
+      compositeItem.context.space.objects.add(gameObject)
+    }
+  }
 
   @OnEventFire
   @OutOfOrderExecution

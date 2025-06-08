@@ -52,6 +52,9 @@ class KdlReader {
     factories.add(KdlPersistentTemplateV2Codec.Factory)
     factories.add(KdlTemplateCodec.Factory)
 
+    /* Custom components */
+    factories.add(KdlCompositeModificationGarageItemComponentCodec.Factory)
+
     /* Catch-all */
     factories.add(KdlEnumCodec.Factory)
     factories.add(KdlStructCodec.Factory)

@@ -1,0 +1,162 @@
+template2 "jp.assasans.narukami.server.garage.item.HullGarageItemTemplate"
+components {
+  jp.assasans.narukami.server.garage.item.NameComponent {
+    name "Viking"
+  }
+  jp.assasans.narukami.server.garage.item.DescriptionComponent {
+    description "This armor incorporates all modern military technologies. Reinforced armor and \"Type 2\" engine make Viking one of the most versatile hulls. Attack the enemy or cover your teammates – this hull will prove itself as a good and trustful one in any situation."
+  }
+  jp.assasans.narukami.server.garage.item.PositionComponent {
+    position 0
+  }
+  jp.assasans.narukami.server.garage.item.ItemCategoryComponent {
+    category "ARMOR"
+  }
+  jp.assasans.narukami.server.garage.item.BuyableComponent {}
+  jp.assasans.narukami.server.garage.item.CompositeModificationGarageItemComponent {
+    "0" {
+      jp.assasans.narukami.server.garage.item.ItemPreviewComponent {
+        resource "tank.hull.viking.preview" @gen="1.0" @modification="0" type="Image" laziness="Lazy"
+      }
+      jp.assasans.narukami.server.garage.item.PriceComponent {
+        price 1000
+      }
+      jp.assasans.narukami.server.garage.item.GaragePropertiesComponent {
+        properties {
+          - {
+            property "HULL_ARMOR"
+            properties {
+              - property="HULL_ARMOR" initialValue=1000
+            }
+          }
+          - {
+            property "HULL_MASS"
+            properties {
+              - property="HULL_MASS" initialValue=520
+            }
+          }
+          - {
+            property "HULL_SPEED"
+            properties {
+              - property="HULL_SPEED" initialValue=10
+            }
+          }
+          - {
+            property "HULL_TURN_SPEED"
+            properties {
+              - property="HULL_TURN_SPEED" initialValue=38
+            }
+          }
+        }
+      }
+    }
+    "1" {
+      jp.assasans.narukami.server.garage.item.ItemPreviewComponent {
+        resource "tank.hull.viking.preview" @gen="1.0" @modification="0" type="Image" laziness="Lazy"
+      }
+      jp.assasans.narukami.server.garage.item.PriceComponent {
+        price 2000
+      }
+      jp.assasans.narukami.server.garage.item.GaragePropertiesComponent {
+        properties {
+          - {
+            property "HULL_ARMOR"
+            properties {
+              - property="HULL_ARMOR" initialValue=1200
+            }
+          }
+          - {
+            property "HULL_MASS"
+            properties {
+              - property="HULL_MASS" initialValue=590
+            }
+          }
+          - {
+            property "HULL_SPEED"
+            properties {
+              - property="HULL_SPEED" initialValue=11
+            }
+          }
+          - {
+            property "HULL_TURN_SPEED"
+            properties {
+              - property="HULL_TURN_SPEED" initialValue=42
+            }
+          }
+        }
+      }
+    }
+    "2" {
+      jp.assasans.narukami.server.garage.item.ItemPreviewComponent {
+        resource "tank.hull.viking.preview" @gen="1.0" @modification="0" type="Image" laziness="Lazy"
+      }
+      jp.assasans.narukami.server.garage.item.PriceComponent {
+        price 3000
+      }
+      jp.assasans.narukami.server.garage.item.GaragePropertiesComponent {
+        properties {
+          - {
+            property "HULL_ARMOR"
+            properties {
+              - property="HULL_ARMOR" initialValue=1500
+            }
+          }
+          - {
+            property "HULL_MASS"
+            properties {
+              - property="HULL_MASS" initialValue=640
+            }
+          }
+          - {
+            property "HULL_SPEED"
+            properties {
+              - property="HULL_SPEED" initialValue=13
+            }
+          }
+          - {
+            property "HULL_TURN_SPEED"
+            properties {
+              - property="HULL_TURN_SPEED" initialValue=46
+            }
+          }
+        }
+      }
+    }
+    "3" {
+      jp.assasans.narukami.server.garage.item.ItemPreviewComponent {
+        resource "tank.hull.viking.preview" @gen="1.0" @modification="0" type="Image" laziness="Lazy"
+      }
+      jp.assasans.narukami.server.garage.item.PriceComponent {
+        price 4000
+      }
+      jp.assasans.narukami.server.garage.item.GaragePropertiesComponent {
+        properties {
+          - {
+            property "HULL_ARMOR"
+            properties {
+              - property="HULL_ARMOR" initialValue=1800
+            }
+          }
+          - {
+            property "HULL_MASS"
+            properties {
+              - property="HULL_MASS" initialValue=700
+            }
+          }
+          - {
+            property "HULL_SPEED"
+            properties {
+              - property="HULL_SPEED" initialValue=15
+            }
+          }
+          - {
+            property "HULL_TURN_SPEED"
+            properties {
+              - property="HULL_TURN_SPEED" initialValue=50
+            }
+          }
+        }
+      }
+    }
+  }
+}
