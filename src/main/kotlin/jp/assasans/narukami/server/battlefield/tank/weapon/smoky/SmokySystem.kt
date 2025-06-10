@@ -23,7 +23,7 @@ import jp.assasans.narukami.server.battlefield.tank.TankGroupComponent
 import jp.assasans.narukami.server.core.*
 
 data class SmokyNode(
-  val smokyModel: SmokyModelCC,
+  val smoky: SmokyModelCC,
 ) : Node()
 
 class SmokySystem : AbstractSystem() {

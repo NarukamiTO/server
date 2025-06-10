@@ -29,7 +29,7 @@ import jp.assasans.narukami.server.battlefield.tank.*
 import jp.assasans.narukami.server.battlefield.tank.hull.HullTemplate
 import jp.assasans.narukami.server.battlefield.tank.paint.ColoringTemplate
 import jp.assasans.narukami.server.battlefield.tank.paint.StaticColoringComponent
-import jp.assasans.narukami.server.battlefield.tank.weapon.smoky.SmokyTemplate
+import jp.assasans.narukami.server.battlefield.tank.weapon.railgun.RailgunTemplate
 import jp.assasans.narukami.server.battleselect.*
 import jp.assasans.narukami.server.battleservice.StatisticsDMModelUserConnectEvent
 import jp.assasans.narukami.server.battleservice.StatisticsDMModelUserDisconnectEvent
@@ -197,11 +197,11 @@ class BattlefieldSystem : AbstractSystem() {
         it is GameObjectV2 &&
         it.template is WeaponGarageItemTemplate &&
         !it.hasComponent<CompositeModificationGarageItemComponent>() &&
-        it.getComponent<NameComponent>().name == "Smoky"
+        it.getComponent<NameComponent>().name == "Railgun"
       }.random()
 
       val hullObject = HullTemplate.create(TransientGameObject.transientId("Hull:${user.gameObject.id}"), hullMarketItem)
-      val weaponObject = SmokyTemplate.create(TransientGameObject.transientId("Weapon:${user.gameObject.id}"), weaponMarketItem)
+      val weaponObject = RailgunTemplate.create(TransientGameObject.transientId("Weapon:${user.gameObject.id}"), weaponMarketItem)
       val paintObject = ColoringTemplate.instantiate(TransientGameObject.transientId("Paint:${user.gameObject.id}")).apply {
         addComponent(StaticColoringComponent(gameResourceRepository.get("tank.paint.fracture", mapOf("gen" to "2.1"), TextureRes, Eager)))
       }
