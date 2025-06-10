@@ -59,7 +59,7 @@ object HullTemplate : PersistentTemplateV2(), KoinComponent {
       engineStartSound = gameResourceRepository.get("tank.sound.start-move", mapOf(), SoundRes, Eager),
       engineStopMovingSound = gameResourceRepository.get("tank.sound.idle", mapOf(), SoundRes, Eager),
     ))
-    addModel(gameResourceRepository.get("tank.hull.viking", mapOf("gen" to "1.0", "modification" to "0"), Object3DRes, Eager).asModel())
+    addModel(gameResourceRepository.get("tank.hull.viking", mapOf("gen" to "1.0", "modification" to "3"), Object3DRes, Eager).asModel())
     addModel(HullSmokeModelCC(
       alpha = 0.5f,
       density = 1f,

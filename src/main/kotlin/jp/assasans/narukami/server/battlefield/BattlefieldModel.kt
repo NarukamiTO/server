@@ -123,7 +123,11 @@ data class HitTraceData(
 @ProtocolStruct
 data class LightingSFXEntity(
   val effects: List<LightingEffectEntity>,
-)
+) {
+  constructor(vararg effects: Pair<String, List<LightEffectItem>>) : this(
+    effects.map { LightingEffectEntity(it.first, it.second) }
+  )
+}
 
 @ProtocolStruct
 data class LightingEffectEntity(

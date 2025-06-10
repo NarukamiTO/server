@@ -25,26 +25,16 @@ import jp.assasans.narukami.server.battlefield.LightingEffectEntity
 import jp.assasans.narukami.server.battlefield.LightingSFXEntity
 import jp.assasans.narukami.server.battlefield.tank.hull.asModel
 import jp.assasans.narukami.server.battlefield.tank.weapon.*
-import jp.assasans.narukami.server.core.PersistentTemplateV2
 import jp.assasans.narukami.server.core.addModel
 import jp.assasans.narukami.server.res.*
 
-object SmokyTemplate : PersistentTemplateV2(), KoinComponent {
+object SmokyTemplate : WeaponTemplate(), KoinComponent {
   private val gameResourceRepository: RemoteGameResourceRepository by inject()
 
-  override fun instantiate(id: Long) = gameObject(id).apply {
-    addModel(WeaponCommonModelCC(
-      buffShotCooldownMs = 0,
-      buffed = false,
-      highlightingDistance = 1000f,
-      impactForce = 500f,
-      kickback = 500f,
-      turretRotationAcceleration = 1f,
-      turretRotationSound = gameResourceRepository.get("tank.sound.weapon-rotate", mapOf(), SoundRes, Eager),
-      turretRotationSpeed = 1f
-    ))
-    addModel(gameResourceRepository.get("tank.weapon.smoky", mapOf("gen" to "1.0", "modification" to "0"), Object3DRes, Eager).asModel())
-    addModel(VerticalAutoAimingModelCC())
+  override fun instantiate(id: Long) = super.instantiate(id).apply {
+    val modification = "3"
+
+    addModel(gameResourceRepository.get("tank.weapon.smoky", mapOf("gen" to "1.0", "modification" to modification), Object3DRes, Eager).asModel())
     addModel(RotatingTurretModelCC(
       turretState = TurretStateCommand(
         controlInput = 0f,
@@ -71,12 +61,13 @@ object SmokyTemplate : PersistentTemplateV2(), KoinComponent {
     ))
     addModel(SmokyModelCC())
     addModel(SmokyShootSFXModelCC(
-      criticalHitSize = 1000,
-      criticalHitTexture = gameResourceRepository.get("tank.weapon.smoky.sfx.critical", mapOf(), MultiframeTextureRes, Eager),
-      explosionMarkTexture = gameResourceRepository.get("tank.weapon.smoky.sfx.hit-mark", mapOf(), TextureRes, Eager),
-      explosionSize = 375,
-      explosionSound = gameResourceRepository.get("tank.weapon.smoky.sfx.sound.hit", mapOf(), SoundRes, Eager),
-      explosionTexture = gameResourceRepository.get("tank.weapon.smoky.sfx.NC_explosion", mapOf(), MultiframeTextureRes, Eager),
+      criticalHitSize = 300, // Estimated value, reference: https://www.youtube.com/watch?v=U6OntcEwsX0
+      criticalHitTexture = gameResourceRepository.get("tank.weapon.smoky.sfx.critical", mapOf("gen" to "1.0"), MultiframeTextureRes, Eager),
+      explosionMarkTexture = gameResourceRepository.get("tank.weapon.smoky.sfx.hit-mark", mapOf("gen" to "1.0"), TextureRes, Eager),
+      explosionSize = 600, // Value from GTanks client
+      explosionSound = gameResourceRepository.get("tank.weapon.smoky.sfx.sound.hit", mapOf("gen" to "1.0"), SoundRes, Eager),
+      explosionTexture = gameResourceRepository.get("tank.weapon.smoky.sfx.explosion", mapOf("gen" to "1.0", "modification" to modification), MultiframeTextureRes, Eager),
+      // XXX: Value from HTML5 client
       lightingSFXEntity = LightingSFXEntity(
         listOf(
           LightingEffectEntity(
@@ -91,15 +82,10 @@ object SmokyTemplate : PersistentTemplateV2(), KoinComponent {
               LightEffectItem(attenuationBegin = 1f, attenuationEnd = 2f, color = "0xfcdd76", intensity = 0f, time = 300)
             )
           ),
-          LightingEffectEntity(
-            "shell", listOf(
-              LightEffectItem(attenuationBegin = 0f, attenuationEnd = 0f, color = "0xfcdd76", intensity = 0f, time = 0)
-            )
-          )
         )
       ),
-      shotSound = gameResourceRepository.get("tank.weapon.smoky.sfx.sound.shot", mapOf(), SoundRes, Eager),
-      shotTexture = gameResourceRepository.get("tank.weapon.smoky.sfx.shot", mapOf(), TextureRes, Eager)
+      shotSound = gameResourceRepository.get("tank.weapon.smoky.sfx.sound.shot", mapOf("gen" to "1.0"), SoundRes, Eager),
+      shotTexture = gameResourceRepository.get("tank.weapon.smoky.sfx.shot", mapOf("gen" to "1.0", "modification" to modification), TextureRes, Eager)
     ))
   }
 }

@@ -42,7 +42,7 @@ class EntranceSystem : AbstractSystem() {
     val properties = event.channel.sessionNotNull.properties
     properties["autologin"]?.let {
       val username = it.substringBefore(':')
-      val password = it.substringAfter(':')
+      val password = it.substringAfter(':', missingDelimiterValue = "")
 
       logger.info { "Performing autologin for $username" }
       LoginModelLoginEvent(

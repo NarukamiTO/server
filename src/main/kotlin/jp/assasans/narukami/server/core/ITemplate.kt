@@ -25,6 +25,10 @@ import jp.assasans.narukami.server  .core.impl.GameObjectV2
 import jp.assasans.narukami.server.core.internal.TemplateMember
 import jp.assasans.narukami.server.net.command.ProtocolClass
 
+/**
+ * Game object returned by template should be usable right away,
+ * without requiring any additional components.
+ */
 abstract class TemplateV2 {
   protected fun TemplateV2.gameObject(id: Long): IGameObject {
     return GameObjectV2(id, this)
