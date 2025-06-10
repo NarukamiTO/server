@@ -20,26 +20,38 @@ package jp.assasans.narukami.server.battlefield.tank.weapon
 
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
-import jp.assasans.narukami.server.core.PersistentTemplateV2
+import jp.assasans.narukami.server.battlefield.tank.hull.MarketItemGroupComponent
+import jp.assasans.narukami.server.battlefield.tank.hull.asModel
+import jp.assasans.narukami.server.core.IGameObject
+import jp.assasans.narukami.server.core.TemplateV2
 import jp.assasans.narukami.server.core.addModel
+import jp.assasans.narukami.server.core.getComponent
+import jp.assasans.narukami.server.extensions.toRadians
+import jp.assasans.narukami.server.garage.item.*
 import jp.assasans.narukami.server.res.Eager
 import jp.assasans.narukami.server.res.RemoteGameResourceRepository
 import jp.assasans.narukami.server.res.SoundRes
 
-abstract class WeaponTemplate : PersistentTemplateV2(), KoinComponent {
+abstract class WeaponTemplate : TemplateV2(), KoinComponent {
   private val gameResourceRepository: RemoteGameResourceRepository by inject()
 
-  override fun instantiate(id: Long) = gameObject(id).apply {
-    addModel(WeaponCommonModelCC(
-      buffShotCooldownMs = 0,
-      buffed = false,
-      highlightingDistance = 1000f,
-      impactForce = 500f,
-      kickback = 500f,
-      turretRotationAcceleration = 1f,
-      turretRotationSound = gameResourceRepository.get("tank.sound.weapon-rotate", mapOf(), SoundRes, Eager),
-      turretRotationSpeed = 1f
-    ))
+  open fun create(id: Long, marketItem: IGameObject) = gameObject(id).apply {
+    addComponent(MarketItemGroupComponent(marketItem))
+
+    val properties = marketItem.getComponent<GaragePropertiesContainerComponent>()
+    addModel(
+      WeaponCommonModelCC(
+        buffShotCooldownMs = 0,
+        buffed = false,
+        highlightingDistance = 1000f,
+        impactForce = properties.getComponent<ImpactForceComponent>().impactForce,
+        kickback = properties.getComponent<KickbackComponent>().kickback,
+        turretRotationAcceleration = 1f,
+        turretRotationSound = gameResourceRepository.get("tank.sound.weapon-rotate", mapOf(), SoundRes, Eager),
+        turretRotationSpeed = properties.getComponent<TurretRotationSpeedComponent>().turretRotationSpeed.toRadians(),
+      )
+    )
     addModel(VerticalAutoAimingModelCC())
+    addModel(marketItem.getComponent<Object3DComponent>().resource.asModel())
   }
 }

@@ -13,6 +13,17 @@ components {
     category "WEAPON"
   }
   jp.assasans.narukami.server.garage.item.BuyableComponent {}
+  jp.assasans.narukami.server.garage.item.GaragePropertiesContainerComponent {
+    jp.assasans.narukami.server.garage.item.ImpactForceComponent {
+      impactForce 2.2
+    }
+    jp.assasans.narukami.server.garage.item.KickbackComponent {
+      kickback 1.5
+    }
+    jp.assasans.narukami.server.garage.item.TurretRotationSpeedComponent {
+      turretRotationSpeed 60
+    }
+  }
   jp.assasans.narukami.server.garage.item.CompositeModificationGarageItemComponent {
     "0" {
       jp.assasans.narukami.server.garage.item.Object3DComponent {

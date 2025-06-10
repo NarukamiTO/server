@@ -23,18 +23,20 @@ import org.koin.core.component.inject
 import jp.assasans.narukami.server.battlefield.LightEffectItem
 import jp.assasans.narukami.server.battlefield.LightingEffectEntity
 import jp.assasans.narukami.server.battlefield.LightingSFXEntity
-import jp.assasans.narukami.server.battlefield.tank.hull.asModel
 import jp.assasans.narukami.server.battlefield.tank.weapon.*
+import jp.assasans.narukami.server.core.IGameObject
 import jp.assasans.narukami.server.core.addModel
+import jp.assasans.narukami.server.core.getComponent
+import jp.assasans.narukami.server.garage.item.ModificationComponent
 import jp.assasans.narukami.server.res.*
 
 object SmokyTemplate : WeaponTemplate(), KoinComponent {
   private val gameResourceRepository: RemoteGameResourceRepository by inject()
 
-  override fun instantiate(id: Long) = super.instantiate(id).apply {
-    val modification = "3"
+  override fun create(id: Long, marketItem: IGameObject) = super.create(id, marketItem).apply {
+    // TODO: Should too precise namespaces be ignored? That way we could have one namespaces map for all resources.
+    val modification = marketItem.getComponent<ModificationComponent>().modification.toString()
 
-    addModel(gameResourceRepository.get("tank.weapon.smoky", mapOf("gen" to "1.0", "modification" to modification), Object3DRes, Eager).asModel())
     addModel(RotatingTurretModelCC(
       turretState = TurretStateCommand(
         controlInput = 0f,

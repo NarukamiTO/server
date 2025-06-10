@@ -23,14 +23,20 @@ import org.koin.core.component.inject
 import jp.assasans.narukami.server.battlefield.LightEffectItem
 import jp.assasans.narukami.server.battlefield.LightingEffectEntity
 import jp.assasans.narukami.server.battlefield.LightingSFXEntity
-import jp.assasans.narukami.server.core.PersistentTemplateV2
+import jp.assasans.narukami.server.core.IGameObject
+import jp.assasans.narukami.server.core.TemplateV2
 import jp.assasans.narukami.server.core.addModel
+import jp.assasans.narukami.server.core.getComponent
+import jp.assasans.narukami.server.garage.item.*
 import jp.assasans.narukami.server.res.*
 
-object HullTemplate : PersistentTemplateV2(), KoinComponent {
+object HullTemplate : TemplateV2(), KoinComponent {
   private val gameResourceRepository: RemoteGameResourceRepository by inject()
 
-  override fun instantiate(id: Long) = gameObject(id).apply {
+  fun create(id: Long, marketItem: IGameObject) = gameObject(id).apply {
+    addComponent(MarketItemGroupComponent(marketItem))
+
+    val properties = marketItem.getComponent<GaragePropertiesContainerComponent>()
     addModel(HullCommonModelCC(
       deadColoring = gameResourceRepository.get("tank.dead", mapOf(), TextureRes, Eager),
       deathSound = gameResourceRepository.get("tank.sound.destroy", mapOf(), SoundRes, Eager),
@@ -45,7 +51,7 @@ object HullTemplate : PersistentTemplateV2(), KoinComponent {
           )
         )
       ),
-      mass = 100000f,
+      mass = properties.getComponent<MassComponent>().mass,
       stunEffectTexture = gameResourceRepository.get("tank.stun.texture", mapOf(), TextureRes, Eager),
       stunSound = gameResourceRepository.get("tank.stun.sound", mapOf(), SoundRes, Eager),
       ultimateHudIndicator = gameResourceRepository.get("tank.dead", mapOf(), TextureRes, Eager), // TODO: Wrong
@@ -59,7 +65,7 @@ object HullTemplate : PersistentTemplateV2(), KoinComponent {
       engineStartSound = gameResourceRepository.get("tank.sound.start-move", mapOf(), SoundRes, Eager),
       engineStopMovingSound = gameResourceRepository.get("tank.sound.idle", mapOf(), SoundRes, Eager),
     ))
-    addModel(gameResourceRepository.get("tank.hull.viking", mapOf("gen" to "1.0", "modification" to "3"), Object3DRes, Eager).asModel())
+    addModel(marketItem.getComponent<Object3DComponent>().resource.asModel())
     addModel(HullSmokeModelCC(
       alpha = 0.5f,
       density = 1f,
@@ -75,6 +81,6 @@ object HullTemplate : PersistentTemplateV2(), KoinComponent {
       shockWaveTexture = gameResourceRepository.get("tank.shock-wave", mapOf(), MultiframeTextureRes, Eager),
       smokeTextureId = gameResourceRepository.get("tank.smoke", mapOf(), MultiframeTextureRes, Eager),
     ))
-    addModel(TrackedChassisModelCC(damping = 3000f))
+    addModel(TrackedChassisModelCC(damping = properties.getComponent<DampingComponent>().damping))
   }
 }

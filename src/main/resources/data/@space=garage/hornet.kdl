@@ -12,6 +12,26 @@ components {
   jp.assasans.narukami.server.garage.item.ItemCategoryComponent {
     category "ARMOR"
   }
+  jp.assasans.narukami.server.garage.item.GaragePropertiesContainerComponent {
+    jp.assasans.narukami.server.garage.item.MassComponent {
+      mass 1100
+    }
+    jp.assasans.narukami.server.garage.item.DampingComponent {
+      damping 1250
+    }
+    jp.assasans.narukami.server.garage.item.SpeedComponent {
+      speed 9.8
+      turnSpeed 120
+    }
+    jp.assasans.narukami.server.garage.item.AccelerationComponent {
+      forwardAcceleration 10
+      reverseAcceleration 15
+      forwardTurnAcceleration 130
+      reverseTurnAcceleration 280
+      sideAcceleration 10
+      turnStabilizationAcceleration 130
+    }
+  }
   jp.assasans.narukami.server.garage.item.BuyableComponent {}
   jp.assasans.narukami.server.garage.item.CompositeModificationGarageItemComponent {
     "0" {

@@ -54,6 +54,7 @@ class KdlReader {
 
     /* Custom components */
     factories.add(KdlCompositeModificationGarageItemComponentCodec.Factory)
+    factories.add(KdlGaragePropertiesContainerComponentCodec.Factory)
 
     /* Catch-all */
     factories.add(KdlEnumCodec.Factory)

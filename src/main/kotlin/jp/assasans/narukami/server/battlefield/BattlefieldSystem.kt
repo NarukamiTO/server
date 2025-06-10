@@ -35,12 +35,17 @@ import jp.assasans.narukami.server.battleservice.StatisticsDMModelUserConnectEve
 import jp.assasans.narukami.server.battleservice.StatisticsDMModelUserDisconnectEvent
 import jp.assasans.narukami.server.battleservice.UserInfo
 import jp.assasans.narukami.server.core.*
+import jp.assasans.narukami.server.core.impl.GameObjectV2
 import jp.assasans.narukami.server.core.impl.Space
 import jp.assasans.narukami.server.core.impl.TransientGameObject
 import jp.assasans.narukami.server.dispatcher.DispatcherLoadDependenciesManagedEvent
 import jp.assasans.narukami.server.dispatcher.DispatcherLoadObjectsManagedEvent
 import jp.assasans.narukami.server.dispatcher.DispatcherNode
 import jp.assasans.narukami.server.dispatcher.DispatcherUnloadObjectsManagedEvent
+import jp.assasans.narukami.server.garage.item.CompositeModificationGarageItemComponent
+import jp.assasans.narukami.server.garage.item.HullGarageItemTemplate
+import jp.assasans.narukami.server.garage.item.NameComponent
+import jp.assasans.narukami.server.garage.item.WeaponGarageItemTemplate
 import jp.assasans.narukami.server.lobby.UserNode
 import jp.assasans.narukami.server.lobby.UsernameComponent
 import jp.assasans.narukami.server.lobby.communication.ChatModeratorLevel
@@ -121,6 +126,7 @@ class BattlefieldSystem : AbstractSystem() {
 
   private val gameResourceRepository: RemoteGameResourceRepository by inject()
   private val objectMapper: ObjectMapper by inject()
+  private val spaces: IRegistry<ISpace> by inject()
 
   @OnEventFire
   @OutOfOrderExecution
@@ -176,24 +182,36 @@ class BattlefieldSystem : AbstractSystem() {
         AddBattleUserEvent(battleUser).schedule(lobbyChannel, battleMap.battleInfoGroup.reference)
       }
 
-      val hullObject = HullTemplate.instantiate(TransientGameObject.transientId("Hull:${user.gameObject.id}"))
-      val weaponObject = SmokyTemplate.instantiate(TransientGameObject.transientId("Weapon:${user.gameObject.id}"))
+      // TODO: There is no good API for cross-space communication. I don't like this code, should refactor it.
+      val garageSpace = spaces.get(Space.stableId("garage")) ?: throw IllegalStateException("No garage space")
+
+      val hullMarketItem = garageSpace.objects.all.filter {
+        it is GameObjectV2 &&
+        it.template is HullGarageItemTemplate &&
+        !it.hasComponent<CompositeModificationGarageItemComponent>() &&
+        it.getComponent<NameComponent>().name == "Hornet"
+      }.random()
+
+      // TODO: Hack, should have different templates for each weapon
+      val weaponMarketItem = garageSpace.objects.all.filter {
+        it is GameObjectV2 &&
+        it.template is WeaponGarageItemTemplate &&
+        !it.hasComponent<CompositeModificationGarageItemComponent>() &&
+        it.getComponent<NameComponent>().name == "Smoky"
+      }.random()
+
+      val hullObject = HullTemplate.create(TransientGameObject.transientId("Hull:${user.gameObject.id}"), hullMarketItem)
+      val weaponObject = SmokyTemplate.create(TransientGameObject.transientId("Weapon:${user.gameObject.id}"), weaponMarketItem)
       val paintObject = ColoringTemplate.instantiate(TransientGameObject.transientId("Paint:${user.gameObject.id}")).apply {
         addComponent(StaticColoringComponent(gameResourceRepository.get("tank.paint.fracture", mapOf("gen" to "2.1"), TextureRes, Eager)))
       }
       val tankObject = TankTemplate.create(
         user.gameObject.id,
         user.gameObject,
-        TankConfigurationModelCC(
-          coloringId = paintObject.id,
-          droneId = 0,
-          hullId = hullObject.id,
-          weaponId = weaponObject.id,
-        )
-      ).apply {
-        addComponent(TankGroupComponent(this))
-        addComponent(TankLogicStateComponent(TankLogicState.NEW))
-      }
+        hullObject,
+        weaponObject,
+        paintObject
+      )
       hullObject.addComponent(TankGroupComponent(tankObject))
       weaponObject.addComponent(TankGroupComponent(tankObject))
       paintObject.addComponent(TankGroupComponent(tankObject))

@@ -22,18 +22,34 @@ import jp.assasans.narukami.server.battlefield.BattleGearScoreModelCC
 import jp.assasans.narukami.server.battlefield.BossStateModelCC
 import jp.assasans.narukami.server.battlefield.TankLogicStateComponent
 import jp.assasans.narukami.server.battlefield.UserGroupComponent
+import jp.assasans.narukami.server.battlefield.tank.hull.MarketItemGroupComponent
 import jp.assasans.narukami.server.battlefield.tank.pause.TankPauseModelCC
 import jp.assasans.narukami.server.battlefield.tank.suicide.SuicideModelCC
 import jp.assasans.narukami.server.battleselect.BattleTeam
 import jp.assasans.narukami.server.core.*
+import jp.assasans.narukami.server.extensions.toRadians
+import jp.assasans.narukami.server.garage.item.*
 import jp.assasans.narukami.server.net.session.userNotNull
 import jp.assasans.narukami.server.net.sessionNotNull
 
 object TankTemplate : TemplateV2() {
-  fun create(id: Long, user: IGameObject, configuration: TankConfigurationModelCC) = gameObject(id).apply {
+  fun create(id: Long, user: IGameObject, hull: IGameObject, weapon: IGameObject, paint: IGameObject) = gameObject(id).apply {
+    addComponent(TankGroupComponent(this))
     addComponent(UserGroupComponent(user))
+    addComponent(TankLogicStateComponent(TankLogicState.NEW))
+
+    val hullProperties = hull.getComponent<MarketItemGroupComponent>().reference.getComponent<GaragePropertiesContainerComponent>()
+    val weaponProperties = weapon.getComponent<MarketItemGroupComponent>().reference.getComponent<GaragePropertiesContainerComponent>()
+
     addModel(TankSpawnerModelCC(incarnationId = 0))
-    addModel(configuration)
+    addModel(
+      TankConfigurationModelCC(
+        coloringId = paint.id,
+        droneId = 0,
+        hullId = hull.id,
+        weaponId = weapon.id,
+      )
+    )
     addModel(ClosureModelProvider {
       val local = requireSpaceChannel.sessionNotNull.userNotNull.id == user.id
       TankModelCC(
@@ -50,19 +66,19 @@ object TankTemplate : TemplateV2() {
     addModel(TankPauseModelCC())
     addModel(
       SpeedCharacteristicsModelCC(
-        baseSpeed = 12.00f,
-        currentSpeed = 12.00f,
-        baseAcceleration = 14.00f,
-        currentAcceleration = 14.00f,
-        reverseAcceleration = 23.00f,
-        baseTurnSpeed = 2.62f,
-        currentTurnSpeed = 2.62f,
-        turnAcceleration = 2.62f,
-        currentTurretRotationSpeed = 2.09f,
-        baseTurretRotationSpeed = 2.09f,
-        reverseTurnAcceleration = 1.5f,
-        sideAcceleration = 13.0f,
-        turnStabilizationAcceleration = 1.5f,
+        baseSpeed = hullProperties.getComponent<SpeedComponent>().speed,
+        currentSpeed = hullProperties.getComponent<SpeedComponent>().speed,
+        baseAcceleration = hullProperties.getComponent<AccelerationComponent>().forwardAcceleration,
+        currentAcceleration = hullProperties.getComponent<AccelerationComponent>().forwardAcceleration,
+        reverseAcceleration = hullProperties.getComponent<AccelerationComponent>().reverseAcceleration,
+        baseTurnSpeed = hullProperties.getComponent<SpeedComponent>().turnSpeed.toRadians(),
+        currentTurnSpeed = hullProperties.getComponent<SpeedComponent>().turnSpeed.toRadians(),
+        turnAcceleration = hullProperties.getComponent<AccelerationComponent>().forwardTurnAcceleration.toRadians(),
+        currentTurretRotationSpeed = weaponProperties.getComponent<TurretRotationSpeedComponent>().turretRotationSpeed.toRadians(),
+        baseTurretRotationSpeed = weaponProperties.getComponent<TurretRotationSpeedComponent>().turretRotationSpeed.toRadians(),
+        reverseTurnAcceleration = hullProperties.getComponent<AccelerationComponent>().reverseTurnAcceleration.toRadians(),
+        sideAcceleration = hullProperties.getComponent<AccelerationComponent>().sideAcceleration,
+        turnStabilizationAcceleration = hullProperties.getComponent<AccelerationComponent>().turnStabilizationAcceleration.toRadians(),
       )
     )
     addModel(
@@ -87,10 +103,10 @@ object TankTemplate : TemplateV2() {
       val local = requireSpaceChannel.sessionNotNull.userNotNull.id == user.id
       BossStateModelCC(
         enabled = true,
-        hullId = configuration.hullId,
+        hullId = hull.id,
         local = local,
         role = BossRelationRole.VICTIM,
-        weaponId = configuration.weaponId,
+        weaponId = weapon.id,
       )
     })
 

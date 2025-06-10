@@ -16,23 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package jp.assasans.narukami.server.extensions
+package jp.assasans.narukami.server.battlefield.tank.hull
 
-fun Int.roundToNearest(nearest: Int): Int {
-  return ((this + nearest / 2) / nearest) * nearest
-}
+import jp.assasans.narukami.server.battlefield.IGroupComponent
+import jp.assasans.narukami.server.core.IGameObject
 
-/**
- * Constant by which to multiply an angular value in degrees to obtain an
- * angular value in radians.
- */
-private const val DEGREES_TO_RADIANS = 0.017453292f
-
-/**
- * Constant by which to multiply an angular value in radians to obtain an
- * angular value in degrees.
- */
-private const val RADIANS_TO_DEGREES = 57.29578f
-
-fun Float.toRadians(): Float = this * DEGREES_TO_RADIANS
-fun Float.toDegrees(): Float = this * RADIANS_TO_DEGREES
+data class MarketItemGroupComponent(override val reference: IGameObject) : IGroupComponent
