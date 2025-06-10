@@ -20,4 +20,7 @@ components {
   jp.assasans.narukami.server.garage.item.PriceComponent {
     price 1000
   }
+  jp.assasans.narukami.server.battlefield.tank.paint.StaticColoringComponent {
+    resource "tank.paint.fracture" @gen="2.1" type="Texture" laziness="Eager"
+  }
 }

@@ -71,6 +71,7 @@ object WeaponGarageItemTemplate : ModificationGarageItemTemplate() {
 
 object PaintGarageItemTemplate : GarageItemTemplate() {
   override fun instantiate(id: Long) = super.instantiate(id).apply {
+    addModel(ItemFittingModelCC())
     addModel(
       ItemPropertiesModelCC(
         properties = listOf(

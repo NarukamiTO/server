@@ -1,10 +1,10 @@
 template2 "jp.assasans.narukami.server.garage.item.HullGarageItemTemplate"
 components {
   jp.assasans.narukami.server.garage.item.NameComponent {
-    name "Viking"
+    name "Hornet"
   }
   jp.assasans.narukami.server.garage.item.DescriptionComponent {
-    description "This armor incorporates all modern military technologies. Reinforced armor and \"Type 2\" engine make Viking one of the most versatile hulls. Attack the enemy or cover your teammates – this hull will prove itself as a good and trustful one in any situation."
+    description "This compact hull uses the latest generation of composite materials, which makes it light, quick and grants high survivability even after a direct hit. Hornet is perfect for quick attacks."
   }
   jp.assasans.narukami.server.garage.item.PositionComponent {
     position 0
@@ -16,10 +16,10 @@ components {
   jp.assasans.narukami.server.garage.item.CompositeModificationGarageItemComponent {
     "0" {
       jp.assasans.narukami.server.garage.item.Object3DComponent {
-        resource "tank.hull.viking" @gen="1.0" @modification="0" type="Object3D" laziness="Eager"
+        resource "tank.hull.hornet" @gen="1.0" @modification="0" type="Object3D" laziness="Eager"
       }
       jp.assasans.narukami.server.garage.item.ItemPreviewComponent {
-        resource "tank.hull.viking.preview" @gen="1.0" @modification="0" type="Image" laziness="Lazy"
+        resource "tank.hull.hornet.preview" @gen="1.0" @modification="0" type="Image" laziness="Lazy"
       }
       jp.assasans.narukami.server.garage.item.PriceComponent {
         price 1000
@@ -55,10 +55,10 @@ components {
     }
     "1" {
       jp.assasans.narukami.server.garage.item.Object3DComponent {
-        resource "tank.hull.viking" @gen="1.0" @modification="1" type="Object3D" laziness="Eager"
+        resource "tank.hull.hornet" @gen="1.0" @modification="1" type="Object3D" laziness="Eager"
       }
       jp.assasans.narukami.server.garage.item.ItemPreviewComponent {
-        resource "tank.hull.viking.preview" @gen="1.0" @modification="1" type="Image" laziness="Lazy"
+        resource "tank.hull.hornet.preview" @gen="1.0" @modification="1" type="Image" laziness="Lazy"
       }
       jp.assasans.narukami.server.garage.item.PriceComponent {
         price 2000
@@ -94,10 +94,10 @@ components {
     }
     "2" {
       jp.assasans.narukami.server.garage.item.Object3DComponent {
-        resource "tank.hull.viking" @gen="1.0" @modification="2" type="Object3D" laziness="Eager"
+        resource "tank.hull.hornet" @gen="1.0" @modification="2" type="Object3D" laziness="Eager"
       }
       jp.assasans.narukami.server.garage.item.ItemPreviewComponent {
-        resource "tank.hull.viking.preview" @gen="1.0" @modification="2" type="Image" laziness="Lazy"
+        resource "tank.hull.hornet.preview" @gen="1.0" @modification="2" type="Image" laziness="Lazy"
       }
       jp.assasans.narukami.server.garage.item.PriceComponent {
         price 3000
@@ -133,10 +133,10 @@ components {
     }
     "3" {
       jp.assasans.narukami.server.garage.item.Object3DComponent {
-        resource "tank.hull.viking" @gen="1.0" @modification="3" type="Object3D" laziness="Eager"
+        resource "tank.hull.hornet" @gen="1.0" @modification="3" type="Object3D" laziness="Eager"
       }
       jp.assasans.narukami.server.garage.item.ItemPreviewComponent {
-        resource "tank.hull.viking.preview" @gen="1.0" @modification="3" type="Image" laziness="Lazy"
+        resource "tank.hull.hornet.preview" @gen="1.0" @modification="3" type="Image" laziness="Lazy"
       }
       jp.assasans.narukami.server.garage.item.PriceComponent {
         price 4000

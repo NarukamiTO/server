@@ -20,4 +20,7 @@ components {
   jp.assasans.narukami.server.garage.item.PriceComponent {
     price 0
   }
+  jp.assasans.narukami.server.battlefield.tank.paint.StaticColoringComponent {
+    resource "tank.paint.holiday" @gen="1.0" type="Texture" laziness="Eager"
+  }
 }

@@ -25,6 +25,7 @@ import jp.assasans.narukami.server.core.impl.GameObjectV2
 import jp.assasans.narukami.server.core.impl.TransientGameObject
 import jp.assasans.narukami.server.dispatcher.DispatcherLoadObjectsManagedEvent
 import jp.assasans.narukami.server.dispatcher.DispatcherNode
+import jp.assasans.narukami.server.dispatcher.DispatcherUnloadObjectsManagedEvent
 import jp.assasans.narukami.server.garage.item.*
 import jp.assasans.narukami.server.res.ImageRes
 import jp.assasans.narukami.server.res.Lazy
@@ -41,6 +42,11 @@ data class GarageItemNode(
 
 data class CompositeModificationGarageItemNode(
   val compositeModificationGarageItem: CompositeModificationGarageItemComponent,
+) : Node()
+
+data class GarageItemMounterNode(
+  val item3D: Item3DModelCC,
+  val detachModel: DetachModelCC,
 ) : Node()
 
 class GarageSystem : AbstractSystem() {
@@ -106,8 +112,89 @@ class GarageSystem : AbstractSystem() {
       items.gameObjects
     ).schedule(dispatcher).await()
 
-    GarageModelInitMarketEvent(items.gameObjects).schedule(garage)
+    val ownedItems = items.gameObjects.filter {
+      if(it.hasComponent<ModificationComponent>()) it.getComponent<ModificationComponent>().modification < 2
+      else it.getComponent<NameComponent>().name == "Fracture"
+    }
+
+    val hullMounter = HullGarageItemMounterTemplate.create(
+      id = TransientGameObject.transientId("Mounter:Hull"),
+      item = ownedItems.filter { it.template is HullGarageItemTemplate }.random()
+    )
+    val weaponMounter = WeaponGarageItemMounterTemplate.create(
+      id = TransientGameObject.transientId("Mounter:Weapon"),
+      item = ownedItems.filter { it.template is WeaponGarageItemTemplate }.random()
+    )
+    val paintMounter = PaintGarageItemMounterTemplate.create(
+      id = TransientGameObject.transientId("Mounter:Paint"),
+      item = ownedItems.filter { it.template is PaintGarageItemTemplate }.random()
+    )
+    dispatcher.context.space.objects.add(hullMounter)
+    dispatcher.context.space.objects.add(weaponMounter)
+    dispatcher.context.space.objects.add(paintMounter)
+    DispatcherLoadObjectsManagedEvent(
+      hullMounter,
+      weaponMounter,
+      paintMounter,
+    ).schedule(dispatcher).await()
+
+    GarageModelInitMarketEvent(items.gameObjects - ownedItems).schedule(garage)
     // Additionally, it starts garage preview rendering
-    GarageModelInitDepotEvent(listOf()).schedule(garage)
+    GarageModelInitDepotEvent(ownedItems).schedule(garage)
+
+    GarageModelSelectEvent(items.gameObjects.first()).schedule(garage)
+    GarageModelUpdateMountedItemsEvent(ownedItems).schedule(garage)
+  }
+
+  @OnEventFire
+  @Mandatory
+  fun detachMounter(
+    event: DetachModelDetachEvent,
+    garageItemMounter: GarageItemMounterNode,
+    @JoinAll dispatcher: DispatcherNode,
+  ) {
+    garageItemMounter.context.space.objects.remove(garageItemMounter.gameObject)
+    DispatcherUnloadObjectsManagedEvent(garageItemMounter.gameObject).schedule(dispatcher)
+
+    logger.info { "Detached garage item mounter: $garageItemMounter.gameObject" }
+  }
+
+  @OnEventFire
+  @Mandatory
+  @OutOfOrderExecution
+  suspend fun mount(
+    event: GarageModelItemMountedEvent,
+    garage: GarageNode,
+    @JoinAll dispatcher: DispatcherNode,
+  ) {
+    val item = event.item.adapt<GarageItemNode>(garage.context)
+    val itemMounter = when(item.gameObject.getComponent<ItemCategoryComponent>().category) {
+      ItemCategoryEnum.ARMOR  -> HullGarageItemMounterTemplate.create(TransientGameObject.transientId("Mounter:Hull"), item.gameObject)
+      ItemCategoryEnum.WEAPON -> WeaponGarageItemMounterTemplate.create(TransientGameObject.transientId("Mounter:Weapon"), item.gameObject)
+      ItemCategoryEnum.PAINT  -> PaintGarageItemMounterTemplate.create(TransientGameObject.transientId("Mounter:Paint"), item.gameObject)
+      else                    -> throw IllegalArgumentException("Cannot mount item of category ${item.gameObject.getComponent<ItemCategoryComponent>().category}")
+    }
+
+    garage.context.space.objects.add(itemMounter)
+    DispatcherLoadObjectsManagedEvent(itemMounter).schedule(dispatcher).await()
+    logger.info { "Mounted garage item: ${item.garageItem}" }
+  }
+
+  @OnEventFire
+  @Mandatory
+  @OutOfOrderExecution
+  suspend fun fit(
+    event: ItemFittingModelFitEvent,
+    item: GarageItemNode,
+    @JoinAll dispatcher: DispatcherNode,
+  ) {
+    val itemMounter = when(item.gameObject.getComponent<ItemCategoryComponent>().category) {
+      ItemCategoryEnum.PAINT -> PaintGarageItemMounterTemplate.create(TransientGameObject.transientId("Mounter:Paint"), item.gameObject, preview = true)
+      else                   -> throw IllegalArgumentException("Cannot fit item of category ${item.gameObject.getComponent<ItemCategoryComponent>().category}")
+    }
+
+    item.context.space.objects.add(itemMounter)
+    DispatcherLoadObjectsManagedEvent(itemMounter).schedule(dispatcher).await()
+    logger.info { "Fitted garage item: ${item.garageItem}" }
   }
 }

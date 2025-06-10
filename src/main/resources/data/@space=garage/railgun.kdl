@@ -1,10 +1,10 @@
 template2 "jp.assasans.narukami.server.garage.item.WeaponGarageItemTemplate"
 components {
   jp.assasans.narukami.server.garage.item.NameComponent {
-    name "Smoky"
+    name "Railgun"
   }
   jp.assasans.narukami.server.garage.item.DescriptionComponent {
-    description "Medium-caliber tank gun which is generally used in light and training tanks. The key to its popularity is low price and ease of maintenance. Put it on a light hull and use wearing-out strategy against heavy clumsy tanks of your opponents. Several upgrades can significantly increase the damage dealt by this little baby. Remember that Smoky’s effectiveness decreases with distance. Good damage. High speed of turret’s rotation. Does maximum damage even through other tanks. Enemy gets damage for some time after attack. Very short range. Takes time to recharge."
+    description "If mid-caliber guns are not enough for your self-expression, this weapon is right for you. Large-caliber gun with huge muzzle speed and shells using depleted uranium. Extremely powerful and accurate kinetic projectile can go right through the enemy's tank or hit several targets standing on the line of fire with a single shot. An ideal choice for long-range trench warfare and sniping. Remember that it takes a lot of time to recharge the gun and make sure your opponents will not take advantage of it."
   }
   jp.assasans.narukami.server.garage.item.PositionComponent {
     position 0
@@ -16,10 +16,10 @@ components {
   jp.assasans.narukami.server.garage.item.CompositeModificationGarageItemComponent {
     "0" {
       jp.assasans.narukami.server.garage.item.Object3DComponent {
-        resource "tank.weapon.smoky" @gen="1.0" @modification="0" type="Object3D" laziness="Eager"
+        resource "tank.weapon.railgun" @gen="1.0" @modification="0" type="Object3D" laziness="Eager"
       }
       jp.assasans.narukami.server.garage.item.ItemPreviewComponent {
-        resource "tank.weapon.smoky.preview" @gen="1.0" @modification="0" type="Image" laziness="Lazy"
+        resource "tank.weapon.railgun.preview" @gen="1.0" @modification="0" type="Image" laziness="Lazy"
       }
       jp.assasans.narukami.server.garage.item.PriceComponent {
         price 1000
@@ -58,10 +58,10 @@ components {
     }
     "1" {
       jp.assasans.narukami.server.garage.item.Object3DComponent {
-        resource "tank.weapon.smoky" @gen="1.0" @modification="1" type="Object3D" laziness="Eager"
+        resource "tank.weapon.railgun" @gen="1.0" @modification="1" type="Object3D" laziness="Eager"
       }
       jp.assasans.narukami.server.garage.item.ItemPreviewComponent {
-        resource "tank.weapon.smoky.preview" @gen="1.0" @modification="1" type="Image" laziness="Lazy"
+        resource "tank.weapon.railgun.preview" @gen="1.0" @modification="1" type="Image" laziness="Lazy"
       }
       jp.assasans.narukami.server.garage.item.PriceComponent {
         price 2000
@@ -100,10 +100,10 @@ components {
     }
     "2" {
       jp.assasans.narukami.server.garage.item.Object3DComponent {
-        resource "tank.weapon.smoky" @gen="1.0" @modification="2" type="Object3D" laziness="Eager"
+        resource "tank.weapon.railgun" @gen="1.0" @modification="2" type="Object3D" laziness="Eager"
       }
       jp.assasans.narukami.server.garage.item.ItemPreviewComponent {
-        resource "tank.weapon.smoky.preview" @gen="1.0" @modification="2" type="Image" laziness="Lazy"
+        resource "tank.weapon.railgun.preview" @gen="1.0" @modification="2" type="Image" laziness="Lazy"
       }
       jp.assasans.narukami.server.garage.item.PriceComponent {
         price 3000
@@ -142,10 +142,10 @@ components {
     }
     "3" {
       jp.assasans.narukami.server.garage.item.Object3DComponent {
-        resource "tank.weapon.smoky" @gen="1.0" @modification="3" type="Object3D" laziness="Eager"
+        resource "tank.weapon.railgun" @gen="1.0" @modification="3" type="Object3D" laziness="Eager"
       }
       jp.assasans.narukami.server.garage.item.ItemPreviewComponent {
-        resource "tank.weapon.smoky.preview" @gen="1.0" @modification="3" type="Image" laziness="Lazy"
+        resource "tank.weapon.railgun.preview" @gen="1.0" @modification="3" type="Image" laziness="Lazy"
       }
       jp.assasans.narukami.server.garage.item.PriceComponent {
         price 4000

@@ -19,12 +19,67 @@
 package jp.assasans.narukami.server.garage.item
 
 import kotlin.time.Duration.Companion.days
+import jp.assasans.narukami.server.battlefield.tank.hull.asModel
+import jp.assasans.narukami.server.battlefield.tank.paint.AnimatedColoringComponent
+import jp.assasans.narukami.server.battlefield.tank.paint.ColoringModelCC
+import jp.assasans.narukami.server.battlefield.tank.paint.StaticColoringComponent
 import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.garage.ItemCategoryEnum
 import jp.assasans.narukami.server.garage.toViewCategory
-import jp.assasans.narukami.server.res.ImageRes
-import jp.assasans.narukami.server.res.Lazy
-import jp.assasans.narukami.server.res.Resource
+import jp.assasans.narukami.server.res.*
+
+abstract class GarageItemMounterTemplate : TemplateV2() {
+  open fun create(id: Long, item: IGameObject, preview: Boolean = false): IGameObject = gameObject(id).apply {
+    addModel(Item3DModelCC(mounted = !preview))
+    addModel(DetachModelCC())
+  }
+}
+
+data class Object3DComponent(val resource: Resource<Object3DRes, Eager>) : IComponent
+
+object HullGarageItemMounterTemplate : GarageItemMounterTemplate() {
+  override fun create(id: Long, item: IGameObject, preview: Boolean): IGameObject = super.create(id, item, preview).apply {
+    require(item.getComponent<ItemCategoryComponent>().category == ItemCategoryEnum.ARMOR) {
+      "HullGarageItemMounterTemplate can only be used for items with ItemCategoryEnum.ARMOR"
+    }
+    addModel(ItemCategoryModelCC(category = ItemCategoryEnum.ARMOR))
+    addModel(ClosureModelProvider {
+      item.getComponent<Object3DComponent>().resource.asModel()
+    })
+  }
+}
+
+object WeaponGarageItemMounterTemplate : GarageItemMounterTemplate() {
+  override fun create(id: Long, item: IGameObject, preview: Boolean): IGameObject = super.create(id, item, preview).apply {
+    require(item.getComponent<ItemCategoryComponent>().category == ItemCategoryEnum.WEAPON) {
+      "WeaponGarageItemMounterTemplate can only be used for items with ItemCategoryEnum.WEAPON"
+    }
+    addModel(ItemCategoryModelCC(category = ItemCategoryEnum.WEAPON))
+    addModel(ClosureModelProvider {
+      item.getComponent<Object3DComponent>().resource.asModel()
+    })
+  }
+}
+
+object PaintGarageItemMounterTemplate : GarageItemMounterTemplate() {
+  override fun create(id: Long, item: IGameObject, preview: Boolean): IGameObject = super.create(id, item, preview).apply {
+    require(item.getComponent<ItemCategoryComponent>().category == ItemCategoryEnum.PAINT) {
+      "PaintGarageItemMounterTemplate can only be used for items with ItemCategoryEnum.PAINT"
+    }
+    addModel(ItemCategoryModelCC(category = ItemCategoryEnum.PAINT))
+    addModel(ClosureModelProvider {
+      val staticColoring = item.getComponentOrNull<StaticColoringComponent>()
+      val animatedColoring = item.getComponentOrNull<AnimatedColoringComponent>()
+      require(staticColoring != null || animatedColoring != null) { "At least one of StaticColoringComponent or AnimatedColoringComponent must be present" }
+      require(staticColoring == null || animatedColoring == null) { "Cannot have both StaticColoringComponent and AnimatedColoringComponent" }
+
+      ColoringModelCC(
+        animatedColoring = animatedColoring?.resource,
+        coloring = staticColoring?.resource
+      )
+    })
+  }
+}
 
 class GarageItemComponent : IComponent
 data class NameComponent(val name: String) : IComponent
