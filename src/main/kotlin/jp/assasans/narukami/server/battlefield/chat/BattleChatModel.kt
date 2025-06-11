@@ -22,8 +22,8 @@ import jp.assasans.narukami.server.battleselect.BattleTeam
 import jp.assasans.narukami.server.core.IClientEvent
 import jp.assasans.narukami.server.core.IModelConstructor
 import jp.assasans.narukami.server.core.IServerEvent
-import jp.assasans.narukami.server.net.command.ProtocolEvent
-import jp.assasans.narukami.server.net.command.ProtocolModel
+import jp.assasans.narukami.server.protocol.ProtocolEvent
+import jp.assasans.narukami.server.protocol.ProtocolModel
 
 @ProtocolModel(5385894712778438726)
 class BattleChatModelCC : IModelConstructor

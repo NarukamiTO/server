@@ -28,8 +28,8 @@ import kotlinx.datetime.Clock
 import org.koin.core.component.inject
 import jp.assasans.narukami.server.battlefield.*
 import jp.assasans.narukami.server.core.*
+import jp.assasans.narukami.server.core.impl.GameObjectIdSource
 import jp.assasans.narukami.server.core.impl.Space
-import jp.assasans.narukami.server.core.impl.TransientGameObject
 import jp.assasans.narukami.server.dispatcher.DispatcherLoadObjectsManagedEvent
 import jp.assasans.narukami.server.dispatcher.DispatcherNode
 import jp.assasans.narukami.server.dispatcher.DispatcherOpenSpaceEvent
@@ -84,7 +84,7 @@ class BattleSelectSystem : AbstractSystem() {
 
       objects.remove(rootObject)
 
-      val battleMapObject = BattleMapTemplate.instantiate(TransientGameObject.transientId("Map:${mapInfo.gameObject.id}"))
+      val battleMapObject = BattleMapTemplate.instantiate(GameObjectIdSource.transientId("Map:${mapInfo.gameObject.id}"))
       // TODO: Should BattleMapTemplate just access components from map info object?
       battleMapObject.addAllComponents(mapInfo.gameObject.allComponents.values)
       battleMapObject.addComponent(BattleInfoGroupComponent(battleInfoObject))
@@ -175,7 +175,7 @@ class BattleSelectSystem : AbstractSystem() {
     val battleSpace = spaces.get(battleInfo.gameObject.id) ?: throw IllegalStateException("Battle space ${battleInfo.gameObject.id} not found")
 
     val battleUserObject = BattleUserTemplate.create(
-      id = TransientGameObject.transientId("BattleUser:${user.gameObject.id}:${Clock.System.now().toEpochMilliseconds()}"),
+      id = GameObjectIdSource.transientId("BattleUser:${user.gameObject.id}:${Clock.System.now().toEpochMilliseconds()}"),
       user = user.gameObject
     )
     battleUserObject.addComponent(TeamComponent(event.team))
@@ -221,7 +221,7 @@ class BattleSelectSystem : AbstractSystem() {
     val battleSpace = spaces.get(battleInfo.gameObject.id) ?: throw IllegalStateException("Battle space ${battleInfo.gameObject.id} not found")
 
     val battleUserObject = BattleUserTemplate.create(
-      id = TransientGameObject.transientId("BattleUser:${user.gameObject.id}:${Clock.System.now().toEpochMilliseconds()}"),
+      id = GameObjectIdSource.transientId("BattleUser:${user.gameObject.id}:${Clock.System.now().toEpochMilliseconds()}"),
       user = user.gameObject
     )
     battleUserObject.addComponent(SpectatorComponent())

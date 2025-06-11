@@ -18,41 +18,7 @@
 
 package jp.assasans.narukami.server.net.command
 
-@Target(AnnotationTarget.CLASS)
-@Retention(AnnotationRetention.RUNTIME)
-annotation class ProtocolStruct
-
-@Target(AnnotationTarget.PROPERTY)
-@Retention(AnnotationRetention.RUNTIME)
-annotation class ProtocolTransient
-
-/**
- * Marks type to encode and decode fields in the exact order they are declared.
- */
-@Target(AnnotationTarget.CLASS)
-@Retention(AnnotationRetention.RUNTIME)
-annotation class ProtocolPreserveOrder
-
-@Target(AnnotationTarget.CLASS)
-@Retention(AnnotationRetention.RUNTIME)
-annotation class ProtocolEnum
-
-@Target(AnnotationTarget.CLASS)
-@Retention(AnnotationRetention.RUNTIME)
-annotation class ProtocolEvent(val id: Long)
-
-@Deprecated("Use TemplateV2 instead")
-@Target(AnnotationTarget.CLASS)
-@Retention(AnnotationRetention.RUNTIME)
-annotation class ProtocolClass(val id: Long)
-
-@Target(AnnotationTarget.CLASS)
-@Retention(AnnotationRetention.RUNTIME)
-annotation class ProtocolModel(val id: Long)
-
-interface IProtocolEnum<T: Any> {
-  val value: T
-}
+import jp.assasans.narukami.server.protocol.ProtocolStruct
 
 /**
  * Server-to-client command sent to open a new space channel.

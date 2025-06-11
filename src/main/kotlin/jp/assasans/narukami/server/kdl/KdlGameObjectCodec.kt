@@ -25,8 +25,7 @@ import kotlin.reflect.full.isSubclassOf
 import dev.kdl.KdlNode
 import io.github.oshai.kotlinlogging.KotlinLogging
 import jp.assasans.narukami.server.core.*
-import jp.assasans.narukami.server.core.impl.TemplatedGameClass
-import jp.assasans.narukami.server.core.impl.TransientGameObject
+import jp.assasans.narukami.server.core.impl.GameObjectIdSource
 import jp.assasans.narukami.server.extensions.kotlinClass
 import jp.assasans.narukami.server.extensions.singleOrNullOrThrow
 
@@ -48,7 +47,7 @@ class KdlGameObjectCodec : IKdlCodec<IGameObject> {
 
   override fun decode(reader: KdlReader, node: KdlNode): IGameObject {
     try {
-      val id = TransientGameObject.stableId(requireNotNull(name) { "Game object name is not set" })
+      val id = GameObjectIdSource.persistentId(requireNotNull(name) { "Game object name is not set" })
 
       val componentsNodes = node.children.singleOrNullOrThrow { it.name == "components" }?.children ?: emptyList()
       val components = componentsNodes.map { rootNode ->
@@ -71,19 +70,7 @@ class KdlGameObjectCodec : IKdlCodec<IGameObject> {
 
       val templateNode = node.children.singleOrNullOrThrow { it.name == "template" }
       val gameObject = if(templateNode != null) {
-        // Template V1
-        val template = reader.getTypedCodec<ITemplate>().decode(reader, templateNode)
-
-        @Suppress("UNCHECKED_CAST")
-        val templateClass = template::class as KClass<ITemplate>
-
-        val parent = TemplatedGameClass.fromTemplate(templateClass)
-        TransientGameObject.instantiate(
-          id,
-          parent,
-          template,
-          components
-        )
+        throw UnsupportedOperationException("Template V1 is not supported anymore, use Template V2 instead")
       } else {
         // Template V2
         val templateNode = node.children.single { it.name == "template2" }

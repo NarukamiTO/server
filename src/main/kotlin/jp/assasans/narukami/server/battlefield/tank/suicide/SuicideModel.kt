@@ -21,8 +21,8 @@ package jp.assasans.narukami.server.battlefield.tank.suicide
 import jp.assasans.narukami.server.core.IClientEvent
 import jp.assasans.narukami.server.core.IModelConstructor
 import jp.assasans.narukami.server.core.IServerEvent
-import jp.assasans.narukami.server.net.command.ProtocolEvent
-import jp.assasans.narukami.server.net.command.ProtocolModel
+import jp.assasans.narukami.server.protocol.ProtocolEvent
+import jp.assasans.narukami.server.protocol.ProtocolModel
 
 @ProtocolModel(2271787261806799336)
 data class SuicideModelCC(

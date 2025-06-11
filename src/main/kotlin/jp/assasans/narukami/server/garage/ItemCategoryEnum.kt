@@ -18,8 +18,8 @@
 
 package jp.assasans.narukami.server.garage
 
-import jp.assasans.narukami.server.net.command.IProtocolEnum
-import jp.assasans.narukami.server.net.command.ProtocolEnum
+import jp.assasans.narukami.server.protocol.IProtocolEnum
+import jp.assasans.narukami.server.protocol.ProtocolEnum
 
 @ProtocolEnum
 enum class ItemCategoryEnum(override val value: Int) : IProtocolEnum<Int> {

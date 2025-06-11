@@ -19,6 +19,7 @@
 package jp.assasans.narukami.server.net.command
 
 import jp.assasans.narukami.server.net.session.SessionHash
+import jp.assasans.narukami.server.protocol.ProtocolStruct
 
 /**
  * Client-to-server command sent right after the space channel is opened.

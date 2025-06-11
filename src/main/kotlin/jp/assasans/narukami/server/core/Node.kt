@@ -18,7 +18,7 @@
 
 package jp.assasans.narukami.server.core
 
-import jp.assasans.narukami.server.core.internal.IDataUnit
+import jp.assasans.narukami.server.core.IDataUnit
 
 /**
  * Node is a type-safe view of a [IGameObject] for a certain [IModelContext].

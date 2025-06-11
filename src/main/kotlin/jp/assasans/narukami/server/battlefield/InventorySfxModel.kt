@@ -19,7 +19,7 @@
 package jp.assasans.narukami.server.battlefield
 
 import jp.assasans.narukami.server.core.IModelConstructor
-import jp.assasans.narukami.server.net.command.ProtocolModel
+import jp.assasans.narukami.server.protocol.ProtocolModel
 import jp.assasans.narukami.server.res.Eager
 import jp.assasans.narukami.server.res.Resource
 import jp.assasans.narukami.server.res.SoundRes

@@ -19,7 +19,7 @@
 package jp.assasans.narukami.server.lobby
 
 import jp.assasans.narukami.server.core.IModelConstructor
-import jp.assasans.narukami.server.net.command.ProtocolModel
+import jp.assasans.narukami.server.protocol.ProtocolModel
 
 @ProtocolModel(2015247920571018032)
 class PanelModelCC : IModelConstructor

@@ -26,7 +26,6 @@ import kotlin.reflect.KClass
 interface IGameObject {
   val id: Long
 
-  @Deprecated("Use `template` instead", ReplaceWith("template"))
   val parent: IGameClass
   val template: TemplateV2
 

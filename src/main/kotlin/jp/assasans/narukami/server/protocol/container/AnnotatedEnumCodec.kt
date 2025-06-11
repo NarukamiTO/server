@@ -23,7 +23,7 @@ import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.full.staticFunctions
 import io.github.oshai.kotlinlogging.KotlinLogging
 import jp.assasans.narukami.server.extensions.kotlinClass
-import jp.assasans.narukami.server.net.command.IProtocolEnum
+import jp.assasans.narukami.server.protocol.IProtocolEnum
 import jp.assasans.narukami.server.protocol.Codec
 import jp.assasans.narukami.server.protocol.ICodec
 import jp.assasans.narukami.server.protocol.IProtocol

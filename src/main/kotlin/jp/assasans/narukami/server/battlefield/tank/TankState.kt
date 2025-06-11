@@ -19,7 +19,7 @@
 package jp.assasans.narukami.server.battlefield.tank
 
 import jp.assasans.narukami.server.battlefield.Vector3d
-import jp.assasans.narukami.server.net.command.ProtocolStruct
+import jp.assasans.narukami.server.protocol.ProtocolStruct
 
 @ProtocolStruct
 data class TankState(

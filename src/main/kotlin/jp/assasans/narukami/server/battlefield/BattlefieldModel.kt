@@ -23,7 +23,7 @@ import jp.assasans.narukami.server.core.IClientEvent
 import jp.assasans.narukami.server.core.IGameObject
 import jp.assasans.narukami.server.core.IModelConstructor
 import jp.assasans.narukami.server.core.IServerEvent
-import jp.assasans.narukami.server.net.command.*
+import jp.assasans.narukami.server.protocol.*
 import jp.assasans.narukami.server.res.Eager
 import jp.assasans.narukami.server.res.Resource
 import jp.assasans.narukami.server.res.SoundRes

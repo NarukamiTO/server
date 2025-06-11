@@ -21,8 +21,8 @@ package jp.assasans.narukami.server.garage
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.koin.core.component.inject
 import jp.assasans.narukami.server.core.*
+import jp.assasans.narukami.server.core.impl.GameObjectIdSource
 import jp.assasans.narukami.server.core.impl.GameObjectV2
-import jp.assasans.narukami.server.core.impl.TransientGameObject
 import jp.assasans.narukami.server.dispatcher.DispatcherLoadObjectsManagedEvent
 import jp.assasans.narukami.server.dispatcher.DispatcherNode
 import jp.assasans.narukami.server.dispatcher.DispatcherUnloadObjectsManagedEvent
@@ -63,7 +63,7 @@ class GarageSystem : AbstractSystem() {
     // TODO: Workaround, works for now. Garage items must be Template V2 objects.
     val template = (compositeItem.gameObject as GameObjectV2).template as PersistentTemplateV2
     for((modification, components) in compositeItem.compositeModificationGarageItem.modifications) {
-      val id = TransientGameObject.transientId("CompositeItem:${compositeItem.gameObject.id}:$modification")
+      val id = GameObjectIdSource.transientId("CompositeItem:${compositeItem.gameObject.id}:$modification")
       val gameObject = template.instantiate(id)
       gameObject.addComponent(GarageItemComponent())
       gameObject.addComponent(ModificationComponent(group = compositeItem.gameObject.id, modification = modification))
@@ -118,15 +118,15 @@ class GarageSystem : AbstractSystem() {
     }
 
     val hullMounter = HullGarageItemMounterTemplate.create(
-      id = TransientGameObject.transientId("Mounter:Hull"),
+      id = GameObjectIdSource.transientId("Mounter:Hull"),
       item = ownedItems.filter { it.template is HullGarageItemTemplate }.random()
     )
     val weaponMounter = WeaponGarageItemMounterTemplate.create(
-      id = TransientGameObject.transientId("Mounter:Weapon"),
+      id = GameObjectIdSource.transientId("Mounter:Weapon"),
       item = ownedItems.filter { it.template is WeaponGarageItemTemplate }.random()
     )
     val paintMounter = PaintGarageItemMounterTemplate.create(
-      id = TransientGameObject.transientId("Mounter:Paint"),
+      id = GameObjectIdSource.transientId("Mounter:Paint"),
       item = ownedItems.filter { it.template is PaintGarageItemTemplate }.random()
     )
     dispatcher.context.space.objects.add(hullMounter)
@@ -169,9 +169,9 @@ class GarageSystem : AbstractSystem() {
   ) {
     val item = event.item.adapt<GarageItemNode>(garage.context)
     val itemMounter = when(item.gameObject.getComponent<ItemCategoryComponent>().category) {
-      ItemCategoryEnum.ARMOR  -> HullGarageItemMounterTemplate.create(TransientGameObject.transientId("Mounter:Hull"), item.gameObject)
-      ItemCategoryEnum.WEAPON -> WeaponGarageItemMounterTemplate.create(TransientGameObject.transientId("Mounter:Weapon"), item.gameObject)
-      ItemCategoryEnum.PAINT  -> PaintGarageItemMounterTemplate.create(TransientGameObject.transientId("Mounter:Paint"), item.gameObject)
+      ItemCategoryEnum.ARMOR  -> HullGarageItemMounterTemplate.create(GameObjectIdSource.transientId("Mounter:Hull"), item.gameObject)
+      ItemCategoryEnum.WEAPON -> WeaponGarageItemMounterTemplate.create(GameObjectIdSource.transientId("Mounter:Weapon"), item.gameObject)
+      ItemCategoryEnum.PAINT  -> PaintGarageItemMounterTemplate.create(GameObjectIdSource.transientId("Mounter:Paint"), item.gameObject)
       else                    -> throw IllegalArgumentException("Cannot mount item of category ${item.gameObject.getComponent<ItemCategoryComponent>().category}")
     }
 
@@ -189,7 +189,7 @@ class GarageSystem : AbstractSystem() {
     @JoinAll dispatcher: DispatcherNode,
   ) {
     val itemMounter = when(item.gameObject.getComponent<ItemCategoryComponent>().category) {
-      ItemCategoryEnum.PAINT -> PaintGarageItemMounterTemplate.create(TransientGameObject.transientId("Mounter:Paint"), item.gameObject, preview = true)
+      ItemCategoryEnum.PAINT -> PaintGarageItemMounterTemplate.create(GameObjectIdSource.transientId("Mounter:Paint"), item.gameObject, preview = true)
       else                   -> throw IllegalArgumentException("Cannot fit item of category ${item.gameObject.getComponent<ItemCategoryComponent>().category}")
     }
 

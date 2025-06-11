@@ -19,7 +19,7 @@
 package jp.assasans.narukami.server.battlefield.tank.hull
 
 import jp.assasans.narukami.server.core.IModelConstructor
-import jp.assasans.narukami.server.net.command.ProtocolModel
+import jp.assasans.narukami.server.protocol.ProtocolModel
 
 @ProtocolModel(3535248640055401164)
 data class TrackedChassisModelCC(

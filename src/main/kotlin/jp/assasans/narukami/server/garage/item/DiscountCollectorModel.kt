@@ -19,7 +19,7 @@
 package jp.assasans.narukami.server.garage.item
 
 import jp.assasans.narukami.server.core.IModelConstructor
-import jp.assasans.narukami.server.net.command.ProtocolModel
+import jp.assasans.narukami.server.protocol.ProtocolModel
 
 @ProtocolModel(8143863462021990978)
 class DiscountCollectorModelCC : IModelConstructor

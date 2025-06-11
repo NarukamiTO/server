@@ -21,7 +21,7 @@ package jp.assasans.narukami.server.protocol.factory
 import kotlin.reflect.KType
 import jp.assasans.narukami.server.extensions.hasInheritedAnnotation
 import jp.assasans.narukami.server.extensions.kotlinClass
-import jp.assasans.narukami.server.net.command.ProtocolStruct
+import jp.assasans.narukami.server.protocol.ProtocolStruct
 import jp.assasans.narukami.server.protocol.ICodec
 import jp.assasans.narukami.server.protocol.IProtocol
 import jp.assasans.narukami.server.protocol.container.AnnotatedStructCodec

@@ -19,7 +19,7 @@
 package jp.assasans.narukami.server.battlefield.tank
 
 import jp.assasans.narukami.server.core.IModelConstructor
-import jp.assasans.narukami.server.net.command.ProtocolModel
+import jp.assasans.narukami.server.protocol.ProtocolModel
 
 @ProtocolModel(8316165996190533130)
 data class DroneIndicatorModelCC(

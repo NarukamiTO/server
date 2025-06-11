@@ -18,12 +18,7 @@
 
 package jp.assasans.narukami.server.core
 
-import kotlin.reflect.KClass
-import kotlin.reflect.KProperty1
-import kotlin.reflect.full.findAnnotation
-import jp.assasans.narukami.server  .core.impl.GameObjectV2
-import jp.assasans.narukami.server.core.internal.TemplateMember
-import jp.assasans.narukami.server.net.command.ProtocolClass
+import jp.assasans.narukami.server.core.impl.GameObjectV2
 
 /**
  * Game object returned by template should be usable right away,
@@ -38,30 +33,3 @@ abstract class TemplateV2 {
 abstract class PersistentTemplateV2 : TemplateV2() {
   abstract fun instantiate(id: Long): IGameObject
 }
-
-/**
- * A template provides a set of models.
- */
-@Deprecated("Use TemplateV2 instead")
-interface ITemplate
-
-@Deprecated("Use TemplateV2 instead")
-@get:JvmName("KClass_IClass_protocolId")
-val KClass<out ITemplate>.protocolId: Long
-  get() = requireNotNull(findAnnotation<ProtocolClass>()) { "$this has no @ProtocolClass annotation" }.id
-
-@Deprecated("Use TemplateV2 instead")
-val KClass<out ITemplate>.models: Map<KProperty1<out ITemplate, *>, KClass<out IModelConstructor>>
-  get() {
-    val members = requireNotNull(jp.assasans.narukami.server.derive.templateToMembers[this]) {
-      "$this is not registered"
-    }
-
-    return members.flatMap { (property, member) ->
-      when(member) {
-        is TemplateMember.Model     -> listOf(property to member.model)
-        is TemplateMember.Component -> listOf()
-        is TemplateMember.Template  -> member.template.models.toList()
-      }
-    }.toMap()
-  }

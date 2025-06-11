@@ -19,7 +19,7 @@
 package jp.assasans.narukami.server.battlefield.tank.weapon
 
 import jp.assasans.narukami.server.core.IModelConstructor
-import jp.assasans.narukami.server.net.command.ProtocolModel
+import jp.assasans.narukami.server.protocol.ProtocolModel
 
 @ProtocolModel(2167304104613661084)
 class VerticalAutoAimingModelCC : IModelConstructor

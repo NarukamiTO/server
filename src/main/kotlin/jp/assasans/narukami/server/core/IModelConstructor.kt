@@ -22,9 +22,9 @@ import kotlin.reflect.KClass
 import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.hasAnnotation
-import jp.assasans.narukami.server.core.internal.IDataUnit
-import jp.assasans.narukami.server.net.command.ProtocolModel
-import jp.assasans.narukami.server.net.command.ProtocolStruct
+import jp.assasans.narukami.server.core.IDataUnit
+import jp.assasans.narukami.server.protocol.ProtocolModel
+import jp.assasans.narukami.server.protocol.ProtocolStruct
 import jp.assasans.narukami.server.res.Resource
 
 /**

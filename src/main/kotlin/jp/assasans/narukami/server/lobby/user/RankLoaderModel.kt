@@ -19,8 +19,8 @@
 package jp.assasans.narukami.server.lobby.user
 
 import jp.assasans.narukami.server.core.IModelConstructor
-import jp.assasans.narukami.server.net.command.ProtocolModel
-import jp.assasans.narukami.server.net.command.ProtocolStruct
+import jp.assasans.narukami.server.protocol.ProtocolModel
+import jp.assasans.narukami.server.protocol.ProtocolStruct
 
 @ProtocolModel(3527205014716342329)
 data class RankLoaderModelCC(

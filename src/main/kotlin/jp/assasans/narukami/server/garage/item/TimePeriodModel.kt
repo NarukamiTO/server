@@ -19,7 +19,7 @@
 package jp.assasans.narukami.server.garage.item
 
 import jp.assasans.narukami.server.core.IModelConstructor
-import jp.assasans.narukami.server.net.command.ProtocolModel
+import jp.assasans.narukami.server.protocol.ProtocolModel
 
 @ProtocolModel(8032192927455575509)
 data class TimePeriodModelCC(

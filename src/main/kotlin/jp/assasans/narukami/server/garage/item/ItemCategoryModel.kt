@@ -20,7 +20,7 @@ package jp.assasans.narukami.server.garage.item
 
 import jp.assasans.narukami.server.core.IModelConstructor
 import jp.assasans.narukami.server.garage.ItemCategoryEnum
-import jp.assasans.narukami.server.net.command.ProtocolModel
+import jp.assasans.narukami.server.protocol.ProtocolModel
 
 @ProtocolModel(2114179554921095892)
 data class ItemCategoryModelCC(

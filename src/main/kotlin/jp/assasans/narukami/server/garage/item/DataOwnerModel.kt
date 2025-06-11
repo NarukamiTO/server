@@ -19,7 +19,7 @@
 package jp.assasans.narukami.server.garage.item
 
 import jp.assasans.narukami.server.core.IModelConstructor
-import jp.assasans.narukami.server.net.command.ProtocolModel
+import jp.assasans.narukami.server.protocol.ProtocolModel
 
 /**
  * While this model may sound generic, it is only used for garage item upgrading.

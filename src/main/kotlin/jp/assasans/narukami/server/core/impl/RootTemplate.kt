@@ -16,13 +16,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package jp.assasans.narukami.server.core
+package jp.assasans.narukami.server.core.impl
 
-/**
- * Provides a template.
- *
- * @see ITemplate
- */
-fun interface ITemplateProvider<T : ITemplate> {
-  fun create(): T
+import jp.assasans.narukami.server.core.IGameObject
+import jp.assasans.narukami.server.core.TemplateV2
+import jp.assasans.narukami.server.core.addModel
+import jp.assasans.narukami.server.dispatcher.DispatcherModelCC
+
+object RootTemplate : TemplateV2() {
+  fun create(id: Long): IGameObject = gameObject(id).apply {
+    addModel(DispatcherModelCC())
+  }
 }

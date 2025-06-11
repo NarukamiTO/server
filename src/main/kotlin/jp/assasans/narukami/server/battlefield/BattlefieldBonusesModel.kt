@@ -20,8 +20,8 @@ package jp.assasans.narukami.server.battlefield
 
 import jp.assasans.narukami.server.core.IGameObject
 import jp.assasans.narukami.server.core.IModelConstructor
-import jp.assasans.narukami.server.net.command.ProtocolModel
-import jp.assasans.narukami.server.net.command.ProtocolStruct
+import jp.assasans.narukami.server.protocol.ProtocolModel
+import jp.assasans.narukami.server.protocol.ProtocolStruct
 
 @ProtocolModel(2145315487377727727)
 data class BattlefieldBonusesModelCC(

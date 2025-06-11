@@ -20,7 +20,7 @@ package jp.assasans.narukami.server.battlefield.tank.weapon.smoky
 
 import jp.assasans.narukami.server.battlefield.LightingSFXEntity
 import jp.assasans.narukami.server.core.IModelConstructor
-import jp.assasans.narukami.server.net.command.ProtocolModel
+import jp.assasans.narukami.server.protocol.ProtocolModel
 import jp.assasans.narukami.server.res.*
 
 @ProtocolModel(1748249573394295263)

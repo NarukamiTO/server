@@ -19,7 +19,7 @@
 package jp.assasans.narukami.server.garage.item
 
 import jp.assasans.narukami.server.core.IModelConstructor
-import jp.assasans.narukami.server.net.command.ProtocolModel
+import jp.assasans.narukami.server.protocol.ProtocolModel
 
 /**
  * Mounts an item once loaded on client, then sends [DetachModelDetachEvent].

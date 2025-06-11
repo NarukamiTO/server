@@ -19,7 +19,7 @@
 package jp.assasans.narukami.server.battleselect
 
 import jp.assasans.narukami.server.core.IModelConstructor
-import jp.assasans.narukami.server.net.command.ProtocolModel
+import jp.assasans.narukami.server.protocol.ProtocolModel
 
 @ProtocolModel(2913056477936031270)
 data class BattleInfoModelCC(

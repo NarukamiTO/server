@@ -21,7 +21,7 @@ package jp.assasans.narukami.server.battlefield.tank.weapon
 import jp.assasans.narukami.server.core.IClientEvent
 import jp.assasans.narukami.server.core.IModelConstructor
 import jp.assasans.narukami.server.core.IServerEvent
-import jp.assasans.narukami.server.net.command.*
+import jp.assasans.narukami.server.protocol.*
 
 @ProtocolModel(2803166101624878775)
 data class RotatingTurretModelCC(

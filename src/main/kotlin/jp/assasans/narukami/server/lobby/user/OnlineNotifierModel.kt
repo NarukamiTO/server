@@ -20,9 +20,9 @@ package jp.assasans.narukami.server.lobby.user
 
 import jp.assasans.narukami.server.core.IClientEvent
 import jp.assasans.narukami.server.core.IModelConstructor
-import jp.assasans.narukami.server.net.command.ProtocolEvent
-import jp.assasans.narukami.server.net.command.ProtocolModel
-import jp.assasans.narukami.server.net.command.ProtocolStruct
+import jp.assasans.narukami.server.protocol.ProtocolEvent
+import jp.assasans.narukami.server.protocol.ProtocolModel
+import jp.assasans.narukami.server.protocol.ProtocolStruct
 
 @ProtocolModel(2009560714711279199)
 class OnlineNotifierModelCC : IModelConstructor

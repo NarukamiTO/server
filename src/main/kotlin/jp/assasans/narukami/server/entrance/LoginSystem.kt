@@ -71,7 +71,7 @@ class LoginSystem : AbstractSystem(), KoinComponent {
     // Create a user object and assign it to the session.
     // The user object is destroyed immediately when the session is closed,
     // without a grace period like in battles.
-    val id = makeStableId("GameObject:User:${event.uidOrEmail}:${Clock.System.now().toEpochMilliseconds()}")
+    val id = makePersistentStableId("GameObject:User:${event.uidOrEmail}:${Clock.System.now().toEpochMilliseconds()}")
     val userObject = UserTemplate.instantiate(id).apply {
       addComponent(UsernameComponent(event.uidOrEmail))
       addComponent(ScoreComponent(Random.nextInt(10_000, 1_000_000).roundToNearest(100)))

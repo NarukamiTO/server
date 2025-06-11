@@ -19,7 +19,7 @@
 package jp.assasans.narukami.server.battlefield.tank.weapon
 
 import jp.assasans.narukami.server.core.IModelConstructor
-import jp.assasans.narukami.server.net.command.ProtocolModel
+import jp.assasans.narukami.server.protocol.ProtocolModel
 
 @ProtocolModel(2235965200289058033)
 data class SplashModel(

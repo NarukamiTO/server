@@ -27,7 +27,7 @@ import kotlin.reflect.full.primaryConstructor
 import io.github.oshai.kotlinlogging.KotlinLogging
 import jp.assasans.narukami.server.extensions.hasInheritedAnnotation
 import jp.assasans.narukami.server.extensions.kotlinClass
-import jp.assasans.narukami.server.net.command.ProtocolPreserveOrder
+import jp.assasans.narukami.server.protocol.ProtocolPreserveOrder
 import jp.assasans.narukami.server.protocol.Codec
 import jp.assasans.narukami.server.protocol.ICodec
 import jp.assasans.narukami.server.protocol.ProtocolBuffer

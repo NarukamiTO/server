@@ -50,7 +50,6 @@ class KdlReader {
     factories.add(KdlResourceCodec.Factory)
     factories.add(KdlGameObjectCodec.Factory)
     factories.add(KdlPersistentTemplateV2Codec.Factory)
-    factories.add(KdlTemplateCodec.Factory)
 
     /* Custom components */
     factories.add(KdlCompositeModificationGarageItemComponentCodec.Factory)

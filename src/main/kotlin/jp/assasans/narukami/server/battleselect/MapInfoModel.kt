@@ -19,7 +19,7 @@
 package jp.assasans.narukami.server.battleselect
 
 import jp.assasans.narukami.server.core.IModelConstructor
-import jp.assasans.narukami.server.net.command.ProtocolModel
+import jp.assasans.narukami.server.protocol.ProtocolModel
 import jp.assasans.narukami.server.res.ImageRes
 import jp.assasans.narukami.server.res.Lazy
 import jp.assasans.narukami.server.res.Resource

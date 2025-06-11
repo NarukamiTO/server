@@ -19,7 +19,7 @@
 package jp.assasans.narukami.server.battlefield.tank
 
 import jp.assasans.narukami.server.core.IModelConstructor
-import jp.assasans.narukami.server.net.command.ProtocolModel
+import jp.assasans.narukami.server.protocol.ProtocolModel
 
 @ProtocolModel(3317051239895575278)
 data class TankConfigurationModelCC(

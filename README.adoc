@@ -11,13 +11,17 @@ I discuss development of this server at link:https://discord.gg/hb467BGKMc[Vint 
 a Tanki X server reimplementation community. You can ask questions there, but if you have an issue,
 first describe the steps you have taken (don't just say, "I can't run the server").
 
+== Requirements
+
+* JDK 23, link:https://adoptium.net/temurin/releases/?os=any&arch=any&version=23[Eclipse Temurin] is recommended.
+
 == Running
 
 The server uses JVM system properties for configuration. You need to set:
 
 * `res.root` to the `out` directory of the
 link:https://github.com/NarukamiTO/resource-generator[resource generator].
-* `res.url` to publicly accessible URL of the resources server (e.g., `http://127.0.1:5192` for local).
+* `res.url` to publicly accessible URL of the resources server (e.g., `http://127.0.0.1:5192` for local).
 * `config.url` to publicly accessible URL of the config server (e.g., `http://127.0.0.1:5191` for local).
 * `game.url` to publicly accessible endpoint of the game server (e.g., `127.0.0.1:5190` for local).
 

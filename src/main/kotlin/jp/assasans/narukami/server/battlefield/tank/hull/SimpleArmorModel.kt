@@ -19,7 +19,7 @@
 package jp.assasans.narukami.server.battlefield.tank.hull
 
 import jp.assasans.narukami.server.core.IModelConstructor
-import jp.assasans.narukami.server.net.command.ProtocolModel
+import jp.assasans.narukami.server.protocol.ProtocolModel
 
 @ProtocolModel(7912514999422640843)
 data class SimpleArmorModelCC(

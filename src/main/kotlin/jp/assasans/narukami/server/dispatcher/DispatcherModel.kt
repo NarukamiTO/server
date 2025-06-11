@@ -23,8 +23,8 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.CompletableDeferred
 import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.net.SpaceChannel
-import jp.assasans.narukami.server.net.command.ProtocolEvent
-import jp.assasans.narukami.server.net.command.ProtocolModel
+import jp.assasans.narukami.server.protocol.ProtocolEvent
+import jp.assasans.narukami.server.protocol.ProtocolModel
 import jp.assasans.narukami.server.res.Resource
 
 @ProtocolModel(821863604528384663)

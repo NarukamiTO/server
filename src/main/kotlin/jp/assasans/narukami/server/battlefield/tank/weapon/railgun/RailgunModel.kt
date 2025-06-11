@@ -23,8 +23,8 @@ import jp.assasans.narukami.server.core.IClientEvent
 import jp.assasans.narukami.server.core.IGameObject
 import jp.assasans.narukami.server.core.IModelConstructor
 import jp.assasans.narukami.server.core.IServerEvent
-import jp.assasans.narukami.server.net.command.ProtocolEvent
-import jp.assasans.narukami.server.net.command.ProtocolModel
+import jp.assasans.narukami.server.protocol.ProtocolEvent
+import jp.assasans.narukami.server.protocol.ProtocolModel
 
 @ProtocolModel(1663344340563853103)
 data class RailgunModelCC(

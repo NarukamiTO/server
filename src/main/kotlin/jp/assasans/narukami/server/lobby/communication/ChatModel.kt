@@ -21,7 +21,7 @@ package jp.assasans.narukami.server.lobby.communication
 import jp.assasans.narukami.server.core.IClientEvent
 import jp.assasans.narukami.server.core.IModelConstructor
 import jp.assasans.narukami.server.core.IServerEvent
-import jp.assasans.narukami.server.net.command.*
+import jp.assasans.narukami.server.protocol.*
 
 @ProtocolModel(6071565290933648049)
 data class ChatModelCC(

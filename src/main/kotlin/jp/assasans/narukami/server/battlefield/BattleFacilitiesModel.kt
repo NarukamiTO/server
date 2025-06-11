@@ -19,7 +19,7 @@
 package jp.assasans.narukami.server.battlefield
 
 import jp.assasans.narukami.server.core.IModelConstructor
-import jp.assasans.narukami.server.net.command.ProtocolModel
+import jp.assasans.narukami.server.protocol.ProtocolModel
 
 @ProtocolModel(5840277576929932799)
 class BattleFacilitiesModelCC : IModelConstructor

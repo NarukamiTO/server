@@ -19,7 +19,7 @@
 package jp.assasans.narukami.server.lobby
 
 import jp.assasans.narukami.server.core.IModelConstructor
-import jp.assasans.narukami.server.net.command.ProtocolModel
+import jp.assasans.narukami.server.protocol.ProtocolModel
 
 @ProtocolModel(520719205006053564)
 data class OnceADayActionModelCC(

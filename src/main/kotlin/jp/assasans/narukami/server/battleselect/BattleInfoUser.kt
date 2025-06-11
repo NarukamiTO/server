@@ -18,7 +18,7 @@
 
 package jp.assasans.narukami.server.battleselect
 
-import jp.assasans.narukami.server.net.command.ProtocolStruct
+import jp.assasans.narukami.server.protocol.ProtocolStruct
 
 @ProtocolStruct
 data class BattleInfoUser(

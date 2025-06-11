@@ -1,5 +1,7 @@
+# IDEs
 .idea/
 .vscode/
+*.iml
 
 # JVM
 .kotlin/

@@ -18,6 +18,9 @@
 
 package jp.assasans.narukami.server.net.command
 
+import jp.assasans.narukami.server.protocol.ProtocolPreserveOrder
+import jp.assasans.narukami.server.protocol.ProtocolStruct
+
 @ProtocolStruct
 @ProtocolPreserveOrder
 data class SpaceCommandHeader(

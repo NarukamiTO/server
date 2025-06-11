@@ -16,12 +16,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package jp.assasans.narukami.server.core.internal
+package jp.assasans.narukami.server.core.impl
 
-import jp.assasans.narukami.server.core.IComponent
-import jp.assasans.narukami.server.core.IModelConstructor
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import jp.assasans.narukami.server.core.IEventScheduler
+import jp.assasans.narukami.server.core.IGameObject
+import jp.assasans.narukami.server.core.ISpace
+import jp.assasans.narukami.server.core.NodeAddedEvent
+import jp.assasans.narukami.server.core.SpaceModelContext
 
-/**
- * Shared root for [IModelConstructor] and [IComponent].
- */
-interface IDataUnit
+class GameObjectRegistry(
+  private val space: ISpace
+) : Registry<IGameObject>("Game object", { id }), KoinComponent {
+  private val eventScheduler: IEventScheduler by inject()
+
+  override fun add(value: IGameObject) {
+    super.add(value)
+    eventScheduler.schedule(NodeAddedEvent(), SpaceModelContext(space), value)
+  }
+}

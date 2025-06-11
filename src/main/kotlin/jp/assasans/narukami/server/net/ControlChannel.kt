@@ -24,7 +24,12 @@ import org.koin.core.component.inject
 import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.core.impl.DeferredPending
 import jp.assasans.narukami.server.core.impl.Space
-import jp.assasans.narukami.server.net.command.*
+import jp.assasans.narukami.server.net.command.ControlCommand
+import jp.assasans.narukami.server.net.command.HashRequestCommand
+import jp.assasans.narukami.server.net.command.HashResponseCommand
+import jp.assasans.narukami.server.net.command.InitSpaceCommand
+import jp.assasans.narukami.server.net.command.OpenSpaceCommand
+import jp.assasans.narukami.server.protocol.*
 import jp.assasans.narukami.server.net.session.Session
 import jp.assasans.narukami.server.net.session.SessionHash
 import jp.assasans.narukami.server.protocol.ProtocolBuffer
@@ -86,7 +91,7 @@ class ControlChannel(socket: ISocketClient) : ChannelKind(socket), KoinComponent
           openSpace(Space.stableId("entrance"))
         }
 
-        is InitSpaceCommand   -> {
+        is InitSpaceCommand -> {
           check(this.session == null) { "Session already assigned, control channel -> space channel upgrade (unreachable)" }
 
           val session = sessions.get(command.hash) ?: error("Session ${command.hash} not found")

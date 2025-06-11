@@ -22,9 +22,9 @@ import kotlin.reflect.KClass
 import kotlin.reflect.full.findAnnotation
 import jp.assasans.narukami.server.core.impl.EventScheduler
 import jp.assasans.narukami.server.net.SpaceChannel
-import jp.assasans.narukami.server.net.command.ProtocolEvent
-import jp.assasans.narukami.server.net.command.ProtocolPreserveOrder
-import jp.assasans.narukami.server.net.command.ProtocolStruct
+import jp.assasans.narukami.server.protocol.ProtocolEvent
+import jp.assasans.narukami.server.protocol.ProtocolPreserveOrder
+import jp.assasans.narukami.server.protocol.ProtocolStruct
 
 /**
  * A base interface for all events.

@@ -20,7 +20,7 @@ package jp.assasans.narukami.server.battleservice
 
 import jp.assasans.narukami.server.battleselect.BattleLimits
 import jp.assasans.narukami.server.core.IModelConstructor
-import jp.assasans.narukami.server.net.command.ProtocolModel
+import jp.assasans.narukami.server.protocol.ProtocolModel
 
 @ProtocolModel(2085529474881905981)
 data class StatisticsModelCC(

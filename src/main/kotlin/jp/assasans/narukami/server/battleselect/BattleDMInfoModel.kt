@@ -20,8 +20,8 @@ package jp.assasans.narukami.server.battleselect
 
 import jp.assasans.narukami.server.core.IClientEvent
 import jp.assasans.narukami.server.core.IModelConstructor
-import jp.assasans.narukami.server.net.command.ProtocolEvent
-import jp.assasans.narukami.server.net.command.ProtocolModel
+import jp.assasans.narukami.server.protocol.ProtocolEvent
+import jp.assasans.narukami.server.protocol.ProtocolModel
 
 @ProtocolModel(994751080759166914)
 data class BattleDMInfoModelCC(

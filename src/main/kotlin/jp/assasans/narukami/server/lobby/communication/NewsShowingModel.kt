@@ -19,8 +19,8 @@
 package jp.assasans.narukami.server.lobby.communication
 
 import jp.assasans.narukami.server.core.IModelConstructor
-import jp.assasans.narukami.server.net.command.ProtocolModel
-import jp.assasans.narukami.server.net.command.ProtocolStruct
+import jp.assasans.narukami.server.protocol.ProtocolModel
+import jp.assasans.narukami.server.protocol.ProtocolStruct
 
 @ProtocolModel(868364325972433765)
 data class NewsShowingModelCC(

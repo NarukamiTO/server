@@ -20,10 +20,10 @@ package jp.assasans.narukami.server.lobby
 
 import jp.assasans.narukami.server.core.IClientEvent
 import jp.assasans.narukami.server.core.IModelConstructor
-import jp.assasans.narukami.server.net.command.IProtocolEnum
-import jp.assasans.narukami.server.net.command.ProtocolEnum
-import jp.assasans.narukami.server.net.command.ProtocolEvent
-import jp.assasans.narukami.server.net.command.ProtocolModel
+import jp.assasans.narukami.server.protocol.IProtocolEnum
+import jp.assasans.narukami.server.protocol.ProtocolEnum
+import jp.assasans.narukami.server.protocol.ProtocolEvent
+import jp.assasans.narukami.server.protocol.ProtocolModel
 
 @ProtocolModel(6363628754704336051)
 class LobbyLayoutNotifyModelCC : IModelConstructor

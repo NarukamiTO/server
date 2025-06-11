@@ -19,7 +19,7 @@
 package jp.assasans.narukami.server.entrance
 
 import jp.assasans.narukami.server.core.IModelConstructor
-import jp.assasans.narukami.server.net.command.ProtocolModel
+import jp.assasans.narukami.server.protocol.ProtocolModel
 
 @ProtocolModel(2108103923322474513)
 data class CaptchaModelCC(

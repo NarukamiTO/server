@@ -22,7 +22,6 @@ import java.util.*
 
 plugins {
   kotlin("jvm") version "2.2.0-RC2"
-  id("com.google.devtools.ksp") version "2.2.0-RC-2.0.1" // TODO: Update to RC2 when available
   application
   idea
 }
@@ -36,8 +35,6 @@ repositories {
 }
 
 dependencies {
-  ksp(project(":derive"))
-
   implementation("io.netty:netty-all:4.1.119.Final")
 
   /* HTTP */

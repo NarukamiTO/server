@@ -16,19 +16,24 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package jp.assasans.narukami.server.derive
+package jp.assasans.narukami.server.core.impl
 
-import com.google.devtools.ksp.processing.SymbolProcessor
-import com.google.devtools.ksp.processing.SymbolProcessorEnvironment
-import com.google.devtools.ksp.processing.SymbolProcessorProvider
+import kotlin.reflect.KClass
+import jp.assasans.narukami.server.core.IGameClass
+import jp.assasans.narukami.server.core.IModelConstructor
+import jp.assasans.narukami.server.core.TemplateV2
 
-@Deprecated("Use TemplateV2 instead")
-class NarukamiProcessorProvider : SymbolProcessorProvider {
-  override fun create(environment: SymbolProcessorEnvironment): SymbolProcessor {
-    return NarukamiSymbolProcessor(
-      options = environment.options,
-      logger = environment.logger,
-      codeGenerator = environment.codeGenerator
-    )
+class GameClassCache {
+  private val cache = mutableMapOf<Set<KClass<out IModelConstructor>>, IGameClass>()
+
+  fun getOrCreate(template: TemplateV2, models: Set<KClass<out IModelConstructor>>): IGameClass {
+    return cache.getOrPut(models) {
+      val id = when(template) {
+        // Default root game objects must have class ID 0
+        is RootTemplate -> 0
+        else            -> TransientGameClass.freeId()
+      }
+      TransientGameClass(id, models)
+    }
   }
 }

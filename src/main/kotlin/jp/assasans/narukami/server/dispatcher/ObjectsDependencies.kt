@@ -22,7 +22,7 @@ import kotlin.reflect.full.createType
 import jp.assasans.narukami.server.core.IGameClass
 import jp.assasans.narukami.server.core.protocolId
 import jp.assasans.narukami.server.extensions.hasInheritedAnnotation
-import jp.assasans.narukami.server.net.command.ProtocolTransient
+import jp.assasans.narukami.server.protocol.ProtocolTransient
 import jp.assasans.narukami.server.protocol.Codec
 import jp.assasans.narukami.server.protocol.IProtocol
 import jp.assasans.narukami.server.protocol.ProtocolBuffer

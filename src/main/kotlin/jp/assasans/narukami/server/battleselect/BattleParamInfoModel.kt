@@ -20,10 +20,10 @@ package jp.assasans.narukami.server.battleselect
 
 import jp.assasans.narukami.server.core.IGameObject
 import jp.assasans.narukami.server.core.IModelConstructor
-import jp.assasans.narukami.server.net.command.IProtocolEnum
-import jp.assasans.narukami.server.net.command.ProtocolEnum
-import jp.assasans.narukami.server.net.command.ProtocolModel
-import jp.assasans.narukami.server.net.command.ProtocolStruct
+import jp.assasans.narukami.server.protocol.IProtocolEnum
+import jp.assasans.narukami.server.protocol.ProtocolEnum
+import jp.assasans.narukami.server.protocol.ProtocolModel
+import jp.assasans.narukami.server.protocol.ProtocolStruct
 
 @ProtocolModel(6282101613166902704)
 data class BattleParamInfoModelCC(

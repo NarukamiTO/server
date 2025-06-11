@@ -23,17 +23,11 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import jp.assasans.narukami.server.core.*
-import jp.assasans.narukami.server.dispatcher.DispatcherModelCC
 
 class Space(override val id: Long) : ISpace, KoinComponent {
   private val logger = KotlinLogging.logger { }
 
   companion object {
-    val ROOT_CLASS = TransientGameClass(
-      id = 0,
-      models = setOf(DispatcherModelCC::class)
-    )
-
     private val lastId = AtomicLong(-2112)
 
     /**
@@ -50,7 +44,7 @@ class Space(override val id: Long) : ISpace, KoinComponent {
      *
      * Stable IDs are positive and always the same for the same identifier.
      */
-    fun stableId(identifier: String): Long = makeStableId("Space:$identifier")
+    fun stableId(identifier: String): Long = makePersistentStableId("Space:$identifier")
   }
 
   private val eventScheduler: IEventScheduler by inject()
@@ -61,19 +55,9 @@ class Space(override val id: Long) : ISpace, KoinComponent {
     get() = objects.get(id) ?: error("No root object for space $id")
 
   init {
-    replaceRootObject(TransientGameObject(id, ROOT_CLASS))
+    replaceRootObject(RootTemplate.create(id))
+    check(rootObject.parent.id == 0L) { "Root object must have parent with ID 0, but has ${rootObject.parent.id}" }
 
     eventScheduler.schedule(SpaceCreatedEvent(), SpaceModelContext(this), rootObject)
-  }
-}
-
-class GameObjectRegistry(
-  private val space: ISpace
-) : Registry<IGameObject>("Game object", { id }), KoinComponent {
-  private val eventScheduler: IEventScheduler by inject()
-
-  override fun add(value: IGameObject) {
-    super.add(value)
-    eventScheduler.schedule(NodeAddedEvent(), SpaceModelContext(space), value)
   }
 }

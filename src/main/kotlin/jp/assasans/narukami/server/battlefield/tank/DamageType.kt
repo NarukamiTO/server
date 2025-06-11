@@ -18,8 +18,8 @@
 
 package jp.assasans.narukami.server.battlefield.tank
 
-import jp.assasans.narukami.server.net.command.IProtocolEnum
-import jp.assasans.narukami.server.net.command.ProtocolEnum
+import jp.assasans.narukami.server.protocol.IProtocolEnum
+import jp.assasans.narukami.server.protocol.ProtocolEnum
 
 @ProtocolEnum
 enum class DamageType(override val value: Int) : IProtocolEnum<Int> {
