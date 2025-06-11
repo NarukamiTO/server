@@ -18,13 +18,15 @@
 
 package jp.assasans.narukami.server.kdl
 
-import kotlin.reflect.KClass
 import kotlin.reflect.KType
 import kotlin.reflect.full.createType
 import kotlin.reflect.full.isSubclassOf
 import dev.kdl.KdlNode
 import io.github.oshai.kotlinlogging.KotlinLogging
-import jp.assasans.narukami.server.core.*
+import jp.assasans.narukami.server.core.IComponent
+import jp.assasans.narukami.server.core.IGameObject
+import jp.assasans.narukami.server.core.PersistentTemplateV2
+import jp.assasans.narukami.server.core.addAllComponents
 import jp.assasans.narukami.server.core.impl.GameObjectIdSource
 import jp.assasans.narukami.server.extensions.kotlinClass
 import jp.assasans.narukami.server.extensions.singleOrNullOrThrow

@@ -58,7 +58,7 @@ class LocalGameResourceRepository(
 
   private val root = discoverResourcesRoot()
 
-  suspend fun fetch() {
+  fun fetch() {
     logger.info { "Loading local resources from $root" }
 
     root.toFile().walk().forEach { file ->
@@ -76,9 +76,6 @@ class LocalGameResourceRepository(
 
       val components = rawName.split('.')
 
-      val name = components
-        .filter { !it.startsWith('@') }
-        .joinToString(".")
       val namespaces = components
         .filter { it.startsWith('@') }
         .map { it.substring(1).split('=', limit = 2) }

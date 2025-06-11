@@ -83,7 +83,9 @@ class ModelDataCodec : Codec<ModelData>() {
     } else {
       // Object model, can only follow after object definition
       requireNotNull(value.data)
-      (protocol.getCodec(value.data::class.createType()) as ICodec<IModelConstructor>).encode(buffer, value.data)
+      @Suppress("UNCHECKED_CAST")
+      val codec = protocol.getCodec(value.data::class.createType()) as ICodec<IModelConstructor>
+      codec.encode(buffer, value.data)
     }
   }
 

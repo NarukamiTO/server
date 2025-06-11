@@ -21,10 +21,10 @@ package jp.assasans.narukami.server.protocol.factory
 import kotlin.reflect.KType
 import kotlin.reflect.full.hasAnnotation
 import jp.assasans.narukami.server.extensions.kotlinClass
-import jp.assasans.narukami.server.protocol.IProtocolEnum
-import jp.assasans.narukami.server.protocol.ProtocolEnum
 import jp.assasans.narukami.server.protocol.ICodec
 import jp.assasans.narukami.server.protocol.IProtocol
+import jp.assasans.narukami.server.protocol.IProtocolEnum
+import jp.assasans.narukami.server.protocol.ProtocolEnum
 import jp.assasans.narukami.server.protocol.container.AnnotatedEnumCodec
 
 class AnnotatedEnumCodecFactory : ICodecFactory<IProtocolEnum<Any>> {

@@ -27,18 +27,18 @@ import jp.assasans.narukami.server.res.TextureRes
 data class StaticColoringComponent(val resource: Resource<TextureRes, Eager>) : IComponent
 data class AnimatedColoringComponent(val resource: Resource<MultiframeTextureRes, Eager>) : IComponent
 
-object ColoringTemplate : PersistentTemplateV2() {
-  override fun instantiate(id: Long) = gameObject(id).apply {
-    addModel(ClosureModelProvider {
-      val staticColoring = it.getComponentOrNull<StaticColoringComponent>()
-      val animatedColoring = it.getComponentOrNull<AnimatedColoringComponent>()
-      require(staticColoring != null || animatedColoring != null) { "At least one of StaticColoringComponent or AnimatedColoringComponent must be present" }
-      require(staticColoring == null || animatedColoring == null) { "Cannot have both StaticColoringComponent and AnimatedColoringComponent" }
+object PaintTemplate : TemplateV2() {
+  fun create(id: Long, marketItem: IGameObject) = gameObject(id).apply {
+    val staticColoring = marketItem.getComponentOrNull<StaticColoringComponent>()
+    val animatedColoring = marketItem.getComponentOrNull<AnimatedColoringComponent>()
+    require(staticColoring != null || animatedColoring != null) { "At least one of StaticColoringComponent or AnimatedColoringComponent must be present" }
+    require(staticColoring == null || animatedColoring == null) { "Cannot have both StaticColoringComponent and AnimatedColoringComponent" }
 
+    addModel(
       ColoringModelCC(
         animatedColoring = animatedColoring?.resource,
         coloring = staticColoring?.resource
       )
-    })
+    )
   }
 }

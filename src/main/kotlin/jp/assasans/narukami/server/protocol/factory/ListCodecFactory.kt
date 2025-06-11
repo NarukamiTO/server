@@ -31,6 +31,7 @@ class ListCodecFactory : ICodecFactory<List<*>> {
     assert(!type.isMarkedNullable)
 
     val elementInfo = requireNotNull(type.arguments.single().type) { "Invalid List<T> generic argument" }
+    @Suppress("UNCHECKED_CAST")
     return ListCodec(protocol.getCodec(elementInfo)) as ICodec<List<*>>
   }
 }

@@ -27,8 +27,7 @@ import org.koin.core.component.inject
 import jp.assasans.narukami.server.battlefield.chat.BattleDebugMessageEvent
 import jp.assasans.narukami.server.battlefield.tank.*
 import jp.assasans.narukami.server.battlefield.tank.hull.HullTemplate
-import jp.assasans.narukami.server.battlefield.tank.paint.ColoringTemplate
-import jp.assasans.narukami.server.battlefield.tank.paint.StaticColoringComponent
+import jp.assasans.narukami.server.battlefield.tank.paint.PaintTemplate
 import jp.assasans.narukami.server.battlefield.tank.weapon.railgun.RailgunTemplate
 import jp.assasans.narukami.server.battleselect.*
 import jp.assasans.narukami.server.battleservice.StatisticsDMModelUserConnectEvent
@@ -36,16 +35,12 @@ import jp.assasans.narukami.server.battleservice.StatisticsDMModelUserDisconnect
 import jp.assasans.narukami.server.battleservice.UserInfo
 import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.core.impl.GameObjectIdSource
-import jp.assasans.narukami.server.core.impl.GameObjectV2
 import jp.assasans.narukami.server.core.impl.Space
 import jp.assasans.narukami.server.dispatcher.DispatcherLoadDependenciesManagedEvent
 import jp.assasans.narukami.server.dispatcher.DispatcherLoadObjectsManagedEvent
 import jp.assasans.narukami.server.dispatcher.DispatcherNode
 import jp.assasans.narukami.server.dispatcher.DispatcherUnloadObjectsManagedEvent
-import jp.assasans.narukami.server.garage.item.CompositeModificationGarageItemComponent
-import jp.assasans.narukami.server.garage.item.HullGarageItemTemplate
-import jp.assasans.narukami.server.garage.item.NameComponent
-import jp.assasans.narukami.server.garage.item.WeaponGarageItemTemplate
+import jp.assasans.narukami.server.garage.item.*
 import jp.assasans.narukami.server.lobby.UserNode
 import jp.assasans.narukami.server.lobby.UsernameComponent
 import jp.assasans.narukami.server.lobby.communication.ChatModeratorLevel
@@ -54,13 +49,14 @@ import jp.assasans.narukami.server.net.sessionNotNull
 import jp.assasans.narukami.server.res.Eager
 import jp.assasans.narukami.server.res.ProplibRes
 import jp.assasans.narukami.server.res.RemoteGameResourceRepository
-import jp.assasans.narukami.server.res.TextureRes
 
 class UnloadBattleUserEvent : IEvent
 
 data class TankNode(
   val tank: TankModelCC,
-  val tankConfiguration: TankConfigurationModelCC,
+  val hullGroup: HullGroupComponent,
+  val weaponGroup: WeaponGroupComponent,
+  val paintGroup: PaintGroupComponent,
 ) : Node()
 
 data class TankLogicStateComponent(var logicState: TankLogicState) : IComponent
@@ -186,7 +182,6 @@ class BattlefieldSystem : AbstractSystem() {
       val garageSpace = spaces.get(Space.stableId("garage")) ?: throw IllegalStateException("No garage space")
 
       val hullMarketItem = garageSpace.objects.all.filter {
-        it is GameObjectV2 &&
         it.template is HullGarageItemTemplate &&
         !it.hasComponent<CompositeModificationGarageItemComponent>() &&
         it.getComponent<NameComponent>().name == "Hornet"
@@ -194,17 +189,19 @@ class BattlefieldSystem : AbstractSystem() {
 
       // TODO: Hack, should have different templates for each weapon
       val weaponMarketItem = garageSpace.objects.all.filter {
-        it is GameObjectV2 &&
         it.template is WeaponGarageItemTemplate &&
         !it.hasComponent<CompositeModificationGarageItemComponent>() &&
         it.getComponent<NameComponent>().name == "Railgun"
       }.random()
 
+      val paintMarketItem = garageSpace.objects.all.filter {
+        it.template is PaintGarageItemTemplate &&
+        it.getComponent<NameComponent>().name == "Holiday"
+      }.random()
+
       val hullObject = HullTemplate.create(GameObjectIdSource.transientId("Hull:${user.gameObject.id}"), hullMarketItem)
       val weaponObject = RailgunTemplate.create(GameObjectIdSource.transientId("Weapon:${user.gameObject.id}"), weaponMarketItem)
-      val paintObject = ColoringTemplate.instantiate(GameObjectIdSource.transientId("Paint:${user.gameObject.id}")).apply {
-        addComponent(StaticColoringComponent(gameResourceRepository.get("tank.paint.fracture", mapOf("gen" to "2.1"), TextureRes, Eager)))
-      }
+      val paintObject = PaintTemplate.create(GameObjectIdSource.transientId("Paint:${user.gameObject.id}"), paintMarketItem)
       val tankObject = TankTemplate.create(
         user.gameObject.id,
         user.gameObject,
@@ -252,10 +249,9 @@ class BattlefieldSystem : AbstractSystem() {
     /* Backward loading: load existing players to current - forward loading rules apply */
     for(tank in backwardTanks) {
       DispatcherLoadObjectsManagedEvent(
-        // TODO: Workaround, works for now
-        requireNotNull(tank.context.space.objects.get(tank.tankConfiguration.hullId)) { "No hull" },
-        requireNotNull(tank.context.space.objects.get(tank.tankConfiguration.weaponId)) { "No weapon" },
-        requireNotNull(tank.context.space.objects.get(tank.tankConfiguration.coloringId)) { "No paint" },
+        tank.hullGroup.reference,
+        tank.weaponGroup.reference,
+        tank.paintGroup.reference,
         tank.gameObject,
       ).schedule(dispatcher).await()
 
@@ -361,19 +357,15 @@ class BattlefieldSystem : AbstractSystem() {
       val lobbyChannel = battleUser.context.requireSpaceChannel.sessionNotNull.spaces.get(Space.stableId("lobby")) ?: throw IllegalStateException("No lobby channel")
       RemoveBattleUserEvent(battleUser).schedule(lobbyChannel, battleMap.battleInfoGroup.reference)
 
-      val hullObject = requireNotNull(space.objects.get(tank.tankConfiguration.hullId)) { "No hull" }
-      val weaponObject = requireNotNull(space.objects.get(tank.tankConfiguration.weaponId)) { "No weapon" }
-      val paintObject = requireNotNull(space.objects.get(tank.tankConfiguration.coloringId)) { "No paint" }
-
       space.objects.remove(tank.gameObject)
-      space.objects.remove(hullObject)
-      space.objects.remove(weaponObject)
-      space.objects.remove(paintObject)
+      space.objects.remove(tank.hullGroup.reference)
+      space.objects.remove(tank.weaponGroup.reference)
+      space.objects.remove(tank.paintGroup.reference)
 
       DispatcherUnloadObjectsManagedEvent(
-        hullObject,
-        weaponObject,
-        paintObject,
+        tank.hullGroup.reference,
+        tank.weaponGroup.reference,
+        tank.paintGroup.reference,
         tank.gameObject,
       ).schedule(dispatcherShared - dispatcher)
     }

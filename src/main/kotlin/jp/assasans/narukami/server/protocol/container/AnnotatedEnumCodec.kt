@@ -23,11 +23,7 @@ import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.full.staticFunctions
 import io.github.oshai.kotlinlogging.KotlinLogging
 import jp.assasans.narukami.server.extensions.kotlinClass
-import jp.assasans.narukami.server.protocol.IProtocolEnum
-import jp.assasans.narukami.server.protocol.Codec
-import jp.assasans.narukami.server.protocol.ICodec
-import jp.assasans.narukami.server.protocol.IProtocol
-import jp.assasans.narukami.server.protocol.ProtocolBuffer
+import jp.assasans.narukami.server.protocol.*
 
 class AnnotatedEnumCodec<T : IProtocolEnum<R>, R : Any>(
   private val type: KType
@@ -37,11 +33,13 @@ class AnnotatedEnumCodec<T : IProtocolEnum<R>, R : Any>(
   private val representation = type.kotlinClass.declaredMemberProperties.single { it.name == "value" }.returnType
   private lateinit var codec: ICodec<R>
 
+  @Suppress("UNCHECKED_CAST")
   private val entries = type.kotlinClass.staticFunctions.single { it.name == "values" }.call() as Array<T>
   private val variants = entries.associateBy { it.value }
 
   override fun init(protocol: IProtocol) {
     super.init(protocol)
+    @Suppress("UNCHECKED_CAST")
     codec = protocol.getCodec(representation) as ICodec<R>
   }
 

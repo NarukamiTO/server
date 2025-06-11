@@ -42,6 +42,7 @@ interface IProtocol {
 }
 
 inline fun <reified T> IProtocol.getTypedCodec(): ICodec<T> {
+  @Suppress("UNCHECKED_CAST")
   return getCodec(T::class.createType()) as ICodec<T>
 }
 

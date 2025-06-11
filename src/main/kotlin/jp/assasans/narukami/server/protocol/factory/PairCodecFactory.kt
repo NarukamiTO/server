@@ -32,6 +32,7 @@ class PairCodecFactory : ICodecFactory<Pair<*, *>> {
 
     val firstInfo = requireNotNull(type.arguments[0].type) { "Invalid Pair<A, _> generic argument" }
     val secondInfo = requireNotNull(type.arguments[1].type) { "Invalid Pair<_, B> generic argument" }
+    @Suppress("UNCHECKED_CAST")
     return PairCodec(
       protocol.getCodec(firstInfo),
       protocol.getCodec(secondInfo)

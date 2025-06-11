@@ -22,3 +22,6 @@ import jp.assasans.narukami.server.battlefield.IGroupComponent
 import jp.assasans.narukami.server.core.IGameObject
 
 data class TankGroupComponent(override val reference: IGameObject) : IGroupComponent
+data class HullGroupComponent(override val reference: IGameObject) : IGroupComponent
+data class WeaponGroupComponent(override val reference: IGameObject) : IGroupComponent
+data class PaintGroupComponent(override val reference: IGameObject) : IGroupComponent

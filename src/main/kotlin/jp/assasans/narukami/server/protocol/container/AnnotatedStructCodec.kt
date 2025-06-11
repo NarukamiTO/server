@@ -27,10 +27,10 @@ import kotlin.reflect.full.primaryConstructor
 import io.github.oshai.kotlinlogging.KotlinLogging
 import jp.assasans.narukami.server.extensions.hasInheritedAnnotation
 import jp.assasans.narukami.server.extensions.kotlinClass
-import jp.assasans.narukami.server.protocol.ProtocolPreserveOrder
 import jp.assasans.narukami.server.protocol.Codec
 import jp.assasans.narukami.server.protocol.ICodec
 import jp.assasans.narukami.server.protocol.ProtocolBuffer
+import jp.assasans.narukami.server.protocol.ProtocolPreserveOrder
 
 class AnnotatedStructCodec<T>(private val type: KType) : Codec<T>() {
   private val logger = KotlinLogging.logger { }
@@ -38,12 +38,13 @@ class AnnotatedStructCodec<T>(private val type: KType) : Codec<T>() {
   private val preserveOrder = type.kotlinClass.hasInheritedAnnotation<ProtocolPreserveOrder>()
 
   private val fields: List<KProperty1<out Any, *>>
-  private val constructor: KFunction<Any>
+  private val constructor: KFunction<T>
   private val parameters: List<KParameter>
 
   init {
     logger.debug { "Initializing codec for struct $type, preserve order: $preserveOrder" }
-    this.constructor = type.kotlinClass.primaryConstructor
+    @Suppress("UNCHECKED_CAST")
+    this.constructor = type.kotlinClass.primaryConstructor as KFunction<T>?
                        ?: throw IllegalArgumentException("No primary constructor found for type $type")
 
     val parameters = constructor.parameters.toMutableList()
@@ -64,6 +65,8 @@ class AnnotatedStructCodec<T>(private val type: KType) : Codec<T>() {
       for(field in fields) {
         try {
           val fieldValue = field.getter.call(value)
+
+          @Suppress("UNCHECKED_CAST")
           val codec = protocol.getCodec(field.returnType) as ICodec<Any?>
           codec.encode(buffer, fieldValue)
         } catch(exception: Exception) {
@@ -79,7 +82,7 @@ class AnnotatedStructCodec<T>(private val type: KType) : Codec<T>() {
     try {
       val args = parameters.associate { parameter ->
         try {
-          val codec = protocol.getCodec(parameter.type) as ICodec<Any?>
+          val codec = protocol.getCodec(parameter.type)
           logger.debug { "Decoding field ${parameter.name}: ${parameter.type} with codec $codec" }
 
           Pair(parameter, codec.decode(buffer))
@@ -88,7 +91,7 @@ class AnnotatedStructCodec<T>(private val type: KType) : Codec<T>() {
         }
       }
 
-      return constructor.callBy(args) as T
+      return constructor.callBy(args)
     } catch(exception: Exception) {
       throw IllegalArgumentException("Failed to decode struct $type", exception)
     }

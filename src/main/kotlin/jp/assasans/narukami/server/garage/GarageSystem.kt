@@ -22,7 +22,6 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import org.koin.core.component.inject
 import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.core.impl.GameObjectIdSource
-import jp.assasans.narukami.server.core.impl.GameObjectV2
 import jp.assasans.narukami.server.dispatcher.DispatcherLoadObjectsManagedEvent
 import jp.assasans.narukami.server.dispatcher.DispatcherNode
 import jp.assasans.narukami.server.dispatcher.DispatcherUnloadObjectsManagedEvent
@@ -60,8 +59,9 @@ class GarageSystem : AbstractSystem() {
     event: NodeAddedEvent,
     compositeItem: CompositeModificationGarageItemNode,
   ) {
-    // TODO: Workaround, works for now. Garage items must be Template V2 objects.
-    val template = (compositeItem.gameObject as GameObjectV2).template as PersistentTemplateV2
+    val template = compositeItem.gameObject.template
+    if(template !is PersistentTemplateV2) throw IllegalStateException("$template is not a persistent template")
+
     for((modification, components) in compositeItem.compositeModificationGarageItem.modifications) {
       val id = GameObjectIdSource.transientId("CompositeItem:${compositeItem.gameObject.id}:$modification")
       val gameObject = template.instantiate(id)

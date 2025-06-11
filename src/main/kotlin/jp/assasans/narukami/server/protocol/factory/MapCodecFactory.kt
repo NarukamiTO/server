@@ -32,6 +32,7 @@ class MapCodecFactory : ICodecFactory<Map<*, *>> {
 
     val keyInfo = requireNotNull(type.arguments[0].type) { "Invalid Map<K, _> generic argument" }
     val valueInfo = requireNotNull(type.arguments[1].type) { "Invalid Map<_, V> generic argument" }
+    @Suppress("UNCHECKED_CAST")
     return MapCodec(
       protocol.getCodec(keyInfo),
       protocol.getCodec(valueInfo)

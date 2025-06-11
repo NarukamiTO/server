@@ -38,6 +38,11 @@ object TankTemplate : TemplateV2() {
     addComponent(UserGroupComponent(user))
     addComponent(TankLogicStateComponent(TankLogicState.NEW))
 
+    // TODO: Should we use @JoinByTank for this?
+    addComponent(HullGroupComponent(hull))
+    addComponent(WeaponGroupComponent(weapon))
+    addComponent(PaintGroupComponent(paint))
+
     val hullProperties = hull.getComponent<MarketItemGroupComponent>().reference.getComponent<GaragePropertiesContainerComponent>()
     val weaponProperties = weapon.getComponent<MarketItemGroupComponent>().reference.getComponent<GaragePropertiesContainerComponent>()
 

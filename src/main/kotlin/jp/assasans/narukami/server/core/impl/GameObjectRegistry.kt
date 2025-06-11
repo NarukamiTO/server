@@ -20,11 +20,7 @@ package jp.assasans.narukami.server.core.impl
 
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
-import jp.assasans.narukami.server.core.IEventScheduler
-import jp.assasans.narukami.server.core.IGameObject
-import jp.assasans.narukami.server.core.ISpace
-import jp.assasans.narukami.server.core.NodeAddedEvent
-import jp.assasans.narukami.server.core.SpaceModelContext
+import jp.assasans.narukami.server.core.*
 
 class GameObjectRegistry(
   private val space: ISpace

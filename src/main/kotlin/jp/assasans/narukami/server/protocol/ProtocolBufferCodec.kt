@@ -21,6 +21,8 @@ package jp.assasans.narukami.server.protocol
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.netty.buffer.ByteBuf
 import jp.assasans.narukami.server.extensions.toHexString
+import jp.assasans.narukami.server.protocol.ProtocolBufferCodec.Companion.BIG_LENGTH_FLAG
+import jp.assasans.narukami.server.protocol.ProtocolBufferCodec.Companion.LONG_SIZE_DELIMITER
 
 class ProtocolBufferCodec {
   companion object {

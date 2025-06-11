@@ -36,6 +36,7 @@ class ControlCommandCodec : Codec<ControlCommand>() {
     }
     buffer.data.writeByte(command)
 
+    @Suppress("UNCHECKED_CAST")
     val codec = protocol.getCodec(value::class.createType()) as ICodec<ControlCommand>
     codec.encode(buffer, value)
   }

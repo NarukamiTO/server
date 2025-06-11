@@ -58,6 +58,7 @@ class HashRequestCommandCodec : Codec<HashRequestCommand>() {
 
   override fun init(protocol: IProtocol) {
     super.init(protocol)
+    @Suppress("UNCHECKED_CAST")
     stringListCodec = protocol.getCodec(List::class.createType(listOf(KTypeProjection.invariant(String::class.createType())))) as ICodec<List<String>>
   }
 

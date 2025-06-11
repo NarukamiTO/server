@@ -27,6 +27,7 @@ import jp.assasans.narukami.server.protocol.container.OptionalCodec
 class OptionalCodecFactory : ICodecFactory<Any> {
   override fun create(protocol: IProtocol, type: KType): ICodec<Any>? {
     if(!type.isMarkedNullable) return null
+    @Suppress("UNCHECKED_CAST")
     return OptionalCodec(protocol.getCodec(type.withNullability(false))) as ICodec<Any>
   }
 }

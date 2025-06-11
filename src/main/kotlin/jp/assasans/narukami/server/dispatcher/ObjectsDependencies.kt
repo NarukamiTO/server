@@ -18,14 +18,10 @@
 
 package jp.assasans.narukami.server.dispatcher
 
-import kotlin.reflect.full.createType
 import jp.assasans.narukami.server.core.IGameClass
 import jp.assasans.narukami.server.core.protocolId
 import jp.assasans.narukami.server.extensions.hasInheritedAnnotation
-import jp.assasans.narukami.server.protocol.ProtocolTransient
-import jp.assasans.narukami.server.protocol.Codec
-import jp.assasans.narukami.server.protocol.IProtocol
-import jp.assasans.narukami.server.protocol.ProtocolBuffer
+import jp.assasans.narukami.server.protocol.*
 import jp.assasans.narukami.server.res.Resource
 import jp.assasans.narukami.server.res.isLazy
 import jp.assasans.narukami.server.res.type
@@ -63,19 +59,19 @@ data class ObjectsDependencies(
 }
 
 class ObjectsDependenciesCodec : Codec<ObjectsDependencies>() {
-  private lateinit var byteCodec: Codec<Byte>
-  private lateinit var intCodec: Codec<Int>
-  private lateinit var longCodec: Codec<Long>
-  private lateinit var shortCodec: Codec<Short>
-  private lateinit var booleanCodec: Codec<Boolean>
+  private lateinit var byteCodec: ICodec<Byte>
+  private lateinit var intCodec: ICodec<Int>
+  private lateinit var longCodec: ICodec<Long>
+  private lateinit var shortCodec: ICodec<Short>
+  private lateinit var booleanCodec: ICodec<Boolean>
 
   override fun init(protocol: IProtocol) {
     super.init(protocol)
-    byteCodec = protocol.getCodec(Byte::class.createType()) as Codec<Byte>
-    intCodec = protocol.getCodec(Int::class.createType()) as Codec<Int>
-    longCodec = protocol.getCodec(Long::class.createType()) as Codec<Long>
-    shortCodec = protocol.getCodec(Short::class.createType()) as Codec<Short>
-    booleanCodec = protocol.getCodec(Boolean::class.createType()) as Codec<Boolean>
+    byteCodec = protocol.getTypedCodec<Byte>()
+    intCodec = protocol.getTypedCodec<Int>()
+    longCodec = protocol.getTypedCodec<Long>()
+    shortCodec = protocol.getTypedCodec<Short>()
+    booleanCodec = protocol.getTypedCodec<Boolean>()
   }
 
   override fun encode(buffer: ProtocolBuffer, value: ObjectsDependencies) {

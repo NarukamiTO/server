@@ -29,9 +29,9 @@ import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.extensions.kotlinClass
 import jp.assasans.narukami.server.lobby.UsernameComponent
 import jp.assasans.narukami.server.net.SpaceChannel
-import jp.assasans.narukami.server.protocol.ProtocolModel
 import jp.assasans.narukami.server.net.session.userNotNull
 import jp.assasans.narukami.server.net.sessionNotNull
+import jp.assasans.narukami.server.protocol.ProtocolModel
 import jp.assasans.narukami.server.res.Resource
 
 // TODO: Use IPending<T>

@@ -23,7 +23,6 @@ import jp.assasans.narukami.server.core.IGameObject
 import jp.assasans.narukami.server.core.IModelContext
 import jp.assasans.narukami.server.core.protocolId
 import jp.assasans.narukami.server.extensions.hasInheritedAnnotation
-import jp.assasans.narukami.server.protocol.ProtocolTransient
 import jp.assasans.narukami.server.protocol.*
 
 data class ObjectsData(

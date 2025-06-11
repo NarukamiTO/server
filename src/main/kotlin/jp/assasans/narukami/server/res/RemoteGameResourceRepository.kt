@@ -272,10 +272,9 @@ class RemoteGameResourceRepository(
 
     check(resource.type == type) { "Resource $name is not of type $type" }
 
-    val lazyResource = (resource as Resource<*, in Laziness>).copy(laziness = laziness)
-
+    // Resource will have correct laziness after copy
     @Suppress("UNCHECKED_CAST")
-    return lazyResource as Resource<T, L>
+    return (resource as Resource<T, L>).copy(laziness = laziness)
   }
 
   // fun <T : Res> get(reference: ResourceReference<T>): Resource<T> {

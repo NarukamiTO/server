@@ -64,7 +64,6 @@ class SessionHash(val value: ByteArray) {
     return value.contentHashCode()
   }
 
-  @ExperimentalStdlibApi
   override fun toString(): String {
     return "SessionHash(${value.toHexString()})"
   }
