@@ -25,13 +25,15 @@ import jp.assasans.narukami.server.battlefield.LightingSFXEntity
 import jp.assasans.narukami.server.battlefield.tank.weapon.*
 import jp.assasans.narukami.server.core.IGameObject
 import jp.assasans.narukami.server.core.addModel
+import jp.assasans.narukami.server.core.getComponent
+import jp.assasans.narukami.server.garage.item.ModificationComponent
 import jp.assasans.narukami.server.res.*
 
 object RailgunTemplate : WeaponTemplate(), KoinComponent {
   private val gameResourceRepository: RemoteGameResourceRepository by inject()
 
   override fun create(id: Long, marketItem: IGameObject) = super.create(id, marketItem).apply {
-    val modification = "3"
+    val modification = marketItem.getComponent<ModificationComponent>().modification.toString()
 
     addModel(
       RotatingTurretModelCC(

@@ -28,7 +28,7 @@ import jp.assasans.narukami.server.battlefield.chat.BattleDebugMessageEvent
 import jp.assasans.narukami.server.battlefield.tank.*
 import jp.assasans.narukami.server.battlefield.tank.hull.HullTemplate
 import jp.assasans.narukami.server.battlefield.tank.paint.PaintTemplate
-import jp.assasans.narukami.server.battlefield.tank.weapon.railgun.RailgunTemplate
+import jp.assasans.narukami.server.battlefield.tank.weapon.isida.IsidaTemplate
 import jp.assasans.narukami.server.battleselect.*
 import jp.assasans.narukami.server.battleservice.StatisticsDMModelUserConnectEvent
 import jp.assasans.narukami.server.battleservice.StatisticsDMModelUserDisconnectEvent
@@ -184,14 +184,15 @@ class BattlefieldSystem : AbstractSystem() {
       val hullMarketItem = garageSpace.objects.all.filter {
         it.template is HullGarageItemTemplate &&
         !it.hasComponent<CompositeModificationGarageItemComponent>() &&
-        it.getComponent<NameComponent>().name == "Hornet"
+        it.getComponent<NameComponent>().name == "Hornet" &&
+        it.getComponent<ModificationComponent>().modification == 3
       }.random()
 
       // TODO: Hack, should have different templates for each weapon
       val weaponMarketItem = garageSpace.objects.all.filter {
         it.template is WeaponGarageItemTemplate &&
         !it.hasComponent<CompositeModificationGarageItemComponent>() &&
-        it.getComponent<NameComponent>().name == "Railgun"
+        it.getComponent<NameComponent>().name == "Isida"
       }.random()
 
       val paintMarketItem = garageSpace.objects.all.filter {
@@ -200,7 +201,7 @@ class BattlefieldSystem : AbstractSystem() {
       }.random()
 
       val hullObject = HullTemplate.create(GameObjectIdSource.transientId("Hull:${user.gameObject.id}"), hullMarketItem)
-      val weaponObject = RailgunTemplate.create(GameObjectIdSource.transientId("Weapon:${user.gameObject.id}"), weaponMarketItem)
+      val weaponObject = IsidaTemplate.create(GameObjectIdSource.transientId("Weapon:${user.gameObject.id}"), weaponMarketItem)
       val paintObject = PaintTemplate.create(GameObjectIdSource.transientId("Paint:${user.gameObject.id}"), paintMarketItem)
       val tankObject = TankTemplate.create(
         user.gameObject.id,
