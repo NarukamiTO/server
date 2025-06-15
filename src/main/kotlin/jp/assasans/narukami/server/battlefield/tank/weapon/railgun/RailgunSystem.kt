@@ -19,6 +19,7 @@
 package jp.assasans.narukami.server.battlefield.tank.weapon.railgun
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import jp.assasans.narukami.server.battlefield.TankNode
 import jp.assasans.narukami.server.battlefield.tank.TankGroupComponent
 import jp.assasans.narukami.server.core.*
 
@@ -34,12 +35,13 @@ class RailgunSystem : AbstractSystem() {
   fun startCharging(
     event: RailgunModelStartChargingCommandEvent,
     railgun: RailgunNode,
+    @JoinAll @JoinBy(TankGroupComponent::class) tank: TankNode,
     @PerChannel railgunShared: List<RailgunNode>,
   ) {
     logger.trace { "Start charging: $event" }
 
     RailgunModelStartChargingEvent(
-      shooter = railgun.gameObject.getComponent<TankGroupComponent>().reference,
+      shooter = tank.gameObject,
     ).schedule(railgunShared - railgun)
   }
 
@@ -48,12 +50,13 @@ class RailgunSystem : AbstractSystem() {
   fun fireDummy(
     event: RailgunModelFireCommandEvent,
     railgun: RailgunNode,
+    @JoinAll @JoinBy(TankGroupComponent::class) tank: TankNode,
     @PerChannel railgunShared: List<RailgunNode>,
   ) {
     logger.trace { "Fire dummy: $event" }
 
     RailgunModelFireEvent(
-      shooter = railgun.gameObject.getComponent<TankGroupComponent>().reference,
+      shooter = tank.gameObject,
       staticHitPoint = event.staticHitPoint,
       targets = event.targets,
       targetHitPoints = event.targetHitPoints,

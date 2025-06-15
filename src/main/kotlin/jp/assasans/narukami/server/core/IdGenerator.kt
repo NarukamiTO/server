@@ -21,7 +21,7 @@ package jp.assasans.narukami.server.core
 import io.github.oshai.kotlinlogging.KotlinLogging
 import jp.assasans.narukami.server.HighwayHash
 
-fun makePersistentStableId(identifier: String): Long {
+fun makeStablePersistentId(identifier: String): Long {
   val logger = KotlinLogging.logger { }
 
   val key = longArrayOf(

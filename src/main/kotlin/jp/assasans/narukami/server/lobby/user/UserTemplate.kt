@@ -39,7 +39,7 @@ object UserTemplate : PersistentTemplateV2() {
         gearScore = 0,
         goldsTakenRating = 0,
         hasSpectatorPermissions = true,
-        id = it.id,
+        id = user.userGroup.key,
         rank = 1,
         rankBounds = RankBounds(lowBound = user.score.score / 2, topBound = user.score.score * 2),
         registrationTimestamp = 10,

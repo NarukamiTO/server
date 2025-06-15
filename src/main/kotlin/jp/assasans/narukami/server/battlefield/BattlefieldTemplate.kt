@@ -40,8 +40,10 @@ object BattlefieldTemplate : TemplateV2(), KoinComponent {
   fun create(id: Long, battleMapObject: IGameObject) = gameObject(id).apply {
     addModel(ClosureModelProvider {
       // TODO: Design of model providers is broken
-      val fakeUser = SingleNode(UserGroupComponent(requireSpaceChannel.sessionNotNull.userNotNull))
-      fakeUser.init(this, fakeUser.node.reference)
+      val fakeUser = VoidNode()
+      fakeUser.init(this, gameObject(0).apply {
+        addComponent(requireSpaceChannel.sessionNotNull.userNotNull.getComponent<UserGroupComponent>())
+      })
       val battleUser = space.objects.all.findBy<BattleUserNode, UserGroupComponent>(fakeUser)
 
       BattlefieldModelCC(
@@ -88,8 +90,10 @@ object BattlefieldTemplate : TemplateV2(), KoinComponent {
     // Absence of [StatisticsModel] causes an unhelpful error, pointing to [TankModel#registerUser].
     addModel(ClosureModelProvider {
       // TODO: Design of model providers is broken
-      val fakeUser = SingleNode(UserGroupComponent(requireSpaceChannel.sessionNotNull.userNotNull))
-      fakeUser.init(this, fakeUser.node.reference)
+      val fakeUser = VoidNode()
+      fakeUser.init(this, gameObject(0).apply {
+        addComponent(requireSpaceChannel.sessionNotNull.userNotNull.getComponent<UserGroupComponent>())
+      })
       val battleUser = space.objects.all.findBy<BattleUserNode, UserGroupComponent>(fakeUser)
 
       StatisticsModelCC(
@@ -121,7 +125,7 @@ object BattlefieldTemplate : TemplateV2(), KoinComponent {
           // Exclude battle users that have no tank object
           // TODO: Workaround, works for now
           .filter { battleUser -> tanks.any { it.getComponent<UserGroupComponent>() == battleUser.userGroup } }
-          .map { it.asUserInfo(space.objects.all) }
+          .map { it.asUserInfo(space.objects) }
       )
     })
 

@@ -55,7 +55,9 @@ data class BattleInfoNode(
 ) : Node()
 
 data class BattleSpaceComponent(val space: ISpace) : IComponent
-data class BattleInfoGroupComponent(override val reference: IGameObject) : IGroupComponent
+class BattleInfoGroupComponent(key: Long) : GroupComponent(key) {
+  constructor(gameObject: IGameObject) : this(gameObject.id)
+}
 
 data class AddBattleUserEvent(val battleUser: BattleUserNode) : IEvent
 data class RemoveBattleUserEvent(val battleUser: BattleUserNode) : IEvent
@@ -175,15 +177,16 @@ class BattleSelectSystem : AbstractSystem() {
     val battleSpace = spaces.get(battleInfo.gameObject.id) ?: throw IllegalStateException("Battle space ${battleInfo.gameObject.id} not found")
 
     val battleUserObject = BattleUserTemplate.create(
-      id = GameObjectIdSource.transientId("BattleUser:${user.gameObject.id}:${Clock.System.now().toEpochMilliseconds()}"),
+      id = GameObjectIdSource.transientId("BattleUser:${user.userGroup.key}:${Clock.System.now().toEpochMilliseconds()}"),
       user = user.gameObject
     )
     battleUserObject.addComponent(TeamComponent(event.team))
+    battleSpace.objects.add(user.gameObject)
     battleSpace.objects.add(battleUserObject)
 
     DispatcherOpenSpaceEvent(battleInfo.gameObject.id).schedule(dispatcher).await()
     if(BattlefieldReplayMiddleware.replayWriter != null) {
-      BattlefieldReplayMiddleware.replayWriter!!.writeComment("user id: ${user.gameObject.id}")
+      BattlefieldReplayMiddleware.replayWriter!!.writeComment("user id: ${user.userGroup.key}")
       BattlefieldReplayMiddleware.replayWriter!!.writeComment("battle user id: ${battleUserObject.id}")
     } else {
       startReplay(battleSpace)
@@ -221,10 +224,11 @@ class BattleSelectSystem : AbstractSystem() {
     val battleSpace = spaces.get(battleInfo.gameObject.id) ?: throw IllegalStateException("Battle space ${battleInfo.gameObject.id} not found")
 
     val battleUserObject = BattleUserTemplate.create(
-      id = GameObjectIdSource.transientId("BattleUser:${user.gameObject.id}:${Clock.System.now().toEpochMilliseconds()}"),
+      id = GameObjectIdSource.transientId("BattleUser:${user.userGroup.key}:${Clock.System.now().toEpochMilliseconds()}"),
       user = user.gameObject
     )
     battleUserObject.addComponent(SpectatorComponent())
+    battleSpace.objects.add(user.gameObject)
     battleSpace.objects.add(battleUserObject)
 
     DispatcherOpenSpaceEvent(battleInfo.gameObject.id).schedule(dispatcher).await()
@@ -232,14 +236,15 @@ class BattleSelectSystem : AbstractSystem() {
   }
 
   private fun startReplay(battleSpace: ISpace) {
+    return
     GlobalScope.launch {
       delay(3000)
-      val userObject = UserTemplate.instantiate(250774142).apply {
+      val userObject = UserTemplate.instantiate(-250774142).apply {
         addComponent(UsernameComponent("REPLAY_User1"))
         addComponent(ScoreComponent(Random.nextInt(10_000, 1_000_000).roundToNearest(100)))
         addComponent(CrystalsComponent(Random.nextInt(100_000, 10_000_000).roundToNearest(100)))
       }
-      userObject.addComponent(UserGroupComponent(userObject))
+      userObject.addComponent(UserGroupComponent(250774142))
 
       val battleUserObject = BattleUserTemplate.create(
         id = -268415476,

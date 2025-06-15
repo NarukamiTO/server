@@ -19,6 +19,7 @@
 package jp.assasans.narukami.server.battlefield.tank.weapon.smoky
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import jp.assasans.narukami.server.battlefield.TankNode
 import jp.assasans.narukami.server.battlefield.tank.TankGroupComponent
 import jp.assasans.narukami.server.core.*
 
@@ -34,12 +35,13 @@ class SmokySystem : AbstractSystem() {
   fun fire(
     event: SmokyModelFireCommandEvent,
     smoky: SmokyNode,
+    @JoinAll @JoinBy(TankGroupComponent::class) tank: TankNode,
     @PerChannel smokyShared: List<SmokyNode>,
   ) {
     logger.trace { "Fire: $event" }
 
     SmokyModelShootEvent(
-      shooterId = smoky.gameObject.getComponent<TankGroupComponent>().reference.id,
+      shooterId = tank.gameObject.id,
     ).schedule(smokyShared - smoky)
   }
 
@@ -48,12 +50,13 @@ class SmokySystem : AbstractSystem() {
   fun fireStatic(
     event: SmokyModelFireStaticCommandEvent,
     smoky: SmokyNode,
+    @JoinAll @JoinBy(TankGroupComponent::class) tank: TankNode,
     @PerChannel smokyShared: List<SmokyNode>,
   ) {
     logger.trace { "Fire static: $event" }
 
     SmokyModelShootStaticEvent(
-      shooterId = smoky.gameObject.getComponent<TankGroupComponent>().reference.id,
+      shooterId = tank.gameObject.id,
       hitPoint = event.hitPoint,
     ).schedule(smokyShared - smoky)
   }
@@ -63,12 +66,13 @@ class SmokySystem : AbstractSystem() {
   fun fireTarget(
     event: SmokyModelFireTargetCommandEvent,
     smoky: SmokyNode,
+    @JoinAll @JoinBy(TankGroupComponent::class) tank: TankNode,
     @PerChannel smokyShared: List<SmokyNode>,
   ) {
     logger.trace { "Fire target: $event" }
 
     SmokyModelShootTargetEvent(
-      shooterId = smoky.gameObject.getComponent<TankGroupComponent>().reference.id,
+      shooterId = tank.gameObject.id,
       targetId = event.targetId,
       hitPoint = event.hitPoint,
       weakeningCoeff = 1f,

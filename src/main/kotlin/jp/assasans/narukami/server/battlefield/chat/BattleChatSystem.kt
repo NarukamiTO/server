@@ -45,7 +45,7 @@ class BattleChatSystem : AbstractSystem() {
   ) {
     logger.debug { "Send message to battle chat: $event" }
     BattleChatModelAddMessageEvent(
-      userId = user.gameObject.id,
+      userId = user.userGroup.key,
       message = event.message,
       type = BattleTeam.NONE,
     ).schedule(chatShared)

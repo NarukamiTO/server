@@ -61,6 +61,8 @@ data class SingleNode<T : IDataUnit>(
   val node: T
 ) : Node()
 
+class VoidNode : Node()
+
 val Iterable<Node>.gameObjects: List<IGameObject>
   get() = map { it.gameObject }
 

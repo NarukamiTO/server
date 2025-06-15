@@ -18,10 +18,21 @@
 
 package jp.assasans.narukami.server.battlefield.tank
 
-import jp.assasans.narukami.server.battlefield.IGroupComponent
+import jp.assasans.narukami.server.core.GroupComponent
 import jp.assasans.narukami.server.core.IGameObject
 
-data class TankGroupComponent(override val reference: IGameObject) : IGroupComponent
-data class HullGroupComponent(override val reference: IGameObject) : IGroupComponent
-data class WeaponGroupComponent(override val reference: IGameObject) : IGroupComponent
-data class PaintGroupComponent(override val reference: IGameObject) : IGroupComponent
+class TankGroupComponent(key: Long) : GroupComponent(key) {
+  constructor(gameObject: IGameObject) : this(gameObject.id)
+}
+
+class HullGroupComponent(key: Long) : GroupComponent(key) {
+  constructor(gameObject: IGameObject) : this(gameObject.id)
+}
+
+class WeaponGroupComponent(key: Long) : GroupComponent(key) {
+  constructor(gameObject: IGameObject) : this(gameObject.id)
+}
+
+class PaintGroupComponent(key: Long) : GroupComponent(key) {
+  constructor(gameObject: IGameObject) : this(gameObject.id)
+}

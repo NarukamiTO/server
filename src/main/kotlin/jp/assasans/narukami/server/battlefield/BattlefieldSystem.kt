@@ -61,23 +61,21 @@ data class TankNode(
 
 data class TankLogicStateComponent(var logicState: TankLogicState) : IComponent
 
-interface IGroupComponent : IComponent {
-  val reference: IGameObject
-}
-
 class BattleUserComponent : IComponent
 class SpectatorComponent : IComponent
 data class TeamComponent(val team: BattleTeam) : IComponent
-data class UserGroupComponent(override val reference: IGameObject) : IGroupComponent {
-  override fun toString(): String {
-    return "UserGroupComponent(reference=${reference.id}, username=${reference.getComponent<UsernameComponent>().username})"
-  }
-}
+
+class UserGroupComponent(
+  /**
+   * Real user ID that identifies a group of objects.
+   */
+  override val key: Long
+) : GroupComponent(key)
 
 object BattleUserTemplate : TemplateV2() {
   fun create(id: Long, user: IGameObject) = gameObject(id).apply {
     addComponent(BattleUserComponent())
-    addComponent(UserGroupComponent(user))
+    addComponent(user.getComponent<UserGroupComponent>())
   }
 }
 
@@ -88,9 +86,9 @@ data class BattleUserNode(
   val spectator: SpectatorComponent?,
 ) : Node()
 
-fun BattleUserNode.asUserInfo(objects: Iterable<IGameObject>): UserInfo {
-  val user = userGroup.reference.adapt<UserNode>(context)
-  val tank = objects.findBy<TankNode, UserGroupComponent>(this)
+fun BattleUserNode.asUserInfo(objects: IRegistry<IGameObject>): UserInfo {
+  val user = objects.all.findBy<UserNode, UserGroupComponent>(this)
+  val tank = objects.all.findBy<TankNode, UserGroupComponent>(this)
   return UserInfo(
     chatModeratorLevel = ChatModeratorLevel.ADMINISTRATOR,
     deaths = 0,
@@ -165,7 +163,7 @@ class BattlefieldSystem : AbstractSystem() {
 
     logger.debug { "Battle user: $battleUser" }
     BattleDebugMessageEvent(
-      "Battle user: ${battleUser.userGroup.reference.getComponent<UsernameComponent>().username}, team: ${battleUser.team?.team}, spectator: ${battleUser.spectator != null}"
+      "Battle user: ${battleUser.userGroup}, team: ${battleUser.team?.team}, spectator: ${battleUser.spectator != null}"
     ).schedule(battlefield)
 
     if(battleUser.team != null) {
@@ -175,7 +173,8 @@ class BattlefieldSystem : AbstractSystem() {
         // TODO: There is no good API for cross-space communication. I don't like this code, should refactor it.
         //  In this case, we need to send an event from the battle space to all channels in the lobby space, excluding self.
         val lobbyChannel = event.channel.sessionNotNull.spaces.get(Space.stableId("lobby")) ?: throw IllegalStateException("No lobby channel")
-        AddBattleUserEvent(battleUser).schedule(lobbyChannel, battleMap.battleInfoGroup.reference)
+        val battleInfoObject = lobbyChannel.space.objects.get(battleMap.battleInfoGroup.key) ?: error("Battle info object not found for battle map ${battleMap.gameObject.id}")
+        AddBattleUserEvent(battleUser).schedule(lobbyChannel, battleInfoObject)
       }
 
       // TODO: There is no good API for cross-space communication. I don't like this code, should refactor it.
@@ -200,11 +199,11 @@ class BattlefieldSystem : AbstractSystem() {
         it.getComponent<NameComponent>().name == "Holiday"
       }.random()
 
-      val hullObject = HullTemplate.create(GameObjectIdSource.transientId("Hull:${user.gameObject.id}"), hullMarketItem)
-      val weaponObject = IsidaTemplate.create(GameObjectIdSource.transientId("Weapon:${user.gameObject.id}"), weaponMarketItem)
-      val paintObject = PaintTemplate.create(GameObjectIdSource.transientId("Paint:${user.gameObject.id}"), paintMarketItem)
+      val hullObject = HullTemplate.create(GameObjectIdSource.transientId("Hull:${user.userGroup.key}"), hullMarketItem)
+      val weaponObject = IsidaTemplate.create(GameObjectIdSource.transientId("Weapon:${user.userGroup.key}"), weaponMarketItem)
+      val paintObject = PaintTemplate.create(GameObjectIdSource.transientId("Paint:${user.userGroup.key}"), paintMarketItem)
       val tankObject = TankTemplate.create(
-        user.gameObject.id,
+        user.userGroup.key,
         user.gameObject,
         hullObject,
         weaponObject,
@@ -223,7 +222,7 @@ class BattlefieldSystem : AbstractSystem() {
       // UserConnect must be sent before loading the tank object, otherwise an
       // unhelpful error #1009 in [ActionOutputLine::createUserLabel] occurs.
       // Tank object ID must match the user object ID, this is hardcoded in the client.
-      val usersInfoForward = battleUsers.filter { it.team != null }.map { it.asUserInfo(event.channel.space.objects.all) }
+      val usersInfoForward = battleUsers.filter { it.team != null }.map { it.asUserInfo(event.channel.space.objects) }
       logger.debug { "Forward: $usersInfoForward" }
       StatisticsDMModelUserConnectEvent(
         tankObject.id,
@@ -249,10 +248,14 @@ class BattlefieldSystem : AbstractSystem() {
 
     /* Backward loading: load existing players to current - forward loading rules apply */
     for(tank in backwardTanks) {
+      val hullObject = event.channel.space.objects.get(tank.hullGroup.key) ?: error("Hull object not found for tank ${tank.gameObject.id}")
+      val weaponObject = event.channel.space.objects.get(tank.weaponGroup.key) ?: error("Weapon object not found for tank ${tank.gameObject.id}")
+      val paintObject = event.channel.space.objects.get(tank.paintGroup.key) ?: error("Paint object not found for tank ${tank.gameObject.id}")
+
       DispatcherLoadObjectsManagedEvent(
-        tank.hullGroup.reference,
-        tank.weaponGroup.reference,
-        tank.paintGroup.reference,
+        hullObject,
+        weaponObject,
+        paintObject,
         tank.gameObject,
       ).schedule(dispatcher).await()
 
@@ -336,13 +339,15 @@ class BattlefieldSystem : AbstractSystem() {
     event: UnloadBattleUserEvent,
     // @AllowUnloaded because it is server-only object
     @AllowUnloaded battleUser: BattleUserNode,
+    // XXX: @AllowUnloaded because object is loaded in different space
+    @AllowUnloaded user: UserNode,
     @JoinAll battlefield: SingleNode<BattlefieldModelCC>,
     @JoinAll battleMap: BattleMapNode,
     @JoinAll dispatcher: DispatcherNode,
     @JoinAll @PerChannel dispatcherShared: List<DispatcherNode>,
     @JoinAll @PerChannel battlefieldShared: List<SingleNode<BattlefieldModelCC>>,
   ) {
-    logger.info { "Destroying battle user ${battleUser.userGroup.reference.adapt<UserNode>(battleUser.context).username.username}" }
+    logger.info { "Destroying battle user ${battleUser.userGroup}" }
 
     val space = battleUser.context.space
     space.objects.remove(battleUser.gameObject)
@@ -356,17 +361,24 @@ class BattlefieldSystem : AbstractSystem() {
       // TODO: There is no good API for cross-space communication. I don't like this code, should refactor it.
       //  In this case, we need to send an event from the battle space to all channels in the lobby space, excluding self.
       val lobbyChannel = battleUser.context.requireSpaceChannel.sessionNotNull.spaces.get(Space.stableId("lobby")) ?: throw IllegalStateException("No lobby channel")
-      RemoveBattleUserEvent(battleUser).schedule(lobbyChannel, battleMap.battleInfoGroup.reference)
+      val battleInfoObject = lobbyChannel.space.objects.get(battleMap.battleInfoGroup.key) ?: error("Battle info object not found for battle map ${battleMap.gameObject.id}")
+      RemoveBattleUserEvent(battleUser).schedule(lobbyChannel, battleInfoObject)
 
+      space.objects.remove(user.gameObject)
       space.objects.remove(tank.gameObject)
-      space.objects.remove(tank.hullGroup.reference)
-      space.objects.remove(tank.weaponGroup.reference)
-      space.objects.remove(tank.paintGroup.reference)
+
+      val hullObject = space.objects.get(tank.hullGroup.key) ?: error("Hull object not found for tank ${tank.gameObject.id}")
+      val weaponObject = space.objects.get(tank.weaponGroup.key) ?: error("Weapon object not found for tank ${tank.gameObject.id}")
+      val paintObject = space.objects.get(tank.paintGroup.key) ?: error("Paint object not found for tank ${tank.gameObject.id}")
+
+      space.objects.remove(hullObject)
+      space.objects.remove(weaponObject)
+      space.objects.remove(paintObject)
 
       DispatcherUnloadObjectsManagedEvent(
-        tank.hullGroup.reference,
-        tank.weaponGroup.reference,
-        tank.paintGroup.reference,
+        hullObject,
+        weaponObject,
+        paintObject,
         tank.gameObject,
       ).schedule(dispatcherShared - dispatcher)
     }

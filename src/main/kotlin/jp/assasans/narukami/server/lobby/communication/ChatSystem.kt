@@ -86,7 +86,7 @@ class ChatSystem : AbstractSystem() {
         ip = "",
         rankIndex = 1,
         uid = user.username.username,
-        userId = user.gameObject.id
+        userId = user.userGroup.key
       ),
       targetUser = null,
       text = event.text,

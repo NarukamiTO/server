@@ -71,13 +71,20 @@ class LoginSystem : AbstractSystem(), KoinComponent {
     // Create a user object and assign it to the session.
     // The user object is destroyed immediately when the session is closed,
     // without a grace period like in battles.
-    val id = makePersistentStableId("GameObject:User:${event.uidOrEmail}:${Clock.System.now().toEpochMilliseconds()}")
-    val userObject = UserTemplate.instantiate(id).apply {
+    val id = makeStablePersistentId("GameObject:User:${event.uidOrEmail}")
+    val transientId = makeStableTransientId("GameObject:User:${event.uidOrEmail}:${Clock.System.now().toEpochMilliseconds()}")
+    // XXX: We need to have a transient ID for the user object because game developers are [stupid].
+    //  They require the tank object to have an ID of user, and considering that we cannot have two
+    //  objects with the same ID in the same space, this makes it impossible to have a user object
+    //  and a tank object in the battle space. This behavior deviates from the official server, which
+    //  somehow uses the same ID for both user and tank objects. A possible solution is to have
+    //  a separate "client ID" for game objects.
+    val userObject = UserTemplate.instantiate(transientId).apply {
+      addComponent(UserGroupComponent(id))
       addComponent(UsernameComponent(event.uidOrEmail))
       addComponent(ScoreComponent(Random.nextInt(10_000, 1_000_000).roundToNearest(100)))
       addComponent(CrystalsComponent(Random.nextInt(100_000, 10_000_000).roundToNearest(100)))
     }
-    userObject.addComponent(UserGroupComponent(userObject))
     entrance.context.requireSpaceChannel.sessionNotNull.user = userObject
 
     val channel = DispatcherOpenSpaceEvent(Space.stableId("lobby")).schedule(dispatcher).await()

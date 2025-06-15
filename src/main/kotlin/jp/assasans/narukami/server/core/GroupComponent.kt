@@ -16,11 +16,33 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package jp.assasans.narukami.server.battlefield.tank.hull
+package jp.assasans.narukami.server.core
 
-import jp.assasans.narukami.server.core.GroupComponent
-import jp.assasans.narukami.server.core.IGameObject
+/**
+ * Marks an object as part of a group.
+ *
+ * Objects sharing the same key and group component class are grouped together.
+ */
+abstract class GroupComponent(
+  /**
+   * Opaque value that identifies a group of objects.
+   */
+  open val key: Long
+) : IComponent {
+  override fun equals(other: Any?): Boolean {
+    if(this === other) return true
+    if(javaClass != other?.javaClass) return false
 
-class MarketItemGroupComponent(key: Long) : GroupComponent(key) {
-  constructor(gameObject: IGameObject) : this(gameObject.id)
+    other as GroupComponent
+
+    return key == other.key
+  }
+
+  override fun hashCode(): Int {
+    return key.hashCode()
+  }
+
+  override fun toString(): String {
+    return "${this::class.simpleName}($key)"
+  }
 }

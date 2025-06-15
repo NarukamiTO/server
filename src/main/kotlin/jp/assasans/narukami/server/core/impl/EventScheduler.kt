@@ -289,6 +289,7 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler, KoinC
         val keyGroup = previousObject.getComponent(nodeParameter.joinBy)
         unfilteredObjects.filter { gameObject ->
           val targetGroup = gameObject.getComponentOrNull(nodeParameter.joinBy)
+          logger.info { "Wants $keyGroup, got $targetGroup, pass: ${targetGroup == keyGroup}" }
           targetGroup == keyGroup
         }.toSet()
       } else {

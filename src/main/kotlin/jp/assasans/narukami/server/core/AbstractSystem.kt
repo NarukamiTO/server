@@ -21,7 +21,6 @@ package jp.assasans.narukami.server.core
 import kotlin.reflect.KClass
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
-import jp.assasans.narukami.server.battlefield.IGroupComponent
 
 /**
  * Base class for all systems.
@@ -65,7 +64,7 @@ annotation class JoinAll
 
 @Target(AnnotationTarget.VALUE_PARAMETER)
 @Retention(AnnotationRetention.RUNTIME)
-annotation class JoinBy(val component: KClass<out IGroupComponent>)
+annotation class JoinBy(val component: KClass<out GroupComponent>)
 
 /**
  * Marks a node to be created for all existing space channels.

@@ -19,6 +19,7 @@
 package jp.assasans.narukami.server.lobby
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import jp.assasans.narukami.server.battlefield.UserGroupComponent
 import jp.assasans.narukami.server.battleselect.BattleInfoNode
 import jp.assasans.narukami.server.battleselect.BattleSelectModelCC
 import jp.assasans.narukami.server.core.*
@@ -37,6 +38,7 @@ data class LobbyNode(
 ) : Node()
 
 data class UserNode(
+  val userGroup: UserGroupComponent,
   val username: UsernameComponent,
   val score: ScoreComponent,
   val crystals: CrystalsComponent,

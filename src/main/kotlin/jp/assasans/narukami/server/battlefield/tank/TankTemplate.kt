@@ -18,6 +18,8 @@
 
 package jp.assasans.narukami.server.battlefield.tank
 
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import jp.assasans.narukami.server.battlefield.BattleGearScoreModelCC
 import jp.assasans.narukami.server.battlefield.BossStateModelCC
 import jp.assasans.narukami.server.battlefield.TankLogicStateComponent
@@ -27,15 +29,18 @@ import jp.assasans.narukami.server.battlefield.tank.pause.TankPauseModelCC
 import jp.assasans.narukami.server.battlefield.tank.suicide.SuicideModelCC
 import jp.assasans.narukami.server.battleselect.BattleTeam
 import jp.assasans.narukami.server.core.*
+import jp.assasans.narukami.server.core.impl.Space
 import jp.assasans.narukami.server.extensions.toRadians
 import jp.assasans.narukami.server.garage.item.*
 import jp.assasans.narukami.server.net.session.userNotNull
 import jp.assasans.narukami.server.net.sessionNotNull
 
-object TankTemplate : TemplateV2() {
+object TankTemplate : TemplateV2(), KoinComponent {
+  private val spaces: IRegistry<ISpace> by inject()
+
   fun create(id: Long, user: IGameObject, hull: IGameObject, weapon: IGameObject, paint: IGameObject) = gameObject(id).apply {
     addComponent(TankGroupComponent(this))
-    addComponent(UserGroupComponent(user))
+    addComponent(user.getComponent<UserGroupComponent>())
     addComponent(TankLogicStateComponent(TankLogicState.NEW))
 
     // TODO: Should we use @JoinByTank for this?
@@ -43,8 +48,13 @@ object TankTemplate : TemplateV2() {
     addComponent(WeaponGroupComponent(weapon))
     addComponent(PaintGroupComponent(paint))
 
-    val hullProperties = hull.getComponent<MarketItemGroupComponent>().reference.getComponent<GaragePropertiesContainerComponent>()
-    val weaponProperties = weapon.getComponent<MarketItemGroupComponent>().reference.getComponent<GaragePropertiesContainerComponent>()
+    // TODO: There is no good API for cross-space communication. I don't like this code, should refactor it.
+    val garageSpace = spaces.get(Space.stableId("garage")) ?: throw IllegalStateException("No garage space")
+    val hullMarketItem = garageSpace.objects.get(hull.getComponent<MarketItemGroupComponent>().key) ?: error("Hull market item not found: ${hull.getComponent<MarketItemGroupComponent>().key}")
+    val weaponMarketItem = garageSpace.objects.get(weapon.getComponent<MarketItemGroupComponent>().key) ?: error("Weapon market item not found: ${weapon.getComponent<MarketItemGroupComponent>().key}")
+
+    val hullProperties = hullMarketItem.getComponent<GaragePropertiesContainerComponent>()
+    val weaponProperties = weaponMarketItem.getComponent<GaragePropertiesContainerComponent>()
 
     addModel(TankSpawnerModelCC(incarnationId = 0))
     addModel(

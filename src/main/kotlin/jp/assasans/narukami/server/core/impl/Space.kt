@@ -44,7 +44,7 @@ class Space(override val id: Long) : ISpace, KoinComponent {
      *
      * Stable IDs are positive and always the same for the same identifier.
      */
-    fun stableId(identifier: String): Long = makePersistentStableId("Space:$identifier")
+    fun stableId(identifier: String): Long = makeStablePersistentId("Space:$identifier")
   }
 
   private val eventScheduler: IEventScheduler by inject()

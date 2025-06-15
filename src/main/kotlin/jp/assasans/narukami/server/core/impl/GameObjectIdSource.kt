@@ -18,7 +18,7 @@
 
 package jp.assasans.narukami.server.core.impl
 
-import jp.assasans.narukami.server.core.makePersistentStableId
+import jp.assasans.narukami.server.core.makeStablePersistentId
 import jp.assasans.narukami.server.core.makeStableTransientId
 
 /**
@@ -39,5 +39,5 @@ object GameObjectIdSource {
    *
    * Persistent IDs are always positive; transient IDs are always negative.
    */
-  fun persistentId(identifier: String): Long = makePersistentStableId("GameObject:$identifier")
+  fun persistentId(identifier: String): Long = makeStablePersistentId("GameObject:$identifier")
 }

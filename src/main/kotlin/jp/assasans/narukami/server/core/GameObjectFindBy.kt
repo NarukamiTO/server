@@ -20,7 +20,6 @@ package jp.assasans.narukami.server.core
 
 import kotlin.reflect.KClass
 import kotlin.reflect.full.createType
-import jp.assasans.narukami.server.battlefield.IGroupComponent
 import jp.assasans.narukami.server.core.impl.NodeBuilder
 
 /**
@@ -31,7 +30,7 @@ import jp.assasans.narukami.server.core.impl.NodeBuilder
  * @param output class of the node to search for
  * @return matching node of type [T]
  */
-fun <T : Node> Iterable<IGameObject>.findBy(source: Node, group: KClass<out IGroupComponent>, output: KClass<out T>): T {
+fun <T : Node> Iterable<IGameObject>.findBy(source: Node, group: KClass<out GroupComponent>, output: KClass<out T>): T {
   val nodeBuilder = NodeBuilder()
   val nodeDefinition = nodeBuilder.getNodeDefinition(output.createType())
   val sourceGroup = source.gameObject.getComponent(group)
@@ -61,7 +60,7 @@ fun <T : Node> Iterable<IGameObject>.findBy(source: Node, group: KClass<out IGro
  * @param G group component to match
  * @return matching node of type [T]
  */
-inline fun <reified T : Node, reified G : IGroupComponent> Iterable<IGameObject>.findBy(source: Node): T {
+inline fun <reified T : Node, reified G : GroupComponent> Iterable<IGameObject>.findBy(source: Node): T {
   return findBy(source, G::class, T::class)
 }
 
@@ -73,6 +72,6 @@ inline fun <reified T : Node, reified G : IGroupComponent> Iterable<IGameObject>
  * @param G group component to match
  * @return matching nodes of type [T]
  */
-inline fun <reified T : Node, reified G : IGroupComponent> Iterable<IGameObject>.findAllBy(sources: Iterable<Node>): List<T> {
+inline fun <reified T : Node, reified G : GroupComponent> Iterable<IGameObject>.findAllBy(sources: Iterable<Node>): List<T> {
   return sources.map { source -> findBy<T, G>(source) }
 }
