@@ -18,6 +18,7 @@
 
 package jp.assasans.narukami.server
 
+import kotlin.reflect.KClass
 import com.fasterxml.jackson.core.JsonFactory
 import com.fasterxml.jackson.core.util.DefaultIndenter
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter
@@ -37,11 +38,12 @@ import org.koin.core.context.startKoin
 import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.module
 import org.koin.logger.SLF4JLogger
-import jp.assasans.narukami.server.core.IEventScheduler
-import jp.assasans.narukami.server.core.IRegistry
-import jp.assasans.narukami.server.core.ISessionRegistry
-import jp.assasans.narukami.server.core.ISpace
+import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.core.impl.*
+import jp.assasans.narukami.server.entrance.KClassKeySerializer
+import jp.assasans.narukami.server.entrance.KClassSerializer
+import jp.assasans.narukami.server.entrance.TemplateV2Deserializer
+import jp.assasans.narukami.server.entrance.TemplateV2Serializer
 import jp.assasans.narukami.server.kdl.KdlReader
 import jp.assasans.narukami.server.net.ConfigServer
 import jp.assasans.narukami.server.net.GameServer
@@ -74,6 +76,12 @@ fun provideObjectMapper(): ObjectMapper {
   mapper.registerModule(SimpleModule().apply {
     addSerializer(ResourceType::class.java, ResourceTypeConverter.Serializer)
     addDeserializer(ResourceType::class.java, ResourceTypeConverter.Deserializer)
+
+    addSerializer(KClass::class.java, KClassSerializer())
+    addKeySerializer(KClass::class.java, KClassKeySerializer())
+
+    addSerializer(TemplateV2::class.java, TemplateV2Serializer())
+    addDeserializer(TemplateV2::class.java, TemplateV2Deserializer())
   })
 
   return mapper

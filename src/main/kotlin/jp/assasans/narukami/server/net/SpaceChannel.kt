@@ -20,6 +20,8 @@ package jp.assasans.narukami.server.net
 
 import kotlin.reflect.KClass
 import kotlin.reflect.full.createType
+import kotlin.reflect.full.hasAnnotation
+import kotlin.reflect.full.isSubclassOf
 import io.github.classgraph.ClassGraph
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.koin.core.component.KoinComponent
@@ -28,27 +30,32 @@ import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.net.command.SpaceCommandHeader
 import jp.assasans.narukami.server.protocol.ICodec
 import jp.assasans.narukami.server.protocol.ProtocolBuffer
+import jp.assasans.narukami.server.protocol.ProtocolEvent
 import jp.assasans.narukami.server.protocol.getTypedCodec
 
 class SpaceEventProcessor {
   private val logger = KotlinLogging.logger { }
 
-  private val serverEvents: Map<Long, KClass<out IServerEvent>> = ClassGraph()
+  private val events: Map<Long, KClass<out IEvent>> = ClassGraph()
     .enableAllInfo()
     .acceptPackages("jp.assasans.narukami.server")
     .scan()
     .use { scanResult ->
-      scanResult.getClassesImplementing(IServerEvent::class.java).associate { classInfo ->
-        @Suppress("UNCHECKED_CAST")
-        val clazz = classInfo.loadClass().kotlin as KClass<out IServerEvent>
-
-        logger.info { "Discovered server event: $clazz" }
-        Pair(clazz.protocolId, clazz)
-      }
+      scanResult
+        .getClassesImplementing(IEvent::class.java)
+        .map { classInfo ->
+          @Suppress("UNCHECKED_CAST")
+          classInfo.loadClass().kotlin as KClass<out IEvent>
+        }
+        .filter { clazz -> clazz.hasAnnotation<ProtocolEvent>() }
+        .associateBy { clazz ->
+          logger.info { "Discovered serializable event: $clazz" }
+          clazz.protocolId
+        }
     }
 
-  fun getClass(methodId: Long): KClass<out IServerEvent>? {
-    return serverEvents[methodId]
+  fun getClass(methodId: Long): KClass<out IEvent>? {
+    return events[methodId]
   }
 }
 
@@ -85,6 +92,10 @@ class SpaceChannel(
       val eventClass = spaceEventProcessor.getClass(command.methodId)
       if(eventClass == null) {
         logger.error { "Unknown server event: $command" }
+        return
+      }
+      if(!eventClass.isSubclassOf(IServerEvent::class)) {
+        logger.error { "Class $eventClass is not a subclass of IServerEvent" }
         return
       }
 

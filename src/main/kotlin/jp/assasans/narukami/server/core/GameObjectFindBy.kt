@@ -43,13 +43,13 @@ fun <T : Node> Iterable<IGameObject>.findBy(source: Node, group: KClass<out Grou
 
     val node = nodeBuilder.tryBuildLazy(nodeDefinition, gameObject, source.context)
     if(node != null) {
-      if(found) throw IllegalArgumentException("More than one matching node found for $output, grouped by $sourceGroup ($group)")
+      if(found) throw IllegalArgumentException("More than one matching node found for $output, grouped by $sourceGroup")
       found = true
       single = node as T
     }
   }
 
-  return single ?: throw IllegalArgumentException("Failed to find node ${output.qualifiedName}, grouped by $sourceGroup ($group)")
+  return single ?: throw IllegalArgumentException("Failed to find node ${output.qualifiedName}, grouped by $sourceGroup")
 }
 
 /**

@@ -24,7 +24,10 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.delay
 import org.koin.core.component.inject
+import jp.assasans.narukami.server.battlefield.chat.BattleChatModelAddSystemMessageEvent
 import jp.assasans.narukami.server.battlefield.chat.BattleDebugMessageEvent
+import jp.assasans.narukami.server.battlefield.replay.ReplayRecord
+import jp.assasans.narukami.server.battlefield.replay.ReplaySocketClient
 import jp.assasans.narukami.server.battlefield.tank.*
 import jp.assasans.narukami.server.battlefield.tank.hull.HullTemplate
 import jp.assasans.narukami.server.battlefield.tank.paint.PaintTemplate
@@ -46,10 +49,13 @@ import jp.assasans.narukami.server.lobby.UsernameComponent
 import jp.assasans.narukami.server.lobby.communication.ChatModeratorLevel
 import jp.assasans.narukami.server.net.session.userNotNull
 import jp.assasans.narukami.server.net.sessionNotNull
+import jp.assasans.narukami.server.protocol.ProtocolEvent
 import jp.assasans.narukami.server.res.Eager
 import jp.assasans.narukami.server.res.ProplibRes
 import jp.assasans.narukami.server.res.RemoteGameResourceRepository
 
+@ProtocolEvent(-1)
+@ReplayRecord
 class UnloadBattleUserEvent : IEvent
 
 data class TankNode(
@@ -72,11 +78,14 @@ class UserGroupComponent(
   override val key: Long
 ) : GroupComponent(key)
 
-object BattleUserTemplate : TemplateV2() {
+object BattleUserTemplate : PersistentTemplateV2() {
   fun create(id: Long, user: IGameObject) = gameObject(id).apply {
     addComponent(BattleUserComponent())
     addComponent(user.getComponent<UserGroupComponent>())
   }
+
+  // For deserializing extern objects
+  override fun instantiate(id: Long) = gameObject(id)
 }
 
 data class BattleUserNode(
@@ -199,9 +208,9 @@ class BattlefieldSystem : AbstractSystem() {
         it.getComponent<NameComponent>().name == "Holiday"
       }.random()
 
-      val hullObject = HullTemplate.create(GameObjectIdSource.transientId("Hull:${user.userGroup.key}"), hullMarketItem)
-      val weaponObject = IsidaTemplate.create(GameObjectIdSource.transientId("Weapon:${user.userGroup.key}"), weaponMarketItem)
-      val paintObject = PaintTemplate.create(GameObjectIdSource.transientId("Paint:${user.userGroup.key}"), paintMarketItem)
+      val hullObject = HullTemplate.create(GameObjectIdSource.transientId("Hull:${battleUser.gameObject.id}"), hullMarketItem)
+      val weaponObject = IsidaTemplate.create(GameObjectIdSource.transientId("Weapon:${battleUser.gameObject.id}"), weaponMarketItem)
+      val paintObject = PaintTemplate.create(GameObjectIdSource.transientId("Paint:${battleUser.gameObject.id}"), paintMarketItem)
       val tankObject = TankTemplate.create(
         user.userGroup.key,
         user.gameObject,
@@ -242,6 +251,31 @@ class BattlefieldSystem : AbstractSystem() {
       logger.debug { "${event.channel.sessionNotNull.userNotNull.getComponent<UsernameComponent>()} Loaded tank parts, ${dispatcherShared.size} shared" }
     } else {
       check(battleUser.spectator != null)
+
+      BattleChatModelAddSystemMessageEvent(
+        message = buildString {
+          appendLine("== Global controls")
+          appendLine("\\ – Switch HUD display levels")
+          appendLine("Ctrl + 0-9 – save current position")
+          appendLine("0-9 – move to saved position")
+          appendLine()
+          appendLine("== Freecam controls")
+          appendLine("W, A, S, D – movement")
+          appendLine("E, Q – up / down")
+          appendLine("Shift (hold) – speedup")
+          appendLine("Arrow keys or hold and drag mouse – rotation")
+          appendLine("Space – altitude axis lock")
+          appendLine()
+
+          appendLine("== Follow controls")
+          appendLine("TAB → LMB → Spectate – follow a player's tank")
+          appendLine("Ctrl+F – follow a player closest to the camera")
+          appendLine("Ctrl+B – follow a player (from team Blue) closest to the camera")
+          appendLine("Ctrl+R – follow a player (from team Red) closest to the camera")
+          appendLine("Arrow left / right – switch between players of the same team")
+          appendLine("Ctrl+U – deactivate follow mode")
+        },
+      ).schedule(battlefield)
     }
 
     val backwardTanks = event.channel.space.objects.all.findAllBy<TankNode, UserGroupComponent>(battleUsers.filter { it.team != null } - battleUser)
@@ -335,7 +369,7 @@ class BattlefieldSystem : AbstractSystem() {
 
   @OnEventFire
   @Mandatory
-  fun unloadBattleUser(
+  suspend fun unloadBattleUser(
     event: UnloadBattleUserEvent,
     // @AllowUnloaded because it is server-only object
     @AllowUnloaded battleUser: BattleUserNode,
@@ -349,7 +383,10 @@ class BattlefieldSystem : AbstractSystem() {
   ) {
     logger.info { "Destroying battle user ${battleUser.userGroup}" }
 
+    battleUser.context.requireSpaceChannel.close()
+
     val space = battleUser.context.space
+    space.objects.remove(user.gameObject)
     space.objects.remove(battleUser.gameObject)
 
     // TODO: Do not use component nullability checks
@@ -358,13 +395,14 @@ class BattlefieldSystem : AbstractSystem() {
 
       StatisticsDMModelUserDisconnectEvent(tank.gameObject.id).schedule(battlefieldShared - battlefield)
 
-      // TODO: There is no good API for cross-space communication. I don't like this code, should refactor it.
-      //  In this case, we need to send an event from the battle space to all channels in the lobby space, excluding self.
-      val lobbyChannel = battleUser.context.requireSpaceChannel.sessionNotNull.spaces.get(Space.stableId("lobby")) ?: throw IllegalStateException("No lobby channel")
-      val battleInfoObject = lobbyChannel.space.objects.get(battleMap.battleInfoGroup.key) ?: error("Battle info object not found for battle map ${battleMap.gameObject.id}")
-      RemoveBattleUserEvent(battleUser).schedule(lobbyChannel, battleInfoObject)
+      if(dispatcher.context.requireSpaceChannel.socket !is ReplaySocketClient) {
+        // TODO: There is no good API for cross-space communication. I don't like this code, should refactor it.
+        //  In this case, we need to send an event from the battle space to all channels in the lobby space, excluding self.
+        val lobbyChannel = battleUser.context.requireSpaceChannel.sessionNotNull.spaces.get(Space.stableId("lobby")) ?: throw IllegalStateException("No lobby channel")
+        val battleInfoObject = lobbyChannel.space.objects.get(battleMap.battleInfoGroup.key) ?: error("Battle info object not found for battle map ${battleMap.gameObject.id}")
+        RemoveBattleUserEvent(battleUser).schedule(lobbyChannel, battleInfoObject)
+      }
 
-      space.objects.remove(user.gameObject)
       space.objects.remove(tank.gameObject)
 
       val hullObject = space.objects.get(tank.hullGroup.key) ?: error("Hull object not found for tank ${tank.gameObject.id}")

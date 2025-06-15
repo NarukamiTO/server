@@ -144,7 +144,11 @@ class NodeBuilder {
           return null
         }
 
-        args[parameter] = provider()
+        try {
+          args[parameter] = provider()
+        } catch(exception: Exception) {
+          throw IllegalStateException("Failed to provide model $type", exception)
+        }
       } else if(type.isSubclassOf(IComponent::class)) {
         val component = components[type]
         args[parameter] = if(component != null) {

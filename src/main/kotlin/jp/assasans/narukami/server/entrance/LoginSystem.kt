@@ -19,6 +19,14 @@
 package jp.assasans.narukami.server.entrance
 
 import kotlin.random.Random
+import kotlin.reflect.KClass
+import kotlin.reflect.full.isSubclassOf
+import kotlin.reflect.jvm.jvmName
+import com.fasterxml.jackson.core.JsonGenerator
+import com.fasterxml.jackson.core.JsonParser
+import com.fasterxml.jackson.databind.*
+import com.fasterxml.jackson.databind.annotation.JsonSerialize
+import com.fasterxml.jackson.databind.node.ObjectNode
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.datetime.Clock
 import org.koin.core.component.KoinComponent
@@ -42,6 +50,90 @@ import jp.assasans.narukami.server.res.RemoteGameResourceRepository
 data class EntranceNode(
   val entrance: EntranceModelCC,
 ) : Node()
+
+class KClassSerializer : JsonSerializer<KClass<*>>() {
+  override fun serialize(value: KClass<*>, generator: JsonGenerator, serializers: SerializerProvider) {
+    generator.writeString(value.jvmName)
+  }
+}
+
+class KClassKeySerializer : JsonSerializer<KClass<*>>() {
+  override fun serialize(value: KClass<*>, generator: JsonGenerator, serializers: SerializerProvider) {
+    generator.writeFieldName(value.jvmName)
+  }
+}
+
+class ComponentMapSerializer : JsonSerializer<Map<KClass<out IComponent>, IComponent>>() {
+  override fun serialize(value: Map<KClass<out IComponent>, IComponent>, generator: JsonGenerator, serializers: SerializerProvider) {
+    generator.writeStartObject()
+    for((key, component) in value) {
+      generator.writeObjectField(key.jvmName, component)
+    }
+    generator.writeEndObject()
+  }
+}
+
+class ComponentMapDeserializer : JsonDeserializer<Map<KClass<out IComponent>, IComponent>>() {
+  override fun deserialize(parser: JsonParser, context: DeserializationContext): Map<KClass<out IComponent>, IComponent> {
+    val components = mutableMapOf<KClass<out IComponent>, IComponent>()
+
+    val mapper = parser.codec as ObjectMapper
+    val node = mapper.readTree<ObjectNode>(parser)
+    for((key, value) in node.fields()) {
+      val clazz = try {
+        Class.forName(key).kotlin
+      } catch(exception: ClassNotFoundException) {
+        throw IllegalArgumentException("Class '$key' not found", exception)
+      }
+      if(!clazz.isSubclassOf(IComponent::class)) {
+        throw IllegalArgumentException("Class '$key' is not a component")
+      }
+      @Suppress("UNCHECKED_CAST")
+      clazz as KClass<out IComponent>
+
+      val jacksonType = context.typeFactory.constructType(clazz.java)
+      val deserializer = context.findRootValueDeserializer(jacksonType)
+      val nodeParser = value.traverse(context.parser.codec)
+      nodeParser.nextToken()
+
+      val component = deserializer.deserialize(nodeParser, context) as IComponent
+      components[clazz] = component
+    }
+
+    return components
+  }
+}
+
+class TemplateV2Serializer : JsonSerializer<TemplateV2>() {
+  override fun serialize(value: TemplateV2, generator: JsonGenerator, serializers: SerializerProvider) {
+    generator.writeString(value::class.jvmName)
+  }
+}
+
+class TemplateV2Deserializer : JsonDeserializer<TemplateV2>() {
+  override fun deserialize(parser: JsonParser, context: DeserializationContext): TemplateV2 {
+    val className = parser.valueAsString
+    try {
+      val clazz = Class.forName(className).kotlin
+      if(!clazz.isSubclassOf(TemplateV2::class)) {
+        throw IllegalArgumentException("Class '$className' is not a TemplateV2")
+      }
+      @Suppress("UNCHECKED_CAST")
+      clazz as KClass<out TemplateV2>
+
+      return clazz.objectInstance ?: throw IllegalArgumentException("Class '$className' is not an object declaration")
+    } catch(exception: ClassNotFoundException) {
+      throw IllegalArgumentException("Class '$className' not found", exception)
+    }
+  }
+}
+
+data class ExternGameObject(
+  val id: Long,
+  val template: PersistentTemplateV2,
+  @field:JsonSerialize(using = ComponentMapSerializer::class)
+  val components: Map<KClass<out IComponent>, IComponent>,
+)
 
 class LoginSystem : AbstractSystem(), KoinComponent {
   private val logger = KotlinLogging.logger { }

@@ -24,7 +24,7 @@ import kotlin.reflect.full.isSubclassOf
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.sync.Mutex
-import jp.assasans.narukami.server.battlefield.ReplaySocketClient
+import jp.assasans.narukami.server.battlefield.replay.ReplaySocketClient
 import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.extensions.kotlinClass
 import jp.assasans.narukami.server.lobby.UsernameComponent
@@ -173,7 +173,7 @@ class DispatcherSystem : AbstractSystem() {
 
     val context = dispatcher.context
     if(context is SpaceChannelModelContext) {
-      logger.info { "Adding loaded objects to channel: ${event.objects.map { it.id }}" }
+      logger.trace { "Adding loaded objects to channel: ${event.objects.map { it.id }}" }
       context.channel.loadedObjects.addAll(event.objects.map { it.id })
     }
 

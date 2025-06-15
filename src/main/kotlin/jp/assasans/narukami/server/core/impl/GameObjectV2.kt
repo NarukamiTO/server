@@ -47,6 +47,10 @@ class GameObjectV2(
     return components.containsKey(type)
   }
 
+  override fun removeComponent(type: KClass<out IComponent>): IComponent {
+    return components.remove(type) ?: throw NoSuchElementException("Component $type not found in $this")
+  }
+
   override fun <T : IComponent> getComponent(type: KClass<T>): T {
     @Suppress("UNCHECKED_CAST")
     return components[type] as T? ?: throw NoSuchElementException("Component $type not found in $this")

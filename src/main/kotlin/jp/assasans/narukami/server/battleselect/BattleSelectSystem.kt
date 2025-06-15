@@ -18,7 +18,6 @@
 
 package jp.assasans.narukami.server.battleselect
 
-import kotlin.random.Random
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.GlobalScope
@@ -27,6 +26,7 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import org.koin.core.component.inject
 import jp.assasans.narukami.server.battlefield.*
+import jp.assasans.narukami.server.battlefield.replay.*
 import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.core.impl.GameObjectIdSource
 import jp.assasans.narukami.server.core.impl.Space
@@ -34,12 +34,10 @@ import jp.assasans.narukami.server.dispatcher.DispatcherLoadObjectsManagedEvent
 import jp.assasans.narukami.server.dispatcher.DispatcherNode
 import jp.assasans.narukami.server.dispatcher.DispatcherOpenSpaceEvent
 import jp.assasans.narukami.server.dispatcher.DispatcherUnloadObjectsManagedEvent
-import jp.assasans.narukami.server.extensions.roundToNearest
 import jp.assasans.narukami.server.extensions.singleOrNullOrThrow
 import jp.assasans.narukami.server.garage.GarageModelCC
 import jp.assasans.narukami.server.lobby.*
 import jp.assasans.narukami.server.lobby.communication.ChatNode
-import jp.assasans.narukami.server.lobby.user.UserTemplate
 import jp.assasans.narukami.server.net.session.userNotNull
 import jp.assasans.narukami.server.net.sessionNotNull
 import jp.assasans.narukami.server.res.RemoteGameResourceRepository
@@ -188,6 +186,11 @@ class BattleSelectSystem : AbstractSystem() {
     if(BattlefieldReplayMiddleware.replayWriter != null) {
       BattlefieldReplayMiddleware.replayWriter!!.writeComment("user id: ${user.userGroup.key}")
       BattlefieldReplayMiddleware.replayWriter!!.writeComment("battle user id: ${battleUserObject.id}")
+      BattlefieldReplayMiddleware.replayWriter!!.writeUserObject(lobby.context.requireSpaceChannel.sessionNotNull.hash, user.gameObject)
+      BattlefieldReplayMiddleware.replayWriter!!.writeExternObject(battleUserObject)
+
+      // val obj = deserializeExternObject(objectMapper, json, battleSpace.objects)
+      // logger.info { "Deserialized extern: $obj" }
     } else {
       startReplay(battleSpace)
     }
@@ -236,26 +239,52 @@ class BattleSelectSystem : AbstractSystem() {
   }
 
   private fun startReplay(battleSpace: ISpace) {
-    return
     GlobalScope.launch {
       delay(3000)
-      val userObject = UserTemplate.instantiate(-250774142).apply {
-        addComponent(UsernameComponent("REPLAY_User1"))
-        addComponent(ScoreComponent(Random.nextInt(10_000, 1_000_000).roundToNearest(100)))
-        addComponent(CrystalsComponent(Random.nextInt(100_000, 10_000_000).roundToNearest(100)))
-      }
-      userObject.addComponent(UserGroupComponent(250774142))
+      // val userObject = UserTemplate.instantiate(250774142).apply {
+      //   addComponent(UsernameComponent("REPLAY_User1"))
+      //   addComponent(ScoreComponent(Random.nextInt(10_000, 1_000_000).roundToNearest(100)))
+      //   addComponent(CrystalsComponent(Random.nextInt(100_000, 10_000_000).roundToNearest(100)))
+      // }
+      // userObject.addComponent(UserGroupComponent(userObject))
+      //
+      // val battleUserObject = BattleUserTemplate.create(
+      //   id = -268415476,
+      //   user = userObject
+      // )
+      // battleUserObject.addComponent(TeamComponent(BattleTeam.NONE))
+      // battleSpace.objects.add(battleUserObject)
 
-      val battleUserObject = BattleUserTemplate.create(
-        id = -268415476,
-        user = userObject
-      )
-      battleUserObject.addComponent(TeamComponent(BattleTeam.NONE))
-      battleSpace.objects.add(battleUserObject)
+      val reader = ReplayReader(battleSpace)
+      reader.readEvents().collect { entry ->
+        when(entry) {
+          is ReplayExternObject -> {
+            // Remap user ID
+            if(entry.gameObject.hasComponent<UserGroupComponent>()) {
+              val userGroup = entry.gameObject.removeComponent<UserGroupComponent>()
+              entry.gameObject.addComponent(UserGroupComponent(isolateId(userGroup.key)))
+            }
 
-      val reader = ReplayReader(battleSpace, userObject)
-      reader.readEvents().collect { event ->
-        eventScheduler.schedule(event.event, SpaceChannelModelContext(event.sender), event.gameObject)
+            battleSpace.objects.add(entry.gameObject)
+          }
+
+          is ReplayUser -> {
+            // Isolate user ID
+            val userGroup = entry.userObject.removeComponent<UserGroupComponent>()
+            entry.userObject.addComponent(UserGroupComponent(isolateId(userGroup.key)))
+
+            val username = entry.userObject.removeComponent<UsernameComponent>()
+            val replayUsername = "${username.username} [REPLAY]"
+            entry.userObject.addComponent(UsernameComponent(replayUsername))
+
+            battleSpace.objects.add(entry.userObject)
+            logger.info { "Added user object ${entry.userObject.getComponent<UserGroupComponent>()}" }
+          }
+
+          is ReplayEvent -> {
+            eventScheduler.schedule(entry.event, SpaceChannelModelContext(entry.sender), entry.gameObject)
+          }
+        }
       }
     }
   }
@@ -279,8 +308,6 @@ class BattleSelectSystem : AbstractSystem() {
     // TODO: Workaround, works for now
     val battleChannel = lobby.context.requireSpaceChannel.sessionNotNull.spaces.all.singleOrNullOrThrow { it.space.rootObject.models.contains(BattlefieldModelCC::class) }
     if(battleChannel != null) {
-      battleChannel.close()
-
       val user = battleChannel.sessionNotNull.userNotNull.adapt<UserNode>(battleChannel)
       val battleUser = battleChannel.space.objects.all.findBy<BattleUserNode, UserGroupComponent>(user)
       UnloadBattleUserEvent().schedule(battleUser)

@@ -34,6 +34,7 @@ interface IGameObject {
 
   fun addComponent(component: IComponent)
   fun hasComponent(type: KClass<out IComponent>): Boolean
+  fun removeComponent(type: KClass<out IComponent>): IComponent
   fun <T : IComponent> getComponent(type: KClass<T>): T
   fun <T : IComponent> getComponentOrNull(type: KClass<T>): T?
 
@@ -49,6 +50,10 @@ fun IGameObject.addAllComponents(components: Collection<IComponent>) {
 
 inline fun <reified T : IComponent> IGameObject.hasComponent(): Boolean {
   return hasComponent(T::class)
+}
+
+inline fun <reified T : IComponent> IGameObject.removeComponent(): T {
+  return removeComponent(T::class) as T
 }
 
 inline fun <reified T : IComponent> IGameObject.getComponent(): T {

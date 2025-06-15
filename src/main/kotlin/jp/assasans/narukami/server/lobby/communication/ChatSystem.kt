@@ -53,6 +53,7 @@ class ChatSystem : AbstractSystem() {
 
             if(identity.isNotEmpty()) append("Client identity: ${identity.joinToString(", ")}")
             if(!identity.contains("baseline")) {
+              if(identity.isNotEmpty()) appendLine()
               append("<font color='#ee4e3e'><b>")
               appendLine("WARNING!")
               appendLine("You do not use <u>baseline</u> branch.")

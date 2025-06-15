@@ -37,7 +37,7 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
-import jp.assasans.narukami.server.battlefield.BattlefieldReplayMiddleware
+import jp.assasans.narukami.server.battlefield.replay.BattlefieldReplayMiddleware
 import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.extensions.kotlinClass
 import jp.assasans.narukami.server.extensions.singleOrNullOrThrow
@@ -312,7 +312,7 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler, KoinC
         for(gameObject in objects) {
           if(!nodeParameter.allowUnloaded) {
             if(context is SpaceChannelModelContext && !context.channel.loadedObjects.contains(gameObject.id)) {
-              logger.info { "[${nodeDefinition.type.kotlinClass.simpleName}] $gameObject is not loaded in ${context.channel}, excluding" }
+              logger.trace { "[${nodeDefinition.type.kotlinClass.simpleName}] $gameObject is not loaded in ${context.channel}, excluding" }
               continue
             }
           }
@@ -320,22 +320,22 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler, KoinC
           val node = nodeBuilder.tryBuildLazy(nodeDefinition, gameObject, context)
           if(node != null) {
             nodes.add(node)
-            logger.info { "[${nodeDefinition.type.kotlinClass.simpleName}] Built node $node for $gameObject in $context" }
+            logger.trace { "[${nodeDefinition.type.kotlinClass.simpleName}] Built node $node for $gameObject in $context" }
           } else {
-            logger.info { "[${nodeDefinition.type.kotlinClass.simpleName}] Failed to build for $gameObject in $context" }
+            logger.trace { "[${nodeDefinition.type.kotlinClass.simpleName}] Failed to build for $gameObject in $context" }
           }
         }
       }
 
       if(nodeParameter.isList) {
         args[parameter] = nodes
-        logger.info { "[${nodeDefinition.type.kotlinClass.simpleName}] Built nodes $nodes for '${parameter.name}' of ${handler.system.qualifiedName}::${handler.function.name}" }
+        logger.trace { "[${nodeDefinition.type.kotlinClass.simpleName}] Built nodes $nodes for '${parameter.name}' of ${handler.system.qualifiedName}::${handler.function.name}" }
       } else {
         val node = when(nodes.size) {
           0    -> {
             if(handler.mandatory) throw IllegalArgumentException("Failed to build node $nodeDefinition for '${parameter.name}' of ${handler.system.qualifiedName}::${handler.function.name}")
 
-            logger.info { "[${nodeDefinition.type.kotlinClass.simpleName}] Failed to build for '${parameter.name}' of ${handler.system.qualifiedName}::${handler.function.name}" }
+            logger.trace { "[${nodeDefinition.type.kotlinClass.simpleName}] Failed to build for '${parameter.name}' of ${handler.system.qualifiedName}::${handler.function.name}" }
             return false
           }
 
@@ -344,7 +344,7 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler, KoinC
         }
 
         args[parameter] = node
-        logger.info { "[${nodeDefinition.type.kotlinClass.simpleName}] Built node $node for '${parameter.name}' of ${handler.system.qualifiedName}::${handler.function.name}" }
+        logger.trace { "[${nodeDefinition.type.kotlinClass.simpleName}] Built node $node for '${parameter.name}' of ${handler.system.qualifiedName}::${handler.function.name}" }
       }
 
       previousObjects = nodes.gameObjects.toSet()
