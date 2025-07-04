@@ -31,10 +31,6 @@ import jp.assasans.narukami.server.lobby.UsernameComponent
 import jp.assasans.narukami.server.lobby.user.UserTemplate
 import jp.assasans.narukami.server.net.sessionNotNull
 
-data class ChatNode(
-  val chat: ChatModelCC,
-) : Node()
-
 @MatchTemplate(CommunicationTemplate::class)
 class ChatNodeV2 : NodeV2()
 
@@ -68,9 +64,13 @@ fun remote(node: NodeV2, allowUnloaded: Boolean = false): Set<IModelContext> {
 class ChatSystem : AbstractSystem() {
   private val logger = KotlinLogging.logger { }
 
-  @OnEventFire
-  fun chatAdded(event: NodeAddedEvent, chat: ChatNode) {
-    val identity = chat.context.requireSpaceChannel.sessionNotNull.properties["identity"]?.split(",") ?: emptyList()
+  @OnEventFireV2
+  fun chatAdded(
+    context: SpaceChannelModelContext,
+    event: NodeAddedEvent,
+    @Optional chat: ChatNodeV2,
+  ) = context {
+    val identity = context.channel.sessionNotNull.properties["identity"]?.split(",") ?: emptyList()
     ChatModelShowMessagesEvent(
       messages = listOf(
         ChatMessage(
@@ -148,9 +148,12 @@ class ChatSystem : AbstractSystem() {
     ChatModelShowMessagesEvent(messages = listOf(message)).schedule(chat, chats)
   }
 
-  @OnEventFire
-  @Mandatory
-  fun changeChannel(event: ChatModelChangeChannelEvent, chat: ChatNode) {
+  @OnEventFireV2
+  fun changeChannel(
+    context: IModelContext,
+    event: ChatModelChangeChannelEvent,
+    chat: ChatNodeV2,
+  ) {
     logger.debug { "Changed channel: $event" }
   }
 }

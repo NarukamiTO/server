@@ -20,21 +20,21 @@ package jp.assasans.narukami.server.lobby.user
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import jp.assasans.narukami.server.core.*
-import jp.assasans.narukami.server.lobby.UserNode
+import jp.assasans.narukami.server.lobby.communication.UserNodeV2
 
-data class NotifierNode(
-  val userNotifier: UserNotifierModelCC,
-  val uidNotifier: UidNotifierModelCC,
-  val rankNotifier: RankNotifierModelCC,
-  val onlineNotifier: OnlineNotifierModelCC,
-) : Node()
+@MatchTemplate(UserTemplate::class)
+class NotifierNode : NodeV2()
 
 class UserNotifierSystem : AbstractSystem() {
   private val logger = KotlinLogging.logger { }
 
-  @OnEventFire
-  @Mandatory
-  fun subscribe(event: UserNotifierModelSubscribeEvent, notifier: NotifierNode, user: UserNode) {
+  @OnEventFireV2
+  fun subscribe(
+    context: IModelContext,
+    event: UserNotifierModelSubscribeEvent,
+    notifier: NotifierNode,
+    user: UserNodeV2,
+  ) = context {
     UidNotifierModelSetUidEvent(UidNotifierModelCC("Subscribe_${event.userId}", event.userId)).schedule(notifier)
     RankNotifierModelSetRankEvent(RankNotifierModelCC(1, event.userId)).schedule(notifier)
     UserNotifierModelSetOnlineEvent(OnlineNotifierData(true, 1, 0, event.userId)).schedule(notifier)

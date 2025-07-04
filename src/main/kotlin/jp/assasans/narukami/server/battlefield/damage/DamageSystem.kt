@@ -20,18 +20,19 @@ package jp.assasans.narukami.server.battlefield.damage
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import jp.assasans.narukami.server.battlefield.HealthComponent
-import jp.assasans.narukami.server.battlefield.TankNode
+import jp.assasans.narukami.server.battlefield.TankNodeV2
 import jp.assasans.narukami.server.battlefield.tank.*
 import jp.assasans.narukami.server.core.*
+import jp.assasans.narukami.server.lobby.communication.remote
 
 data class DamageIndicatorNode(
   val damageIndicator: DamageIndicatorModelCC,
 ) : Node()
 
+@MatchTemplate(TankTemplate::class)
 data class DamageTankNode(
-  val tank: TankModelCC,
   val health: HealthComponent,
-) : Node()
+) : NodeV2()
 
 data class DamageEvent(
   val source: IGameObject,
@@ -41,30 +42,31 @@ data class DamageEvent(
 class DamageSystem : AbstractSystem() {
   private val logger = KotlinLogging.logger { }
 
-  @OnEventFire
-  @Mandatory
+  @OnEventFireV2
   fun damage(
+    context: IModelContext,
     event: DamageEvent,
     tank: DamageTankNode,
-    @PerChannel tankShared: List<DamageTankNode>,
-  ) {
+  ) = context {
     require(event.amount >= 0) { "Damage amount must be non-negative, got ${event.amount}" }
 
+    val tankShared = remote(tank)
+
     tank.health.health = (tank.health.health - event.amount).coerceIn(0f..tank.health.maxHealth)
-    TankModelSetHealthEvent(tank.health.health).schedule(tankShared)
+    TankModelSetHealthEvent(tank.health.health).schedule(tank, tankShared)
 
     if(tank.health.health <= 0) {
-      TankModelKillEvent(event.source.id, 1000, DamageType.ISIS).schedule(tankShared)
+      TankModelKillEvent(event.source.id, 1000, DamageType.ISIS).schedule(tank, tankShared)
     }
   }
 
-  @OnEventFire
-  @Mandatory
+  @OnEventFireV2
   fun deathConfirmation(
+    context: IModelContext,
     event: TankModelDeathConfirmationCommandEvent,
-    tank: TankNode,
-    @PerChannel tankShared: List<TankNode>,
-  ) {
-    TankModelDeathConfirmedEvent().schedule(tankShared - tank)
+    tank: TankNodeV2,
+  ) = context {
+    val tankShared = remote(tank)
+    TankModelDeathConfirmedEvent().schedule(tank, tankShared - context)
   }
 }

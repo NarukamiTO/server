@@ -23,41 +23,37 @@ import org.koin.core.component.inject
 import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.core.impl.GameObjectIdSource
 import jp.assasans.narukami.server.dispatcher.DispatcherLoadObjectsManagedEvent
-import jp.assasans.narukami.server.dispatcher.DispatcherNode
 import jp.assasans.narukami.server.dispatcher.DispatcherUnloadObjectsManagedEvent
+import jp.assasans.narukami.server.entrance.DispatcherNodeV2
 import jp.assasans.narukami.server.garage.item.*
 import jp.assasans.narukami.server.res.ImageRes
 import jp.assasans.narukami.server.res.Lazy
 import jp.assasans.narukami.server.res.RemoteGameResourceRepository
 
-data class GarageNode(
-  val garage: GarageModelCC,
-  val upgradeGarageItem: UpgradeGarageItemModelCC,
-) : Node()
+@MatchTemplate(GarageTemplate::class)
+class GarageNode : NodeV2()
 
 data class GarageItemNode(
   val garageItem: GarageItemComponent,
-) : Node()
+) : NodeV2()
 
 data class CompositeModificationGarageItemNode(
   val compositeModificationGarageItem: CompositeModificationGarageItemComponent,
-) : Node()
+) : NodeV2()
 
-data class GarageItemMounterNode(
-  val item3D: Item3DModelCC,
-  val detachModel: DetachModelCC,
-) : Node()
+@MatchTemplate(GarageItemMounterTemplate::class)
+class GarageItemMounterNode : NodeV2()
 
 class GarageSystem : AbstractSystem() {
   private val logger = KotlinLogging.logger { }
 
   private val gameResourceRepository: RemoteGameResourceRepository by inject()
 
-  @OnEventFire
-  @OnlySpaceContext
+  @OnEventFireV2
   fun flattenCompositeItem(
+    context: SpaceModelContext,
     event: NodeAddedEvent,
-    compositeItem: CompositeModificationGarageItemNode,
+    @Optional compositeItem: CompositeModificationGarageItemNode,
   ) {
     val template = compositeItem.gameObject.template
     if(template !is PersistentTemplateV2) throw IllegalStateException("$template is not a persistent template")
@@ -71,18 +67,19 @@ class GarageSystem : AbstractSystem() {
       gameObject.addAllComponents(components)
 
       logger.info { "Flattened composite item '${gameObject.getComponent<NameComponent>().name} M$modification': $gameObject" }
-      compositeItem.context.space.objects.add(gameObject)
+      context.space.objects.add(gameObject)
     }
   }
 
-  @OnEventFire
+  @OnEventFireV2
   @OutOfOrderExecution
   suspend fun channelAdded(
+    context: IModelContext,
     event: ChannelAddedEvent,
-    dispatcher: DispatcherNode,
-    @JoinAll @AllowUnloaded garage: GarageNode,
+    dispatcher: DispatcherNodeV2,
+    @Optional @JoinAll @AllowUnloaded garage: GarageNode,
     @JoinAll @AllowUnloaded items: List<GarageItemNode>,
-  ) {
+  ) = context {
     DispatcherLoadObjectsManagedEvent(garage.gameObject).schedule(dispatcher).await()
 
     fun IGameObject.fakeData() {
@@ -129,9 +126,9 @@ class GarageSystem : AbstractSystem() {
       id = GameObjectIdSource.transientId("Mounter:Paint"),
       item = ownedItems.filter { it.template is PaintGarageItemTemplate }.random()
     )
-    dispatcher.context.space.objects.add(hullMounter)
-    dispatcher.context.space.objects.add(weaponMounter)
-    dispatcher.context.space.objects.add(paintMounter)
+    context.space.objects.add(hullMounter)
+    context.space.objects.add(weaponMounter)
+    context.space.objects.add(paintMounter)
     DispatcherLoadObjectsManagedEvent(
       hullMounter,
       weaponMounter,
@@ -146,28 +143,28 @@ class GarageSystem : AbstractSystem() {
     GarageModelUpdateMountedItemsEvent(ownedItems).schedule(garage)
   }
 
-  @OnEventFire
-  @Mandatory
+  @OnEventFireV2
   fun detachMounter(
+    context: IModelContext,
     event: DetachModelDetachEvent,
     garageItemMounter: GarageItemMounterNode,
-    @JoinAll dispatcher: DispatcherNode,
-  ) {
-    garageItemMounter.context.space.objects.remove(garageItemMounter.gameObject)
+    @JoinAll dispatcher: DispatcherNodeV2,
+  ) = context {
+    context.space.objects.remove(garageItemMounter.gameObject)
     DispatcherUnloadObjectsManagedEvent(garageItemMounter.gameObject).schedule(dispatcher)
 
     logger.info { "Detached garage item mounter: $garageItemMounter.gameObject" }
   }
 
-  @OnEventFire
-  @Mandatory
+  @OnEventFireV2
   @OutOfOrderExecution
   suspend fun mount(
+    context: IModelContext,
     event: GarageModelItemMountedEvent,
     garage: GarageNode,
-    @JoinAll dispatcher: DispatcherNode,
-  ) {
-    val item = event.item.adapt<GarageItemNode>(garage.context)
+    @JoinAll dispatcher: DispatcherNodeV2,
+  ) = context {
+    val item = event.item.adapt<GarageItemNode>()
     val itemMounter = when(item.gameObject.getComponent<ItemCategoryComponent>().category) {
       ItemCategoryEnum.ARMOR  -> HullGarageItemMounterTemplate.create(GameObjectIdSource.transientId("Mounter:Hull"), item.gameObject)
       ItemCategoryEnum.WEAPON -> WeaponGarageItemMounterTemplate.create(GameObjectIdSource.transientId("Mounter:Weapon"), item.gameObject)
@@ -175,25 +172,25 @@ class GarageSystem : AbstractSystem() {
       else                    -> throw IllegalArgumentException("Cannot mount item of category ${item.gameObject.getComponent<ItemCategoryComponent>().category}")
     }
 
-    garage.context.space.objects.add(itemMounter)
+    context.space.objects.add(itemMounter)
     DispatcherLoadObjectsManagedEvent(itemMounter).schedule(dispatcher).await()
     logger.info { "Mounted garage item: ${item.garageItem}" }
   }
 
-  @OnEventFire
-  @Mandatory
+  @OnEventFireV2
   @OutOfOrderExecution
   suspend fun fit(
+    context: IModelContext,
     event: ItemFittingModelFitEvent,
     item: GarageItemNode,
-    @JoinAll dispatcher: DispatcherNode,
-  ) {
+    @JoinAll dispatcher: DispatcherNodeV2,
+  ) = context {
     val itemMounter = when(item.gameObject.getComponent<ItemCategoryComponent>().category) {
       ItemCategoryEnum.PAINT -> PaintGarageItemMounterTemplate.create(GameObjectIdSource.transientId("Mounter:Paint"), item.gameObject, preview = true)
       else                   -> throw IllegalArgumentException("Cannot fit item of category ${item.gameObject.getComponent<ItemCategoryComponent>().category}")
     }
 
-    item.context.space.objects.add(itemMounter)
+    context.space.objects.add(itemMounter)
     DispatcherLoadObjectsManagedEvent(itemMounter).schedule(dispatcher).await()
     logger.info { "Fitted garage item: ${item.garageItem}" }
   }

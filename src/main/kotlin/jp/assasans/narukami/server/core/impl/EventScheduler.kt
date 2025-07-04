@@ -333,6 +333,7 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler, KoinC
 
       durationsResolve.add(Clock.System.now() - startResolve)
       invokeHandler(event, context, handler, args)
+      logger.warn { "Event Handler V1 was called: ${handler.system.qualifiedName}::${handler.function.name}, please move to Event Handler V2 API" }
       handled = true
     }
 

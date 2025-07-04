@@ -19,44 +19,50 @@
 package jp.assasans.narukami.server.battlefield.chat
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import jp.assasans.narukami.server.battlefield.BattleUserNode
+import jp.assasans.narukami.server.battlefield.BattleUserNodeV2
+import jp.assasans.narukami.server.battlefield.BattlefieldTemplate
 import jp.assasans.narukami.server.battlefield.UserGroupComponent
 import jp.assasans.narukami.server.battleselect.BattleTeam
 import jp.assasans.narukami.server.core.*
-import jp.assasans.narukami.server.lobby.UserNode
+import jp.assasans.narukami.server.lobby.communication.UserNodeV2
+import jp.assasans.narukami.server.lobby.communication.remote
 
 data class BattleDebugMessageEvent(
   val message: String,
 ) : IEvent
 
+@MatchTemplate(BattlefieldTemplate::class)
+class BattleChatNode : NodeV2()
+
 class BattleChatSystem : AbstractSystem() {
   private val logger = KotlinLogging.logger { }
 
-  @OnEventFire
-  @Mandatory
+  @OnEventFireV2
   fun sendMessage(
+    context: IModelContext,
     event: BattleChatModelSendMessageEvent,
-    chat: SingleNode<BattleChatModelCC>,
+    chat: BattleChatNode,
     // XXX: @AllowUnloaded because object is loaded in different space
-    @AllowUnloaded user: UserNode,
+    @AllowUnloaded user: UserNodeV2,
     // @AllowUnloaded because it is server-only object
-    @JoinAll @JoinBy(UserGroupComponent::class) @AllowUnloaded battleUser: BattleUserNode,
-    @PerChannel chatShared: List<SingleNode<BattleChatModelCC>>,
-  ) {
+    @JoinAll @JoinBy(UserGroupComponent::class) @AllowUnloaded battleUser: BattleUserNodeV2,
+  ) = context {
+    val chatShared = remote(chat)
+
     logger.debug { "Send message to battle chat: $event" }
     BattleChatModelAddMessageEvent(
       userId = user.userGroup.key,
       message = event.message,
-      type = BattleTeam.NONE,
-    ).schedule(chatShared)
+      type = battleUser.team?.team ?: BattleTeam.NONE,
+    ).schedule(chat, chatShared)
   }
 
-  @OnEventFire
-  @Mandatory
+  @OnEventFireV2
   fun debugMessage(
+    context: IModelContext,
     event: BattleDebugMessageEvent,
-    chat: SingleNode<BattleChatModelCC>,
-  ) {
+    chat: BattleChatNode,
+  ) = context {
     BattleChatModelAddSystemMessageEvent(message = event.message).schedule(chat)
   }
 }

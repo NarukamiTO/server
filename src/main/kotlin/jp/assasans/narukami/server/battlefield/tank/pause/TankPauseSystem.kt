@@ -19,19 +19,19 @@
 package jp.assasans.narukami.server.battlefield.tank.pause
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import jp.assasans.narukami.server.battlefield.TankNode
+import jp.assasans.narukami.server.battlefield.TankNodeV2
 import jp.assasans.narukami.server.core.AbstractSystem
-import jp.assasans.narukami.server.core.Mandatory
-import jp.assasans.narukami.server.core.OnEventFire
+import jp.assasans.narukami.server.core.IModelContext
+import jp.assasans.narukami.server.core.OnEventFireV2
 
 class TankPauseSystem : AbstractSystem() {
-  private val logger = KotlinLogging.logger {}
+  private val logger = KotlinLogging.logger { }
 
-  @OnEventFire
-  @Mandatory
+  @OnEventFireV2
   fun disablePause(
+    context: IModelContext,
     event: TankPauseModelDisablePauseEvent,
-    tank: TankNode,
+    tank: TankNodeV2,
   ) {
     // TODO: Reset idle kick cooldown when implemented
   }

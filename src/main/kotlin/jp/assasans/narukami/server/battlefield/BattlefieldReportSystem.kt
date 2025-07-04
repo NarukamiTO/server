@@ -19,19 +19,22 @@
 package jp.assasans.narukami.server.battlefield
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import jp.assasans.narukami.server.core.*
-import jp.assasans.narukami.server.lobby.UserNode
+import jp.assasans.narukami.server.core.AbstractSystem
+import jp.assasans.narukami.server.core.AllowUnloaded
+import jp.assasans.narukami.server.core.IModelContext
+import jp.assasans.narukami.server.core.OnEventFireV2
+import jp.assasans.narukami.server.lobby.communication.UserNodeV2
 
 class BattlefieldReportSystem : AbstractSystem() {
   private val logger = KotlinLogging.logger { }
 
-  @OnEventFire
-  @Mandatory
+  @OnEventFireV2
   fun sendTimeStatistics(
+    context: IModelContext,
     event: BattlefieldModelSendTimeStatisticsCommandEvent,
-    battlefield: SingleNode<BattlefieldModelCC>,
+    battlefield: BattlefieldNodeV2,
     // XXX: @AllowUnloaded because object is loaded in different space
-    @AllowUnloaded user: UserNode,
+    @AllowUnloaded user: UserNodeV2,
   ) {
     logger.info { "Time statistics: ${event.averageFPS} FPS on ${event.statisticType} for ${user.username.username}" }
   }

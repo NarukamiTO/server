@@ -19,56 +19,60 @@
 package jp.assasans.narukami.server.battlefield.tank.weapon.smoky
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import jp.assasans.narukami.server.battlefield.TankNode
+import jp.assasans.narukami.server.battlefield.TankNodeV2
 import jp.assasans.narukami.server.battlefield.tank.TankGroupComponent
 import jp.assasans.narukami.server.core.*
+import jp.assasans.narukami.server.lobby.communication.remote
 
-data class SmokyNode(
-  val smoky: SmokyModelCC,
-) : Node()
+@MatchTemplate(SmokyTemplate::class)
+class SmokyNode : NodeV2()
 
 class SmokySystem : AbstractSystem() {
   private val logger = KotlinLogging.logger { }
 
-  @OnEventFire
-  @Mandatory
+  @OnEventFireV2
   fun fire(
+    context: IModelContext,
     event: SmokyModelFireCommandEvent,
     smoky: SmokyNode,
-    @JoinAll @JoinBy(TankGroupComponent::class) tank: TankNode,
-    @PerChannel smokyShared: List<SmokyNode>,
-  ) {
+    @JoinAll @JoinBy(TankGroupComponent::class) tank: TankNodeV2,
+  ) = context {
+    val smokyShared = remote(smoky)
+
     logger.trace { "Fire: $event" }
 
     SmokyModelShootEvent(
       shooterId = tank.gameObject.id,
-    ).schedule(smokyShared - smoky)
+    ).schedule(smoky, smokyShared - context)
   }
 
-  @OnEventFire
-  @Mandatory
+  @OnEventFireV2
   fun fireStatic(
+    context: IModelContext,
     event: SmokyModelFireStaticCommandEvent,
     smoky: SmokyNode,
-    @JoinAll @JoinBy(TankGroupComponent::class) tank: TankNode,
+    @JoinAll @JoinBy(TankGroupComponent::class) tank: TankNodeV2,
     @PerChannel smokyShared: List<SmokyNode>,
-  ) {
+  ) = context {
+    val smokyShared = remote(smoky)
+
     logger.trace { "Fire static: $event" }
 
     SmokyModelShootStaticEvent(
       shooterId = tank.gameObject.id,
       hitPoint = event.hitPoint,
-    ).schedule(smokyShared - smoky)
+    ).schedule(smoky, smokyShared - context)
   }
 
-  @OnEventFire
-  @Mandatory
+  @OnEventFireV2
   fun fireTarget(
+    context: IModelContext,
     event: SmokyModelFireTargetCommandEvent,
     smoky: SmokyNode,
-    @JoinAll @JoinBy(TankGroupComponent::class) tank: TankNode,
-    @PerChannel smokyShared: List<SmokyNode>,
-  ) {
+    @JoinAll @JoinBy(TankGroupComponent::class) tank: TankNodeV2,
+  ) = context {
+    val smokyShared = remote(smoky)
+
     logger.trace { "Fire target: $event" }
 
     SmokyModelShootTargetEvent(
@@ -77,7 +81,7 @@ class SmokySystem : AbstractSystem() {
       hitPoint = event.hitPoint,
       weakeningCoeff = 1f,
       isCritical = true,
-    ).schedule(smokyShared - smoky)
+    ).schedule(smoky, smokyShared - context)
 
     SmokyModelLocalCriticalHitEvent(
       targetId = event.targetId,

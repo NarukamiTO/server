@@ -136,7 +136,7 @@ class BattleSelectSystem : AbstractSystem() {
   @OnEventFireV2
   @OutOfOrderExecution
   suspend fun battleSelectAdded(
-    context: IModelContext,
+    context: SpaceChannelModelContext,
     event: NodeAddedEvent,
     @Optional battleSelect: BattleSelectNodeV2,
     @JoinAll dispatcher: DispatcherNodeV2,

@@ -19,40 +19,42 @@
 package jp.assasans.narukami.server.battlefield.tank.weapon.railgun
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import jp.assasans.narukami.server.battlefield.TankNode
+import jp.assasans.narukami.server.battlefield.TankNodeV2
 import jp.assasans.narukami.server.battlefield.tank.TankGroupComponent
 import jp.assasans.narukami.server.core.*
+import jp.assasans.narukami.server.lobby.communication.remote
 
-data class RailgunNode(
-  val railgun: RailgunModelCC,
-) : Node()
+@MatchTemplate(RailgunTemplate::class)
+class RailgunNode : NodeV2()
 
 class RailgunSystem : AbstractSystem() {
   private val logger = KotlinLogging.logger { }
 
-  @OnEventFire
-  @Mandatory
+  @OnEventFireV2
   fun startCharging(
+    context: IModelContext,
     event: RailgunModelStartChargingCommandEvent,
     railgun: RailgunNode,
-    @JoinAll @JoinBy(TankGroupComponent::class) tank: TankNode,
-    @PerChannel railgunShared: List<RailgunNode>,
-  ) {
+    @JoinAll @JoinBy(TankGroupComponent::class) tank: TankNodeV2,
+  ) = context {
+    val railgunShared = remote(railgun)
+
     logger.trace { "Start charging: $event" }
 
     RailgunModelStartChargingEvent(
       shooter = tank.gameObject,
-    ).schedule(railgunShared - railgun)
+    ).schedule(railgun, railgunShared - context)
   }
 
-  @OnEventFire
-  @Mandatory
+  @OnEventFireV2
   fun fireDummy(
+    context: IModelContext,
     event: RailgunModelFireCommandEvent,
     railgun: RailgunNode,
-    @JoinAll @JoinBy(TankGroupComponent::class) tank: TankNode,
-    @PerChannel railgunShared: List<RailgunNode>,
-  ) {
+    @JoinAll @JoinBy(TankGroupComponent::class) tank: TankNodeV2,
+  ) = context {
+    val railgunShared = remote(railgun)
+
     logger.trace { "Fire dummy: $event" }
 
     RailgunModelFireEvent(
@@ -60,6 +62,6 @@ class RailgunSystem : AbstractSystem() {
       staticHitPoint = event.staticHitPoint,
       targets = event.targets,
       targetHitPoints = event.targetHitPoints,
-    ).schedule(railgunShared - railgun)
+    ).schedule(railgun, railgunShared - context)
   }
 }

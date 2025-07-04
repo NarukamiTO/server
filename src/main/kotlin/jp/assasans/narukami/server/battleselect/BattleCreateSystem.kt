@@ -24,16 +24,22 @@ import jp.assasans.narukami.server.core.*
 class BattleCreateSystem : AbstractSystem() {
   private val logger = KotlinLogging.logger { }
 
-  @OnEventFire
-  @Mandatory
-  fun checkName(event: BattleCreateModelCheckBattleNameForForbiddenWordsEvent, battleCreate: SingleNode<BattleCreateModelCC>) {
+  @OnEventFireV2
+  fun checkName(
+    context: IModelContext,
+    event: BattleCreateModelCheckBattleNameForForbiddenWordsEvent,
+    battleCreate: BattleCreateNodeV2,
+  ) = context {
     val filteredName = event.battleName.replace("2112", "2019")
     BattleCreateModelSetFilteredBattleNameEvent(filteredName).schedule(battleCreate)
   }
 
-  @OnEventFire
-  @Mandatory
-  fun create(event: BattleCreateModelCreateBattleEvent, battleCreate: SingleNode<BattleCreateModelCC>) {
+  @OnEventFireV2
+  fun create(
+    context: IModelContext,
+    event: BattleCreateModelCreateBattleEvent,
+    battleCreate: BattleCreateNodeV2,
+  ) = context {
     logger.warn { "Battle creation is not implemented" }
     BattleCreateModelCreateFailedYouAreBannedEvent().schedule(battleCreate)
   }

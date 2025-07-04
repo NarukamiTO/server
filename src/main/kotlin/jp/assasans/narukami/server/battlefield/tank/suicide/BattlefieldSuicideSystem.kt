@@ -18,17 +18,17 @@
 
 package jp.assasans.narukami.server.battlefield.tank.suicide
 
-import jp.assasans.narukami.server.battlefield.TankNode
+import jp.assasans.narukami.server.battlefield.TankNodeV2
 import jp.assasans.narukami.server.core.AbstractSystem
-import jp.assasans.narukami.server.core.Mandatory
-import jp.assasans.narukami.server.core.OnEventFire
+import jp.assasans.narukami.server.core.IModelContext
+import jp.assasans.narukami.server.core.OnEventFireV2
 
 class BattlefieldSuicideSystem : AbstractSystem() {
-  @OnEventFire
-  @Mandatory
+  @OnEventFireV2
   fun suicide(
+    context: IModelContext,
     event: SuicideModelSuicideRequestEvent,
-    tank: TankNode
+    tank: TankNodeV2,
   ) {
     // TODO: Unimplemented, blocked by unimplemented tank lifecycle
   }

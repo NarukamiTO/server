@@ -136,12 +136,12 @@ class LobbySystem : AbstractSystem() {
     DispatcherOpenSpaceEvent(Space.stableId("garage")).schedule(dispatcher).await()
   }
 
-  @OnEventFire
-  @Mandatory
+  @OnEventFireV2
   fun showBattleSelect(
+    context: IModelContext,
     event: LobbyLayoutModelShowBattleSelectEvent,
-    lobby: LobbyNode,
-  ) {
+    lobby: LobbyNodeV2,
+  ) = context {
     logger.warn { "Show battle select is not implemented" }
     LobbyLayoutNotifyModelCancelPredictedLayoutSwitchEvent().schedule(lobby)
   }

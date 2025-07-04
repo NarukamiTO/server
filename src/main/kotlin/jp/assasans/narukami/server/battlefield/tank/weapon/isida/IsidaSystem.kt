@@ -19,30 +19,31 @@
 package jp.assasans.narukami.server.battlefield.tank.weapon.isida
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import jp.assasans.narukami.server.battlefield.TankNode
+import jp.assasans.narukami.server.battlefield.TankNodeV2
 import jp.assasans.narukami.server.battlefield.Vector3d
 import jp.assasans.narukami.server.battlefield.damage.DamageEvent
 import jp.assasans.narukami.server.battlefield.tank.TankGroupComponent
 import jp.assasans.narukami.server.battlefield.tank.weapon.TargetHit
 import jp.assasans.narukami.server.core.*
+import jp.assasans.narukami.server.lobby.communication.remote
 
+@MatchTemplate(IsidaTemplate::class)
 data class IsidaNode(
-  val isida: IsisModelCC,
   val isidaTarget: IsidaTargetComponent?,
-) : Node()
+) : NodeV2()
 
 data class IsidaTargetComponent(val target: IGameObject) : IComponent
 
 class IsidaSystem : AbstractSystem() {
   private val logger = KotlinLogging.logger { }
 
-  @OnEventFire
-  @Mandatory
+  @OnEventFireV2
   fun tick(
+    context: IModelContext,
     event: IsisModelTickCommandEvent,
     isida: IsidaNode,
-    @JoinAll @JoinBy(TankGroupComponent::class) tank: TankNode,
-  ) {
+    @JoinAll @JoinBy(TankGroupComponent::class) tank: TankNodeV2,
+  ) = context {
     logger.trace { "Tick: $event" }
 
     if(isida.isidaTarget == null) {
@@ -50,16 +51,17 @@ class IsidaSystem : AbstractSystem() {
       return
     }
 
-    DamageEvent(amount = 120f, source = tank.gameObject).schedule(isida.context, isida.isidaTarget.target)
+    DamageEvent(amount = 120f, source = tank.gameObject).schedule(context, isida.isidaTarget.target)
   }
 
-  @OnEventFire
-  @Mandatory
+  @OnEventFireV2
   fun setTarget(
+    context: IModelContext,
     event: IsisModelSetTargetCommandEvent,
     isida: IsidaNode,
-    @PerChannel isidaShared: List<IsidaNode>,
-  ) {
+  ) = context {
+    val isidaShared = remote(isida)
+
     logger.trace { "Set target: $event" }
     isida.gameObject.removeComponentIfPresent<IsidaTargetComponent>()
     isida.gameObject.addComponent(IsidaTargetComponent(event.target))
@@ -72,31 +74,33 @@ class IsidaSystem : AbstractSystem() {
         numberHits = 0, // Unused
         target = event.target,
       ),
-    ).schedule(isidaShared - isida)
+    ).schedule(isida, isidaShared - context)
   }
 
-  @OnEventFire
-  @Mandatory
+  @OnEventFireV2
   fun resetTarget(
+    context: IModelContext,
     event: IsisModelResetTargetCommandEvent,
     isida: IsidaNode,
-    @PerChannel isidaShared: List<IsidaNode>,
-  ) {
+  ) = context {
+    val isidaShared = remote(isida)
+
     logger.trace { "Reset target: $event" }
     isida.gameObject.removeComponentIfPresent<IsidaTargetComponent>()
 
-    IsisModelResetTargetEvent().schedule(isidaShared - isida)
+    IsisModelResetTargetEvent().schedule(isida, isidaShared - context)
   }
 
-  @OnEventFire
-  @Mandatory
+  @OnEventFireV2
   fun stopWeapon(
+    context: IModelContext,
     event: IsisModelStopWeaponCommandEvent,
     isida: IsidaNode,
-    @PerChannel isidaShared: List<IsidaNode>,
-  ) {
+  ) = context {
+    val isidaShared = remote(isida)
+
     logger.trace { "Stop weapon: $event" }
 
-    IsisModelStopWeaponEvent().schedule(isidaShared - isida)
+    IsisModelStopWeaponEvent().schedule(isida, isidaShared - context)
   }
 }

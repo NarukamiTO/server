@@ -31,7 +31,7 @@ import jp.assasans.narukami.server.battlefield.replay.ReplaySocketClient
 import jp.assasans.narukami.server.battlefield.tank.*
 import jp.assasans.narukami.server.battlefield.tank.hull.HullTemplate
 import jp.assasans.narukami.server.battlefield.tank.paint.PaintTemplate
-import jp.assasans.narukami.server.battlefield.tank.weapon.isida.IsidaTemplate
+import jp.assasans.narukami.server.battlefield.tank.weapon.railgun.RailgunTemplate
 import jp.assasans.narukami.server.battleselect.*
 import jp.assasans.narukami.server.battleservice.StatisticsDMModelUserConnectEvent
 import jp.assasans.narukami.server.battleservice.StatisticsDMModelUserDisconnectEvent
@@ -255,7 +255,7 @@ class BattlefieldSystem : AbstractSystem() {
       val weaponMarketItem = garageSpace.objects.all.filter {
         it.template is WeaponGarageItemTemplate &&
         !it.hasComponent<CompositeModificationGarageItemComponent>() &&
-        it.getComponent<NameComponent>().name == "Isida"
+        it.getComponent<NameComponent>().name == "Railgun"
       }.random()
 
       val paintMarketItem = garageSpace.objects.all.filter {
@@ -264,7 +264,7 @@ class BattlefieldSystem : AbstractSystem() {
       }.random()
 
       val hullObject = HullTemplate.create(GameObjectIdSource.transientId("Hull:${battleUser.gameObject.id}"), hullMarketItem)
-      val weaponObject = IsidaTemplate.create(GameObjectIdSource.transientId("Weapon:${battleUser.gameObject.id}"), weaponMarketItem)
+      val weaponObject = RailgunTemplate.create(GameObjectIdSource.transientId("Weapon:${battleUser.gameObject.id}"), weaponMarketItem)
       val paintObject = PaintTemplate.create(GameObjectIdSource.transientId("Paint:${battleUser.gameObject.id}"), paintMarketItem)
       val tankObject = TankTemplate.create(
         user.userGroup.key,
