@@ -31,13 +31,15 @@ import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.core.impl.GameObjectIdSource
 import jp.assasans.narukami.server.core.impl.Space
 import jp.assasans.narukami.server.dispatcher.DispatcherLoadObjectsManagedEvent
-import jp.assasans.narukami.server.dispatcher.DispatcherNode
 import jp.assasans.narukami.server.dispatcher.DispatcherOpenSpaceEvent
 import jp.assasans.narukami.server.dispatcher.DispatcherUnloadObjectsManagedEvent
+import jp.assasans.narukami.server.entrance.DispatcherNodeV2
 import jp.assasans.narukami.server.extensions.singleOrNullOrThrow
 import jp.assasans.narukami.server.garage.GarageModelCC
 import jp.assasans.narukami.server.lobby.*
-import jp.assasans.narukami.server.lobby.communication.ChatNode
+import jp.assasans.narukami.server.lobby.communication.ChatNodeV2
+import jp.assasans.narukami.server.lobby.communication.UserNodeV2
+import jp.assasans.narukami.server.lobby.communication.remote
 import jp.assasans.narukami.server.net.session.userNotNull
 import jp.assasans.narukami.server.net.sessionNotNull
 import jp.assasans.narukami.server.res.RemoteGameResourceRepository
@@ -45,6 +47,18 @@ import jp.assasans.narukami.server.res.RemoteGameResourceRepository
 data class MapInfoNode(
   val model: MapInfoModelCC,
 ) : Node()
+
+@MatchTemplate(MapInfoTemplate::class)
+class MapInfoNodeV2 : NodeV2()
+
+@MatchTemplate(BattleSelectTemplate::class)
+class BattleSelectNodeV2 : NodeV2()
+
+@MatchTemplate(BattleInfoTemplate::class)
+class BattleInfoNodeV2 : NodeV2()
+
+@MatchTemplate(BattleCreateTemplate::class)
+class BattleCreateNodeV2 : NodeV2()
 
 data class BattleInfoNode(
   val battleInfo: BattleInfoModelCC,
@@ -57,8 +71,8 @@ class BattleInfoGroupComponent(key: Long) : GroupComponent(key) {
   constructor(gameObject: IGameObject) : this(gameObject.id)
 }
 
-data class AddBattleUserEvent(val battleUser: BattleUserNode) : IEvent
-data class RemoveBattleUserEvent(val battleUser: BattleUserNode) : IEvent
+data class AddBattleUserEvent(val battleUser: IGameObject) : IEvent
+data class RemoveBattleUserEvent(val battleUser: IGameObject) : IEvent
 
 class BattleSelectSystem : AbstractSystem() {
   private val logger = KotlinLogging.logger { }
@@ -66,18 +80,18 @@ class BattleSelectSystem : AbstractSystem() {
   private val spaces: IRegistry<ISpace> by inject()
   private val gameResourceRepository: RemoteGameResourceRepository by inject()
 
-  @OnEventFire
-  @OnlySpaceContext
+  @OnEventFireV2
   fun mapLoaded(
+    context: SpaceModelContext,
     event: NodeAddedEvent,
-    mapInfo: MapInfoNode,
-    @JoinAll battleSelect: SingleNode<BattleSelectModelCC>,
+    @Optional mapInfo: MapInfoNodeV2,
+    @JoinAll battleSelect: BattleSelectNodeV2,
   ) {
     val battleId = Space.freeId()
 
     val battleInfoObject = DMBattleInfoTemplate.create(battleId, mapInfo.gameObject)
     battleInfoObject.addComponent(BattleInfoGroupComponent(battleInfoObject))
-    mapInfo.context.space.objects.add(battleInfoObject)
+    context.space.objects.add(battleInfoObject)
 
     spaces.add(Space(battleId).apply {
       battleInfoObject.addComponent(BattleSpaceComponent(this))
@@ -95,42 +109,41 @@ class BattleSelectSystem : AbstractSystem() {
     })
   }
 
-  @OnEventFire
-  @Mandatory
+  @OnEventFireV2
   fun addBattleUser(
+    context: IModelContext,
     event: AddBattleUserEvent,
-    // @AllowUnloaded because object is unloaded for self
-    // XXX: Unless the user is in battle list
-    @AllowUnloaded battleInfo: BattleInfoNode,
-    @PerChannel battleInfoShared: List<BattleInfoNode>,
-  ) {
-    logger.info { "Adding battle user ${event.battleUser.gameObject.id} to battle ${battleInfo.gameObject.id}, ${(battleInfoShared - battleInfo).size} shared" }
-    BattleDMInfoModelAddUserEvent(event.battleUser.asBattleInfoUser()).schedule(battleInfoShared - battleInfo)
+    battleInfo: BattleInfoNodeV2,
+  ) = context {
+    val battleUser = event.battleUser.adapt<BattleUserNodeV2>()
+    val contexts = remote(battleInfo)
+    logger.info { "Adding battle user ${battleUser.gameObject.id} to battle ${battleInfo.gameObject.id}, ${contexts.size} shared" }
+    BattleDMInfoModelAddUserEvent(battleUser.asBattleInfoUser()).schedule(battleInfo, contexts)
   }
 
-  @OnEventFire
-  @Mandatory
+  @OnEventFireV2
   fun removeBattleUser(
+    context: IModelContext,
     event: RemoveBattleUserEvent,
-    // @AllowUnloaded because object is unloaded for self
-    // XXX: Unless the user is in battle list
-    @AllowUnloaded battleInfo: BattleInfoNode,
-    @PerChannel battleInfoShared: List<BattleInfoNode>,
-  ) {
-    logger.info { "Removing battle user ${event.battleUser.gameObject.id} from battle ${battleInfo.gameObject.id}, ${(battleInfoShared - battleInfo).size} shared" }
-    BattleDMInfoModelRemoveUserEvent(event.battleUser.gameObject.id).schedule(battleInfoShared - battleInfo)
+    battleInfo: BattleInfoNodeV2,
+  ) = context {
+    val battleUser = event.battleUser.adapt<BattleUserNodeV2>()
+    val contexts = remote(battleInfo)
+    logger.info { "Removing battle user ${battleUser.gameObject.id} from battle ${battleInfo.gameObject.id}, ${contexts.size} shared" }
+    BattleDMInfoModelRemoveUserEvent(battleUser.gameObject.id).schedule(battleInfo, contexts)
   }
 
-  @OnEventFire
+  @OnEventFireV2
   @OutOfOrderExecution
   suspend fun battleSelectAdded(
+    context: IModelContext,
     event: NodeAddedEvent,
-    battleSelect: SingleNode<BattleSelectModelCC>,
-    @JoinAll dispatcher: DispatcherNode,
-    @JoinAll @AllowUnloaded mapInfo: List<MapInfoNode>,
-    @JoinAll @AllowUnloaded battleInfo: List<BattleInfoNode>,
-    @JoinAll @AllowUnloaded battleCreate: SingleNode<BattleCreateModelCC>,
-  ) {
+    @Optional battleSelect: BattleSelectNodeV2,
+    @JoinAll dispatcher: DispatcherNodeV2,
+    @JoinAll @AllowUnloaded mapInfo: List<MapInfoNodeV2>,
+    @JoinAll @AllowUnloaded battleInfo: List<BattleInfoNodeV2>,
+    @JoinAll @AllowUnloaded battleCreate: BattleCreateNodeV2,
+  ) = context {
     // The order of loading objects is important, map info objects must be loaded
     // before battle create object, otherwise the client won't see any maps in battle create.
     DispatcherLoadObjectsManagedEvent(
@@ -145,20 +158,19 @@ class BattleSelectSystem : AbstractSystem() {
     BattleSelectModelBattleItemsPacketJoinSuccessEvent().schedule(battleSelect)
   }
 
-  @OnEventFire
-  @Mandatory
+  @OnEventFireV2
   @OutOfOrderExecution
   suspend fun fight(
+    context: IModelContext,
     event: BattleEntranceModelFightEvent,
-    battleInfo: BattleInfoNode,
-    @PerChannel battleInfoShared: List<BattleInfoNode>,
-    user: UserNode,
-    @JoinAll lobby: LobbyNode,
-    @JoinAll chat: ChatNode,
-    @JoinAll battleSelect: SingleNode<BattleSelectModelCC>,
-    @JoinAll battles: List<BattleInfoNode>,
-    @JoinAll dispatcher: DispatcherNode,
-  ) {
+    battleInfo: BattleInfoNodeV2,
+    user: UserNodeV2,
+    @JoinAll lobby: LobbyNodeV2,
+    @JoinAll chat: ChatNodeV2,
+    @JoinAll battleSelect: BattleSelectNodeV2,
+    @JoinAll battles: List<BattleInfoNodeV2>,
+    @JoinAll dispatcher: DispatcherNodeV2,
+  ) = context {
     // TODO: End layout switch immediately to not obstruct screen for debugging purposes,
     //  and anyway that new loading screen sucks.
     LobbyLayoutNotifyModelBeginLayoutSwitchEvent(LayoutState.BATTLE).schedule(lobby)
@@ -186,31 +198,27 @@ class BattleSelectSystem : AbstractSystem() {
     if(BattlefieldReplayMiddleware.replayWriter != null) {
       BattlefieldReplayMiddleware.replayWriter!!.writeComment("user id: ${user.userGroup.key}")
       BattlefieldReplayMiddleware.replayWriter!!.writeComment("battle user id: ${battleUserObject.id}")
-      BattlefieldReplayMiddleware.replayWriter!!.writeUserObject(lobby.context.requireSpaceChannel.sessionNotNull.hash, user.gameObject)
+      BattlefieldReplayMiddleware.replayWriter!!.writeUserObject(context.requireSpaceChannel.sessionNotNull.hash, user.gameObject)
       BattlefieldReplayMiddleware.replayWriter!!.writeExternObject(battleUserObject)
-
-      // val obj = deserializeExternObject(objectMapper, json, battleSpace.objects)
-      // logger.info { "Deserialized extern: $obj" }
     } else {
       startReplay(battleSpace)
     }
   }
 
   // TODO: Repeats logic from [fight]
-  @OnEventFire
-  @Mandatory
+  @OnEventFireV2
   @OutOfOrderExecution
   suspend fun joinAsSpectator(
+    context: IModelContext,
     event: BattleEntranceModelJoinAsSpectatorEvent,
-    battleInfo: BattleInfoNode,
-    @PerChannel battleInfoShared: List<BattleInfoNode>,
-    user: UserNode,
-    @JoinAll lobby: LobbyNode,
-    @JoinAll chat: ChatNode,
-    @JoinAll battleSelect: SingleNode<BattleSelectModelCC>,
-    @JoinAll battles: List<BattleInfoNode>,
-    @JoinAll dispatcher: DispatcherNode,
-  ) {
+    battleInfo: BattleInfoNodeV2,
+    user: UserNodeV2,
+    @JoinAll lobby: LobbyNodeV2,
+    @JoinAll chat: ChatNodeV2,
+    @JoinAll battleSelect: BattleSelectNodeV2,
+    @JoinAll battles: List<BattleInfoNodeV2>,
+    @JoinAll dispatcher: DispatcherNodeV2,
+  ) = context {
     // TODO: End layout switch immediately to not obstruct screen for debugging purposes,
     //  and anyway that new loading screen sucks.
     LobbyLayoutNotifyModelBeginLayoutSwitchEvent(LayoutState.BATTLE).schedule(lobby)
@@ -239,6 +247,7 @@ class BattleSelectSystem : AbstractSystem() {
   }
 
   private fun startReplay(battleSpace: ISpace) {
+    return
     GlobalScope.launch {
       delay(3000)
       // val userObject = UserTemplate.instantiate(250774142).apply {
@@ -268,7 +277,7 @@ class BattleSelectSystem : AbstractSystem() {
             battleSpace.objects.add(entry.gameObject)
           }
 
-          is ReplayUser -> {
+          is ReplayUser         -> {
             // Isolate user ID
             val userGroup = entry.userObject.removeComponent<UserGroupComponent>()
             entry.userObject.addComponent(UserGroupComponent(isolateId(userGroup.key)))
@@ -281,7 +290,7 @@ class BattleSelectSystem : AbstractSystem() {
             logger.info { "Added user object ${entry.userObject.getComponent<UserGroupComponent>()}" }
           }
 
-          is ReplayEvent -> {
+          is ReplayEvent        -> {
             eventScheduler.schedule(entry.event, SpaceChannelModelContext(entry.sender), entry.gameObject)
           }
         }
@@ -289,24 +298,23 @@ class BattleSelectSystem : AbstractSystem() {
     }
   }
 
-  @OnEventFire
-  @Mandatory
+  @OnEventFireV2
   @OutOfOrderExecution
   suspend fun exitFromBattleToLobby(
+    context: IModelContext,
     event: LobbyLayoutModelExitFromBattleToBattleLobbyEvent,
-    lobby: LobbyNode,
-    @JoinAll @AllowUnloaded chat: ChatNode,
-    @JoinAll @AllowUnloaded battleSelect: SingleNode<BattleSelectModelCC>,
-    @JoinAll @AllowUnloaded battles: List<BattleInfoNode>,
-    @JoinAll dispatcher: DispatcherNode,
-  ) {
+    lobby: LobbyNodeV2,
+    @JoinAll @AllowUnloaded chat: ChatNodeV2,
+    @JoinAll @AllowUnloaded battleSelect: BattleSelectNodeV2,
+    @JoinAll dispatcher: DispatcherNodeV2,
+  ) = context {
     // TODO: End layout switch immediately to not obstruct screen for debugging purposes,
     //  and anyway that new loading screen sucks.
     LobbyLayoutNotifyModelBeginLayoutSwitchEvent(LayoutState.BATTLE_SELECT).schedule(lobby)
     LobbyLayoutNotifyModelEndLayoutSwitchEvent(LayoutState.BATTLE_SELECT, LayoutState.BATTLE_SELECT).schedule(lobby)
 
     // TODO: Workaround, works for now
-    val battleChannel = lobby.context.requireSpaceChannel.sessionNotNull.spaces.all.singleOrNullOrThrow { it.space.rootObject.models.contains(BattlefieldModelCC::class) }
+    val battleChannel = context.requireSpaceChannel.sessionNotNull.spaces.all.singleOrNullOrThrow { it.space.rootObject.models.contains(BattlefieldModelCC::class) }
     if(battleChannel != null) {
       val user = battleChannel.sessionNotNull.userNotNull.adapt<UserNode>(battleChannel)
       val battleUser = battleChannel.space.objects.all.findBy<BattleUserNode, UserGroupComponent>(user)
@@ -323,7 +331,7 @@ class BattleSelectSystem : AbstractSystem() {
       NodeAddedEvent().schedule(battleSelect)
     } else {
       // TODO: Workaround, works for now
-      val garageChannel = lobby.context.requireSpaceChannel.sessionNotNull.spaces.all.single { it.space.objects.all.any { it.models.contains(GarageModelCC::class) } }
+      val garageChannel = context.requireSpaceChannel.sessionNotNull.spaces.all.single { it.space.objects.all.any { it.models.contains(GarageModelCC::class) } }
       garageChannel.close()
 
       // Garage to lobby transition

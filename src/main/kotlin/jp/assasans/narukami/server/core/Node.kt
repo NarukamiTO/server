@@ -25,6 +25,7 @@ package jp.assasans.narukami.server.core
  *
  * Nodes may define extension members to eliminate repeated code.
  */
+@Deprecated("Use NodeV2 instead")
 open class Node {
   lateinit var context: IModelContext
     private set
@@ -63,9 +64,20 @@ data class SingleNode<T : IDataUnit>(
 
 class VoidNode : Node()
 
+@get:JvmName("Iterable_Node_gameObjects")
 val Iterable<Node>.gameObjects: List<IGameObject>
   get() = map { it.gameObject }
 
+@get:JvmName("Iterable_NodeV2_gameObjects")
+val Iterable<NodeV2>.gameObjects: List<IGameObject>
+  get() = map { it.gameObject }
+
+@JvmName("Iterable_Node_minus")
 operator fun <T : Node> Iterable<T>.minus(gameObject: IGameObject): Iterable<T> {
+  return filter { it.gameObject != gameObject }
+}
+
+@JvmName("Iterable_NodeV2_minus")
+operator fun <T : NodeV2> Iterable<T>.minus(gameObject: IGameObject): Iterable<T> {
   return filter { it.gameObject != gameObject }
 }

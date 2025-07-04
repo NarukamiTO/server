@@ -34,7 +34,7 @@ import org.koin.core.component.inject
 import jp.assasans.narukami.server.battlefield.UserGroupComponent
 import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.core.impl.Space
-import jp.assasans.narukami.server.dispatcher.DispatcherNode
+import jp.assasans.narukami.server.dispatcher.DispatcherMutexComponent
 import jp.assasans.narukami.server.dispatcher.DispatcherOpenSpaceEvent
 import jp.assasans.narukami.server.dispatcher.preloadResources
 import jp.assasans.narukami.server.extensions.roundToNearest
@@ -135,19 +135,26 @@ data class ExternGameObject(
   val components: Map<KClass<out IComponent>, IComponent>,
 )
 
+data class DispatcherNodeV2(
+  val dispatcherMutex: DispatcherMutexComponent,
+) : NodeV2()
+
+@MatchTemplate(EntranceTemplate::class)
+class EntranceNodeV2 : NodeV2()
+
 class LoginSystem : AbstractSystem(), KoinComponent {
   private val logger = KotlinLogging.logger { }
 
   private val gameResourceRepository: RemoteGameResourceRepository by inject()
 
-  @OnEventFire
-  @Mandatory
+  @OnEventFireV2
   @OutOfOrderExecution
   suspend fun login(
+    context: IModelContext,
     event: LoginModelLoginEvent,
-    entrance: EntranceNode,
-    @JoinAll dispatcher: DispatcherNode,
-  ) {
+    entrance: EntranceNodeV2,
+    @JoinAll dispatcher: DispatcherNodeV2,
+  ) = context {
     logger.info { "Login event: $event" }
 
     if(event.password.isNotEmpty() && event.password.length % 2 == 0) {
@@ -177,12 +184,12 @@ class LoginSystem : AbstractSystem(), KoinComponent {
       addComponent(ScoreComponent(Random.nextInt(10_000, 1_000_000).roundToNearest(100)))
       addComponent(CrystalsComponent(Random.nextInt(100_000, 10_000_000).roundToNearest(100)))
     }
-    entrance.context.requireSpaceChannel.sessionNotNull.user = userObject
+    requireSpaceChannel.sessionNotNull.user = userObject
 
     val channel = DispatcherOpenSpaceEvent(Space.stableId("lobby")).schedule(dispatcher).await()
     channel.space.objects.add(userObject)
 
     // Close the entrance space channel to trigger loading screen on the client
-    entrance.context.requireSpaceChannel.close()
+    requireSpaceChannel.close()
   }
 }

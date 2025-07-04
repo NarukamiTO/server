@@ -20,10 +20,7 @@ package jp.assasans.narukami.server.battlefield.tank
 
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
-import jp.assasans.narukami.server.battlefield.BattleGearScoreModelCC
-import jp.assasans.narukami.server.battlefield.BossStateModelCC
-import jp.assasans.narukami.server.battlefield.TankLogicStateComponent
-import jp.assasans.narukami.server.battlefield.UserGroupComponent
+import jp.assasans.narukami.server.battlefield.*
 import jp.assasans.narukami.server.battlefield.tank.hull.MarketItemGroupComponent
 import jp.assasans.narukami.server.battlefield.tank.pause.TankPauseModelCC
 import jp.assasans.narukami.server.battlefield.tank.suicide.SuicideModelCC
@@ -42,6 +39,7 @@ object TankTemplate : TemplateV2(), KoinComponent {
     addComponent(TankGroupComponent(this))
     addComponent(user.getComponent<UserGroupComponent>())
     addComponent(TankLogicStateComponent(TankLogicState.NEW))
+    addComponent(HealthComponent(health = 1000f, maxHealth = 1000f))
 
     // TODO: Should we use @JoinByTank for this?
     addComponent(HullGroupComponent(hull))

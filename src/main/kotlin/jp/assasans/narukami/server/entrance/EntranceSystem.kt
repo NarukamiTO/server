@@ -21,19 +21,19 @@ package jp.assasans.narukami.server.entrance
 import io.github.oshai.kotlinlogging.KotlinLogging
 import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.dispatcher.DispatcherLoadObjectsManagedEvent
-import jp.assasans.narukami.server.dispatcher.DispatcherNode
 import jp.assasans.narukami.server.net.sessionNotNull
 
 class EntranceSystem : AbstractSystem() {
   private val logger = KotlinLogging.logger { }
 
-  @OnEventFire
+  @OnEventFireV2
   @OutOfOrderExecution
   suspend fun channelAdded(
+    context: IModelContext,
     event: ChannelAddedEvent,
-    dispatcher: DispatcherNode,
-    @JoinAll @AllowUnloaded entrance: EntranceNode
-  ) {
+    dispatcher: DispatcherNodeV2,
+    @Optional @JoinAll @AllowUnloaded entrance: EntranceNodeV2,
+  ) = context {
     // Load the first ever game object. This will display a login screen.
     DispatcherLoadObjectsManagedEvent(entrance.gameObject).schedule(dispatcher).await()
 

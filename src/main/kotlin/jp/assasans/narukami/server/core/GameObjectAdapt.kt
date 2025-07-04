@@ -88,3 +88,25 @@ context(context: IModelContext)
 inline fun <reified T : IModelConstructor> IGameObject.adaptSingle(): T {
   return adaptSingle(context)
 }
+
+/**
+ * Creates a [NodeV2] instance from the [IGameObject].
+ *
+ * This is useful for performing a type-safe conversion from a game object to a node.
+ */
+fun <T : NodeV2> IGameObject.adapt(clazz: KClass<T>): T {
+  val builder = NodeBuilder()
+  val definition = builder.getNodeV2Definition(clazz.createType())
+  val node = builder.tryBuildLazyStateless(definition, this)
+             ?: throw IllegalStateException("Failed to build node $clazz")
+  return node as T
+}
+
+/**
+ * Creates a [NodeV2] instance from the [IGameObject].
+ *
+ * This is useful for performing a type-safe conversion from a game object to a node.
+ */
+inline fun <reified T : NodeV2> IGameObject.adapt(): T {
+  return adapt(T::class)
+}

@@ -75,3 +75,17 @@ fun <T : IEvent> T.schedule(scheduler: EventScheduler, sender: SpaceChannel, gam
   scheduler.schedule(this, SpaceChannelModelContext(sender), gameObject)
   return this
 }
+
+context(system: AbstractSystem, context: IModelContext)
+fun <T : IEvent> T.schedule(node: NodeV2): T {
+  system.eventScheduler.schedule(this, context, node.gameObject)
+  return this
+}
+
+context(system: AbstractSystem)
+fun <T : IEvent> T.schedule(node: NodeV2, contexts: Iterable<IModelContext>): T {
+  for(context in contexts) {
+    system.eventScheduler.schedule(this, context, node.gameObject)
+  }
+  return this
+}

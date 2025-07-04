@@ -56,6 +56,14 @@ inline fun <reified T : IComponent> IGameObject.removeComponent(): T {
   return removeComponent(T::class) as T
 }
 
+inline fun <reified T : IComponent> IGameObject.removeComponentIfPresent(): T? {
+  return if(hasComponent<T>()) {
+    removeComponent<T>()
+  } else {
+    null
+  }
+}
+
 inline fun <reified T : IComponent> IGameObject.getComponent(): T {
   return getComponent(T::class)
 }

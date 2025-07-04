@@ -41,12 +41,14 @@ import jp.assasans.narukami.server.core.impl.GameObjectIdSource
 import jp.assasans.narukami.server.core.impl.Space
 import jp.assasans.narukami.server.dispatcher.DispatcherLoadDependenciesManagedEvent
 import jp.assasans.narukami.server.dispatcher.DispatcherLoadObjectsManagedEvent
-import jp.assasans.narukami.server.dispatcher.DispatcherNode
 import jp.assasans.narukami.server.dispatcher.DispatcherUnloadObjectsManagedEvent
+import jp.assasans.narukami.server.entrance.DispatcherNodeV2
 import jp.assasans.narukami.server.garage.item.*
 import jp.assasans.narukami.server.lobby.UserNode
 import jp.assasans.narukami.server.lobby.UsernameComponent
 import jp.assasans.narukami.server.lobby.communication.ChatModeratorLevel
+import jp.assasans.narukami.server.lobby.communication.UserNodeV2
+import jp.assasans.narukami.server.lobby.communication.remote
 import jp.assasans.narukami.server.net.session.userNotNull
 import jp.assasans.narukami.server.net.sessionNotNull
 import jp.assasans.narukami.server.protocol.ProtocolEvent
@@ -65,7 +67,18 @@ data class TankNode(
   val paintGroup: PaintGroupComponent,
 ) : Node()
 
+@MatchTemplate(TankTemplate::class)
+data class TankNodeV2(
+  val hullGroup: HullGroupComponent,
+  val weaponGroup: WeaponGroupComponent,
+  val paintGroup: PaintGroupComponent,
+) : NodeV2()
+
 data class TankLogicStateComponent(var logicState: TankLogicState) : IComponent
+data class HealthComponent(
+  var health: Float,
+  val maxHealth: Float,
+) : IComponent
 
 class BattleUserComponent : IComponent
 class SpectatorComponent : IComponent
@@ -95,9 +108,31 @@ data class BattleUserNode(
   val spectator: SpectatorComponent?,
 ) : Node()
 
+data class BattleUserNodeV2(
+  val battleUser: BattleUserComponent,
+  val userGroup: UserGroupComponent,
+  val team: TeamComponent?,
+  val spectator: SpectatorComponent?,
+) : NodeV2()
+
 fun BattleUserNode.asUserInfo(objects: IRegistry<IGameObject>): UserInfo {
   val user = objects.all.findBy<UserNode, UserGroupComponent>(this)
   val tank = objects.all.findBy<TankNode, UserGroupComponent>(this)
+  return UserInfo(
+    chatModeratorLevel = ChatModeratorLevel.ADMINISTRATOR,
+    deaths = 0,
+    hasPremium = false,
+    kills = 0,
+    rank = 1,
+    score = 0,
+    uid = user.username.username,
+    user = tank.gameObject.id,
+  )
+}
+
+fun BattleUserNodeV2.asUserInfo(objects: IRegistry<IGameObject>): UserInfo {
+  val user = objects.all.findBy<UserNodeV2, UserGroupComponent>(this)
+  val tank = objects.all.findBy<TankNodeV2, UserGroupComponent>(this)
   return UserInfo(
     chatModeratorLevel = ChatModeratorLevel.ADMINISTRATOR,
     deaths = 0,
@@ -119,10 +154,28 @@ fun BattleUserNode.asBattleInfoUser(): BattleInfoUser {
   )
 }
 
+fun BattleUserNodeV2.asBattleInfoUser(): BattleInfoUser {
+  return BattleInfoUser(
+    clanId = 0,
+    score = 0,
+    suspicious = false,
+    user = gameObject.id,
+  )
+}
+
 data class BattleMapNode(
   val battleMap: BattleMapModelCC,
   val battleInfoGroup: BattleInfoGroupComponent,
 ) : Node()
+
+@MatchTemplate(BattleMapTemplate::class)
+data class BattleMapNodeV2(
+  val battleInfoGroup: BattleInfoGroupComponent,
+  val mapResource: MapResourceComponent,
+) : NodeV2()
+
+@MatchTemplate(BattlefieldTemplate::class)
+class BattlefieldNodeV2 : NodeV2()
 
 class BattlefieldSystem : AbstractSystem() {
   private val logger = KotlinLogging.logger { }
@@ -131,26 +184,28 @@ class BattlefieldSystem : AbstractSystem() {
   private val objectMapper: ObjectMapper by inject()
   private val spaces: IRegistry<ISpace> by inject()
 
-  @OnEventFire
+  @OnEventFireV2
   @OutOfOrderExecution
   suspend fun channelAdded(
+    context: IModelContext,
     event: ChannelAddedEvent,
-    dispatcher: DispatcherNode,
+    dispatcher: DispatcherNodeV2,
+    @Optional @JoinAll @AllowUnloaded battlefield: BattlefieldNodeV2,
     // XXX: @AllowUnloaded because object is loaded in different space
-    @AllowUnloaded user: UserNode,
-    @JoinAll @JoinBy(UserGroupComponent::class) @AllowUnloaded battleUser: BattleUserNode,
-    @PerChannel dispatcherShared: List<DispatcherNode>,
-    @JoinAll @AllowUnloaded battleMap: BattleMapNode,
-    @JoinAll @AllowUnloaded battlefield: SingleNode<BattlefieldModelCC>,
-    @JoinAll @PerChannel battlefieldShared: List<SingleNode<BattlefieldModelCC>>,
-    @JoinAll @AllowUnloaded battleUsers: List<BattleUserNode>,
-  ) {
-    if(dispatcher.context.requireSpaceChannel.socket is ReplaySocketClient) {
+    @AllowUnloaded user: UserNodeV2,
+    @JoinAll @JoinBy(UserGroupComponent::class) @AllowUnloaded battleUser: BattleUserNodeV2,
+    @JoinAll @AllowUnloaded battleMap: BattleMapNodeV2,
+    @JoinAll @AllowUnloaded battleUsers: List<BattleUserNodeV2>,
+  ) = context {
+    val dispatcherShared = remote(dispatcher)
+    if(context.requireSpaceChannel.socket is ReplaySocketClient) {
       logger.info { "Dispatchers shared: $dispatcherShared" }
       check(dispatcherShared.size == 2)
     }
 
-    val text = gameResourceRepository.resolve(battleMap.battleMap.mapResource, "private.json").readText()
+    val battlefieldShared = remote(battlefield)
+
+    val text = gameResourceRepository.resolve(battleMap.mapResource.resource, "private.json").readText()
     val data = objectMapper.readValue<PrivateMapDataEntity>(text)
 
     DispatcherLoadDependenciesManagedEvent(
@@ -178,12 +233,12 @@ class BattlefieldSystem : AbstractSystem() {
     if(battleUser.team != null) {
       check(battleUser.spectator == null)
 
-      if(dispatcher.context.requireSpaceChannel.socket !is ReplaySocketClient) {
+      if(context.requireSpaceChannel.socket !is ReplaySocketClient) {
         // TODO: There is no good API for cross-space communication. I don't like this code, should refactor it.
         //  In this case, we need to send an event from the battle space to all channels in the lobby space, excluding self.
         val lobbyChannel = event.channel.sessionNotNull.spaces.get(Space.stableId("lobby")) ?: throw IllegalStateException("No lobby channel")
         val battleInfoObject = lobbyChannel.space.objects.get(battleMap.battleInfoGroup.key) ?: error("Battle info object not found for battle map ${battleMap.gameObject.id}")
-        AddBattleUserEvent(battleUser).schedule(lobbyChannel, battleInfoObject)
+        AddBattleUserEvent(battleUser.gameObject).schedule(lobbyChannel, battleInfoObject)
       }
 
       // TODO: There is no good API for cross-space communication. I don't like this code, should refactor it.
@@ -236,17 +291,17 @@ class BattlefieldSystem : AbstractSystem() {
       StatisticsDMModelUserConnectEvent(
         tankObject.id,
         usersInfoForward
-      ).schedule(battlefieldShared)
+      ).schedule(battlefield, battlefieldShared)
 
       logger.debug { "${event.channel.sessionNotNull.userNotNull.getComponent<UsernameComponent>()} Loading tank parts for $dispatcherShared" }
       for(dispatcherRemote in dispatcherShared) {
-        logger.debug { "Loading tank parts to ${dispatcherRemote.context.requireSpaceChannel.sessionNotNull.userNotNull.getComponent<UsernameComponent>()}" }
+        logger.debug { "Loading tank parts to ${dispatcherRemote.requireSpaceChannel.sessionNotNull.userNotNull.getComponent<UsernameComponent>()}" }
         DispatcherLoadObjectsManagedEvent(
           hullObject,
           weaponObject,
           paintObject,
           tankObject,
-        ).schedule(dispatcherRemote).await()
+        ).schedule(dispatcherRemote, dispatcher.gameObject).await()
       }
       logger.debug { "${event.channel.sessionNotNull.userNotNull.getComponent<UsernameComponent>()} Loaded tank parts, ${dispatcherShared.size} shared" }
     } else {
@@ -278,7 +333,7 @@ class BattlefieldSystem : AbstractSystem() {
       ).schedule(battlefield)
     }
 
-    val backwardTanks = event.channel.space.objects.all.findAllBy<TankNode, UserGroupComponent>(battleUsers.filter { it.team != null } - battleUser)
+    val backwardTanks = event.channel.space.objects.all.findAllBy<TankNodeV2, UserGroupComponent>(battleUsers.filter { it.team != null } - battleUser)
 
     /* Backward loading: load existing players to current - forward loading rules apply */
     for(tank in backwardTanks) {
@@ -300,19 +355,19 @@ class BattlefieldSystem : AbstractSystem() {
         orientation = Vector3d(x = 0.0f, y = 0.0f, z = 0.0f),
         health = 1000,
         incarnationId = 0,
-      ).schedule(battlefield.context, tank.gameObject)
+      ).schedule(context, tank.gameObject)
 
       // TODO: State check again
-      TankModelActivateTankEvent().schedule(battlefield.context, tank.gameObject)
+      TankModelActivateTankEvent().schedule(context, tank.gameObject)
     }
   }
 
-  @OnEventFire
-  @Mandatory
+  @OnEventFireV2
   fun readyToSpawn(
+    context: IModelContext,
     event: TankSpawnerModelReadyToSpawnEvent,
-    tank: TankNode,
-  ) {
+    tank: TankNodeV2,
+  ) = context {
     logger.debug { "Process ready-to-spawn" }
 
     // Sending this starts the game rendering on the client. The client calls
@@ -326,15 +381,19 @@ class BattlefieldSystem : AbstractSystem() {
     ).schedule(tank)
   }
 
-  @OnEventFire
-  @Mandatory
+  @OnEventFireV2
   @OutOfOrderExecution
   suspend fun readyToPlace(
+    context: IModelContext,
     event: TankSpawnerModelSetReadyToPlaceEvent,
-    tank: TankNode,
-    @JoinAll @PerChannel battlefieldShared: List<SingleNode<BattlefieldModelCC>>,
-  ) {
+    tank: TankNodeV2,
+    @JoinAll battlefield: BattlefieldNodeV2,
+  ) = context {
+    val battlefieldShared = remote(battlefield)
     logger.debug { "Process ready-to-place, ${battlefieldShared.size} shared" }
+
+    val health = tank.gameObject.getComponent<HealthComponent>()
+    health.health = health.maxHealth
 
     val logicStateComponent = tank.gameObject.getComponent<TankLogicStateComponent>()
 
@@ -347,7 +406,7 @@ class BattlefieldSystem : AbstractSystem() {
         orientation = Vector3d(x = 0.0f, y = 0.0f, z = 0.0f),
         health = 1000,
         incarnationId = 0,
-      ).schedule(battlefieldRemote.context, tank.gameObject)
+      ).schedule(battlefieldRemote, tank.gameObject)
     }
 
     // TODO: Check whether tank can be activated, see [handleCollisionWithOtherTank]
@@ -357,50 +416,54 @@ class BattlefieldSystem : AbstractSystem() {
     // Activate current tank for the entire battlefield
     logicStateComponent.logicState = TankLogicState.ACTIVE
     for(battlefieldRemote in battlefieldShared) {
-      TankModelActivateTankEvent().schedule(battlefieldRemote.context, tank.gameObject)
+      TankModelActivateTankEvent().schedule(battlefieldRemote, tank.gameObject)
     }
   }
 
-  @OnEventFire
-  @Mandatory
-  fun confirmSpawn(event: TankSpawnerModelConfirmSpawnEvent, tank: TankNode) {
+  @OnEventFireV2
+  fun confirmSpawn(
+    context: IModelContext,
+    event: TankSpawnerModelConfirmSpawnEvent,
+    tank: TankNodeV2,
+  ) {
     // TODO: Unimplemented, not sure what it is used for
   }
 
-  @OnEventFire
-  @Mandatory
+  @OnEventFireV2
   suspend fun unloadBattleUser(
+    context: IModelContext,
     event: UnloadBattleUserEvent,
     // @AllowUnloaded because it is server-only object
-    @AllowUnloaded battleUser: BattleUserNode,
+    @AllowUnloaded battleUser: BattleUserNodeV2,
     // XXX: @AllowUnloaded because object is loaded in different space
-    @AllowUnloaded user: UserNode,
-    @JoinAll battlefield: SingleNode<BattlefieldModelCC>,
-    @JoinAll battleMap: BattleMapNode,
-    @JoinAll dispatcher: DispatcherNode,
-    @JoinAll @PerChannel dispatcherShared: List<DispatcherNode>,
-    @JoinAll @PerChannel battlefieldShared: List<SingleNode<BattlefieldModelCC>>,
-  ) {
+    @AllowUnloaded user: UserNodeV2,
+    @JoinAll battlefield: BattlefieldNodeV2,
+    @JoinAll battleMap: BattleMapNodeV2,
+    @JoinAll dispatcher: DispatcherNodeV2,
+  ) = context {
     logger.info { "Destroying battle user ${battleUser.userGroup}" }
 
-    battleUser.context.requireSpaceChannel.close()
+    val dispatcherShared = remote(dispatcher)
+    val battlefieldShared = remote(battlefield)
 
-    val space = battleUser.context.space
+    context.requireSpaceChannel.close()
+
+    val space = context.space
     space.objects.remove(user.gameObject)
     space.objects.remove(battleUser.gameObject)
 
     // TODO: Do not use component nullability checks
     if(battleUser.team != null) {
-      val tank = space.objects.all.findBy<TankNode, UserGroupComponent>(battleUser)
+      val tank = space.objects.all.findBy<TankNodeV2, UserGroupComponent>(battleUser)
 
-      StatisticsDMModelUserDisconnectEvent(tank.gameObject.id).schedule(battlefieldShared - battlefield)
+      StatisticsDMModelUserDisconnectEvent(tank.gameObject.id).schedule(battlefield, battlefieldShared)
 
-      if(dispatcher.context.requireSpaceChannel.socket !is ReplaySocketClient) {
+      if(context.requireSpaceChannel.socket !is ReplaySocketClient) {
         // TODO: There is no good API for cross-space communication. I don't like this code, should refactor it.
         //  In this case, we need to send an event from the battle space to all channels in the lobby space, excluding self.
-        val lobbyChannel = battleUser.context.requireSpaceChannel.sessionNotNull.spaces.get(Space.stableId("lobby")) ?: throw IllegalStateException("No lobby channel")
+        val lobbyChannel = context.requireSpaceChannel.sessionNotNull.spaces.get(Space.stableId("lobby")) ?: throw IllegalStateException("No lobby channel")
         val battleInfoObject = lobbyChannel.space.objects.get(battleMap.battleInfoGroup.key) ?: error("Battle info object not found for battle map ${battleMap.gameObject.id}")
-        RemoveBattleUserEvent(battleUser).schedule(lobbyChannel, battleInfoObject)
+        RemoveBattleUserEvent(battleUser.gameObject).schedule(lobbyChannel, battleInfoObject)
       }
 
       space.objects.remove(tank.gameObject)
@@ -418,7 +481,7 @@ class BattlefieldSystem : AbstractSystem() {
         weaponObject,
         paintObject,
         tank.gameObject,
-      ).schedule(dispatcherShared - dispatcher)
+      ).schedule(dispatcher, dispatcherShared)
     }
   }
 }

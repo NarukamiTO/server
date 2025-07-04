@@ -23,6 +23,7 @@ import kotlin.time.Duration.Companion.seconds
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import jp.assasans.narukami.server.battlefield.chat.BattleChatModelCC
+import jp.assasans.narukami.server.battlefield.damage.DamageIndicatorModelCC
 import jp.assasans.narukami.server.battleselect.BattleLimits
 import jp.assasans.narukami.server.battleselect.Range
 import jp.assasans.narukami.server.battleservice.StatisticsDMModel
@@ -133,6 +134,7 @@ object BattlefieldTemplate : TemplateV2(), KoinComponent {
     addModel(InventoryModelCC(ultimateEnabled = false))
     // TODO: InventorySfxModelCC
     // TODO: ContinueBattleModelCC
+    addModel(DamageIndicatorModelCC())
 
     addModel(BattleDMModelCC())
   }

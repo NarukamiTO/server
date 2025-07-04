@@ -72,6 +72,62 @@ inline fun <reified T : Node, reified G : GroupComponent> Iterable<IGameObject>.
  * @param G group component to match
  * @return matching nodes of type [T]
  */
+@JvmName("Iterable_IGameObject_findAllBy_Node")
 inline fun <reified T : Node, reified G : GroupComponent> Iterable<IGameObject>.findAllBy(sources: Iterable<Node>): List<T> {
+  return sources.map { source -> findBy<T, G>(source) }
+}
+
+/**
+ * Finds a node of type [T] in the collection of game objects that has the same group component as the [source] node.
+ *
+ * @param source source node to match the group component against
+ * @param group group component to match
+ * @param output class of the node to search for
+ * @return matching node of type [T]
+ */
+fun <T : NodeV2> Iterable<IGameObject>.findBy(source: NodeV2, group: KClass<out GroupComponent>, output: KClass<out T>): T {
+  val nodeBuilder = NodeBuilder()
+  val nodeDefinition = nodeBuilder.getNodeV2Definition(output.createType())
+  val sourceGroup = source.gameObject.getComponent(group)
+
+  var single: T? = null
+  var found = false
+  for(gameObject in this) {
+    val targetGroup = gameObject.getComponentOrNull(group)
+    if(sourceGroup != targetGroup) continue
+
+    val node = nodeBuilder.tryBuildLazyStateless(nodeDefinition, gameObject)
+    if(node != null) {
+      if(found) throw IllegalArgumentException("More than one matching node found for $output, grouped by $sourceGroup")
+      found = true
+      single = node as T
+    }
+  }
+
+  return single ?: throw IllegalArgumentException("Failed to find node ${output.qualifiedName}, grouped by $sourceGroup")
+}
+
+/**
+ * Finds a node of type [T] in the collection of game objects that has the same group component as the [source] node.
+ *
+ * @param source source node to match the group component against
+ * @param T class of the node to search for
+ * @param G group component to match
+ * @return matching node of type [T]
+ */
+inline fun <reified T : NodeV2, reified G : GroupComponent> Iterable<IGameObject>.findBy(source: NodeV2): T {
+  return findBy(source, G::class, T::class)
+}
+
+/**
+ * Finds a node of type [T] in the collection of game objects for each source node in [sources].
+ *
+ * @param sources source nodes to match the group component against
+ * @param T class of the node to search for
+ * @param G group component to match
+ * @return matching nodes of type [T]
+ */
+@JvmName("Iterable_IGameObject_findAllBy_NodeV2")
+inline fun <reified T : NodeV2, reified G : GroupComponent> Iterable<IGameObject>.findAllBy(sources: Iterable<NodeV2>): List<T> {
   return sources.map { source -> findBy<T, G>(source) }
 }

@@ -35,17 +35,27 @@ abstract class AbstractSystem : KoinComponent {
 /**
  * Marks a function within an [AbstractSystem] as an event handler.
  */
+@Deprecated("Use @OnEventFireV2 instead")
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.RUNTIME)
 annotation class OnEventFire
+
+@Target(AnnotationTarget.FUNCTION)
+@Retention(AnnotationRetention.RUNTIME)
+annotation class OnEventFireV2
 
 /**
  * Requires that an event handler be executed for each event received,
  * meaning that its nodes must always build successfully.
  */
+@Deprecated("Use @OnEventFireV2 instead, they are mandatory by default")
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.RUNTIME)
 annotation class Mandatory
+
+@Target(AnnotationTarget.VALUE_PARAMETER)
+@Retention(AnnotationRetention.RUNTIME)
+annotation class Optional
 
 /**
  * Allows an event handler to run in parallel with another event handlers,
@@ -86,3 +96,7 @@ annotation class OnlySpaceContext
 @Target(AnnotationTarget.VALUE_PARAMETER)
 @Retention(AnnotationRetention.RUNTIME)
 annotation class AllowUnloaded
+
+@Target(AnnotationTarget.CLASS)
+@Retention(AnnotationRetention.RUNTIME)
+annotation class MatchTemplate(val template: KClass<out TemplateV2>)

@@ -19,16 +19,51 @@
 package jp.assasans.narukami.server.lobby.communication
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import org.koin.java.KoinJavaComponent.inject
 import jp.assasans.narukami.server.NOTICE_SHORT
+import jp.assasans.narukami.server.battlefield.UserGroupComponent
 import jp.assasans.narukami.server.core.*
-import jp.assasans.narukami.server.dispatcher.DispatcherNode
+import jp.assasans.narukami.server.entrance.DispatcherNodeV2
+import jp.assasans.narukami.server.lobby.CrystalsComponent
+import jp.assasans.narukami.server.lobby.ScoreComponent
 import jp.assasans.narukami.server.lobby.SessionLogoutEvent
-import jp.assasans.narukami.server.lobby.UserNode
+import jp.assasans.narukami.server.lobby.UsernameComponent
+import jp.assasans.narukami.server.lobby.user.UserTemplate
 import jp.assasans.narukami.server.net.sessionNotNull
 
 data class ChatNode(
   val chat: ChatModelCC,
 ) : Node()
+
+@MatchTemplate(CommunicationTemplate::class)
+class ChatNodeV2 : NodeV2()
+
+@MatchTemplate(UserTemplate::class)
+data class UserNodeV2(
+  val userGroup: UserGroupComponent,
+  val username: UsernameComponent,
+  val score: ScoreComponent,
+  val crystals: CrystalsComponent,
+) : NodeV2()
+
+fun remote(space: ISpace, gameObject: IGameObject, allowUnloaded: Boolean = false): Set<IModelContext> {
+  val sessions: ISessionRegistry by inject(ISessionRegistry::class.java)
+  return sessions.all
+    .mapNotNull { session -> session.spaces.get(space.id) }
+    .filter { channel -> if(allowUnloaded) true else channel.loadedObjects.contains(gameObject.id) }
+    .map { channel -> SpaceChannelModelContext(channel) }
+    .toSet()
+}
+
+context(context: IModelContext)
+fun remote(gameObject: IGameObject, allowUnloaded: Boolean = false): Set<IModelContext> {
+  return remote(context.space, gameObject, allowUnloaded)
+}
+
+context(context: IModelContext)
+fun remote(node: NodeV2, allowUnloaded: Boolean = false): Set<IModelContext> {
+  return remote(context.space, node.gameObject, allowUnloaded)
+}
 
 class ChatSystem : AbstractSystem() {
   private val logger = KotlinLogging.logger { }
@@ -67,15 +102,14 @@ class ChatSystem : AbstractSystem() {
     ).schedule(chat)
   }
 
-  @OnEventFire
-  @Mandatory
+  @OnEventFireV2
   fun sendMessage(
+    context: IModelContext,
     event: ChatModelSendMessageEvent,
-    chat: ChatNode,
-    user: UserNode,
-    @JoinAll dispatcher: DispatcherNode,
-    @PerChannel chats: List<ChatNode>,
-  ) {
+    chat: ChatNodeV2,
+    user: UserNodeV2,
+    @JoinAll dispatcher: DispatcherNodeV2,
+  ) = context {
     val message = ChatMessage(
       addressMode = event.addressMode,
       battleLinks = emptyList(),
@@ -110,7 +144,8 @@ class ChatSystem : AbstractSystem() {
       return
     }
 
-    ChatModelShowMessagesEvent(messages = listOf(message)).schedule(chats)
+    val chats = remote(chat)
+    ChatModelShowMessagesEvent(messages = listOf(message)).schedule(chat, chats)
   }
 
   @OnEventFire

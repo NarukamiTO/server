@@ -19,13 +19,19 @@
 package jp.assasans.narukami.server.battlefield.tank.weapon.isida
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import jp.assasans.narukami.server.battlefield.TankNode
 import jp.assasans.narukami.server.battlefield.Vector3d
+import jp.assasans.narukami.server.battlefield.damage.DamageEvent
+import jp.assasans.narukami.server.battlefield.tank.TankGroupComponent
 import jp.assasans.narukami.server.battlefield.tank.weapon.TargetHit
 import jp.assasans.narukami.server.core.*
 
 data class IsidaNode(
   val isida: IsisModelCC,
+  val isidaTarget: IsidaTargetComponent?,
 ) : Node()
+
+data class IsidaTargetComponent(val target: IGameObject) : IComponent
 
 class IsidaSystem : AbstractSystem() {
   private val logger = KotlinLogging.logger { }
@@ -34,9 +40,17 @@ class IsidaSystem : AbstractSystem() {
   @Mandatory
   fun tick(
     event: IsisModelTickCommandEvent,
-    isida: IsidaNode
+    isida: IsidaNode,
+    @JoinAll @JoinBy(TankGroupComponent::class) tank: TankNode,
   ) {
     logger.trace { "Tick: $event" }
+
+    if(isida.isidaTarget == null) {
+      logger.warn { "Isida target is null, skipping tick" }
+      return
+    }
+
+    DamageEvent(amount = 120f, source = tank.gameObject).schedule(isida.context, isida.isidaTarget.target)
   }
 
   @OnEventFire
@@ -47,6 +61,8 @@ class IsidaSystem : AbstractSystem() {
     @PerChannel isidaShared: List<IsidaNode>,
   ) {
     logger.trace { "Set target: $event" }
+    isida.gameObject.removeComponentIfPresent<IsidaTargetComponent>()
+    isida.gameObject.addComponent(IsidaTargetComponent(event.target))
 
     IsisModelSetTargetEvent(
       state = IsisState.DAMAGING,
@@ -67,10 +83,10 @@ class IsidaSystem : AbstractSystem() {
     @PerChannel isidaShared: List<IsidaNode>,
   ) {
     logger.trace { "Reset target: $event" }
+    isida.gameObject.removeComponentIfPresent<IsidaTargetComponent>()
 
     IsisModelResetTargetEvent().schedule(isidaShared - isida)
   }
-
 
   @OnEventFire
   @Mandatory

@@ -26,6 +26,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.sync.Mutex
 import jp.assasans.narukami.server.battlefield.replay.ReplaySocketClient
 import jp.assasans.narukami.server.core.*
+import jp.assasans.narukami.server.entrance.DispatcherNodeV2
 import jp.assasans.narukami.server.extensions.kotlinClass
 import jp.assasans.narukami.server.lobby.UsernameComponent
 import jp.assasans.narukami.server.net.SpaceChannel
@@ -70,14 +71,14 @@ data class DispatcherMutexComponent(val mutexes: WeakHashMap<SpaceChannel, Mutex
 class DispatcherSystem : AbstractSystem() {
   private val logger = KotlinLogging.logger { }
 
-  @OnEventFire
-  @Mandatory
+  @OnEventFireV2
   @OutOfOrderExecution
   suspend fun preloadResourcesWrapped(
+    context: IModelContext,
     event: PreloadResourcesWrappedEvent<*>,
-    any: Node,
-    @JoinAll dispatcher: DispatcherNode,
-  ) {
+    any: NodeV2,
+    @JoinAll dispatcher: DispatcherNodeV2,
+  ) = context {
     val resources = event.inner::class
       .declaredMemberProperties
       .filter { it.returnType.kotlinClass.isSubclassOf(Resource::class) }
@@ -94,20 +95,23 @@ class DispatcherSystem : AbstractSystem() {
     event.inner.schedule(any)
   }
 
-  @OnEventFire
-  @Mandatory
+  @OnEventFireV2
   @OutOfOrderExecution
-  suspend fun loadDependenciesManaged(event: DispatcherLoadDependenciesManagedEvent, dispatcher: DispatcherWithMutexNode) {
+  suspend fun loadDependenciesManaged(
+    context: IModelContext,
+    event: DispatcherLoadDependenciesManagedEvent,
+    dispatcher: DispatcherNodeV2,
+  ) = context {
     logger.info { "Load dependencies managed: $event" }
 
     val deferredDependenciesObject = DeferredDependenciesTemplate.create(id = event.callbackId.toLong(), event)
-    dispatcher.context.space.objects.add(deferredDependenciesObject)
+    context.space.objects.add(deferredDependenciesObject)
 
     // The client can only track one dependency load batch at a time
     // (see [DispatcherModel::loadDependencies] and [DispatcherModel::onBatchLoadingComplete]).
     // Otherwise, the older batch will never inform the server of its completion.
-    val mutex = dispatcher.dispatcherMutex.mutexes.getOrPut(dispatcher.context.requireSpaceChannel) { Mutex() }
-    if(mutex.isLocked) logger.info { "Dispatcher mutex is locked for ${dispatcher.context.requireSpaceChannel}, waiting for unlock..." }
+    val mutex = dispatcher.dispatcherMutex.mutexes.getOrPut(context.requireSpaceChannel) { Mutex() }
+    if(mutex.isLocked) logger.info { "Dispatcher mutex is locked for ${context.requireSpaceChannel}, waiting for unlock..." }
     mutex.lock()
 
     DispatcherModelLoadDependenciesEvent(
@@ -122,56 +126,62 @@ class DispatcherSystem : AbstractSystem() {
 
     logger.debug { "Dependencies ${event.callbackId} ${event.resources.map { it.id.id }} load request scheduled" }
 
-    if(dispatcher.context.requireSpaceChannel.socket is ReplaySocketClient) {
+    if(context.requireSpaceChannel.socket is ReplaySocketClient) {
       logger.info { "Simulating dependencies load for replay socket client: $event" }
       mutex.unlock()
       event.deferred.complete(Unit)
     }
   }
 
-  @OnEventFire
-  @Mandatory
-  fun dependenciesLoaded(event: DispatcherModelDependenciesLoadedEvent, dispatcher: DispatcherWithMutexNode) {
-    if(dispatcher.context.requireSpaceChannel.socket is ReplaySocketClient) {
+  @OnEventFireV2
+  fun dependenciesLoaded(
+    context: IModelContext,
+    event: DispatcherModelDependenciesLoadedEvent,
+    dispatcher: DispatcherNodeV2,
+  ) {
+    if(context.requireSpaceChannel.socket is ReplaySocketClient) {
       logger.info { "Skipping dependencies loaded event for replay socket client: $event" }
       return
     }
 
     logger.debug { "Dependencies loaded: ${event.callbackId}" }
 
-    val deferredDependenciesObject = dispatcher.context.space.objects.get(event.callbackId.toLong())
+    val deferredDependenciesObject = context.space.objects.get(event.callbackId.toLong())
                                      ?: error("Deferred dependencies object ${event.callbackId} not found")
 
-    val mutex = dispatcher.dispatcherMutex.mutexes[dispatcher.context.requireSpaceChannel]
-                ?: error("Mutex not found for ${dispatcher.context.requireSpaceChannel}")
+    val mutex = dispatcher.dispatcherMutex.mutexes[context.requireSpaceChannel]
+                ?: error("Mutex not found for ${context.requireSpaceChannel}")
     mutex.unlock()
 
-    val deferredDependencies = deferredDependenciesObject.adaptSingle<DeferredDependenciesCC>(dispatcher.context)
+    val deferredDependencies = deferredDependenciesObject.adaptSingle<DeferredDependenciesCC>(context)
     deferredDependencies.deferred.complete(Unit)
-    dispatcher.context.space.objects.remove(deferredDependenciesObject)
+    context.space.objects.remove(deferredDependenciesObject)
     logger.debug { "Deferred dependencies $deferredDependencies resolved" }
   }
 
-  @OnEventFire
-  @Mandatory
+  @OnEventFireV2
   @OutOfOrderExecution
-  suspend fun loadObjectsManaged(event: DispatcherLoadObjectsManagedEvent, dispatcher: DispatcherNode) {
+  suspend fun loadObjectsManaged(
+    context: IModelContext,
+    event: DispatcherLoadObjectsManagedEvent,
+    dispatcher: DispatcherNodeV2,
+  ) = context {
     logger.info { "Load objects managed: $event" }
 
     DispatcherLoadDependenciesManagedEvent(
       classes = event.objects.map { it.parent },
       resources = event.objects.flatMap { gameObject ->
         gameObject.models.values.flatMap { model ->
-          model.provide(gameObject, dispatcher.context).getResources()
+          model.provide(gameObject, context).getResources()
         }
       }
     ).schedule(dispatcher).await()
 
     DispatcherModelLoadObjectsDataEvent(
-      objectsData = ObjectsData.new(event.objects, dispatcher.context)
+      objectsData = ObjectsData.new(event.objects, context)
     ).schedule(dispatcher)
 
-    val context = dispatcher.context
+    val context = context
     if(context is SpaceChannelModelContext) {
       logger.trace { "Adding loaded objects to channel: ${event.objects.map { it.id }}" }
       context.channel.loadedObjects.addAll(event.objects.map { it.id })
@@ -181,12 +191,14 @@ class DispatcherSystem : AbstractSystem() {
     event.deferred.complete(Unit)
   }
 
-  @OnEventFire
-  @Mandatory
-  fun unloadObjects(event: DispatcherUnloadObjectsManagedEvent, dispatcher: DispatcherNode) {
+  @OnEventFireV2
+  fun unloadObjects(
+    context: IModelContext,
+    event: DispatcherUnloadObjectsManagedEvent,
+    dispatcher: DispatcherNodeV2,
+  ) = context {
     DispatcherModelUnloadObjectsEvent(event.objects).schedule(dispatcher)
 
-    val context = dispatcher.context
     if(context is SpaceChannelModelContext) {
       context.channel.loadedObjects.removeAll(event.objects.map { it.id })
     }
@@ -194,14 +206,17 @@ class DispatcherSystem : AbstractSystem() {
     logger.debug { "Objects unloaded: $event" }
   }
 
-  @OnEventFire
-  @Mandatory
-  suspend fun openSpace(event: DispatcherOpenSpaceEvent, dispatcher: DispatcherNode) {
+  @OnEventFireV2
+  suspend fun openSpace(
+    context: IModelContext,
+    event: DispatcherOpenSpaceEvent,
+    dispatcher: DispatcherNodeV2,
+  ) {
     logger.info { "Open space channel: $event" }
 
     // Space management is too low-level for the Systems API,
     // we just bridge event to control channel API.
-    val session = dispatcher.context.requireSpaceChannel.sessionNotNull
+    val session = context.requireSpaceChannel.sessionNotNull
     val channel = session.controlChannel.openSpace(event.id).await()
     event.deferred.complete(channel)
 

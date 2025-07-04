@@ -55,13 +55,22 @@ Optional query parameters:
 * `debug` - whether to enable (useless?) debug mode, defaults to `false`.
 * `autologin=username:password` - automatically log in with the given username and optional password.
 
+[WARNING]
+====
+Game is unplayable on Ruffle because:
+
+* shader compilation panics (hardware Alternativa3D);
+* link:https://github.com/ruffle-rs/ruffle/pull/16950[#16950] (software Alternativa3D);
+* spaces cannot be closed correctly because `Socket.flush()` throwing an error on closed socket.
+====
+
 == License
 
 Licensed under GNU Affero General Public License, version 3.0 or later
 (link:LICENSE[] or link:https://www.gnu.org/licenses/agpl-3.0.html[]).
 
 **In short, you must make the entire source code available to your users if you host this server for anybody.**
-**If you copy substantial part of the code, your project becomes a derivative work and you must also license it under AGPLv3.**
+**If you copy substantial part of the code, your project becomes a derivative work, and you must also license it under AGPLv3.**
 link:https://fossa.com/blog/open-source-software-licenses-101-agpl-license/[Read more about AGPLv3].
 
 To clear misconceptions, distributing a .jar file is not enough, you must provide the source code used to build it.

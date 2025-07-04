@@ -49,6 +49,148 @@ data class ScheduledEvent(
   val gameObject: IGameObject
 )
 
+data class NodeParameterDefinition(
+  val parameter: KParameter,
+  val nodeDefinition: NodeDefinition,
+  val isList: Boolean,
+) {
+  val joinAll = parameter.hasAnnotation<JoinAll>()
+  val joinBy = parameter.annotations
+    .filterIsInstance<JoinBy>()
+    .map { it.component }
+    .singleOrNullOrThrow()
+  val perChannel = parameter.hasAnnotation<PerChannel>()
+  val allowUnloaded = parameter.hasAnnotation<AllowUnloaded>()
+}
+
+data class EventHandlerDefinition(
+  val event: KClass<out IEvent>,
+  val system: KClass<out AbstractSystem>,
+  val function: KFunction<*>,
+  val nodes: List<NodeParameterDefinition>,
+) {
+  val mandatory = function.hasAnnotation<Mandatory>()
+  val outOfOrder = function.hasAnnotation<OutOfOrderExecution>()
+  val onlySpaceContext = function.hasAnnotation<OnlySpaceContext>()
+
+  companion object {
+    fun new(system: KClass<out AbstractSystem>, function: KFunction<*>): EventHandlerDefinition {
+      val parameters = function.valueParameters
+      val eventClass = parameters[0].type.kotlinClass
+      if(!eventClass.isSubclassOf(IEvent::class)) {
+        throw IllegalArgumentException("${system.qualifiedName}::${function.name} first parameter is not an event type, got $eventClass")
+      }
+
+      val nodeParameters = parameters.drop(1)
+      val nodes = nodeParameters.map { parameter ->
+        var type = parameter.type
+        var isList = false
+        if(type.kotlinClass.isSubclassOf(List::class)) {
+          type = requireNotNull(type.arguments[0].type) {
+            "${system.qualifiedName}::${function.name} parameter ${parameter.name} has an illegal List<T> type argument"
+          }
+          isList = true
+        }
+        if(!type.kotlinClass.isSubclassOf(Node::class)) {
+          throw IllegalArgumentException("${system.qualifiedName}::${function.name} parameter ${parameter.name} illegal type $type")
+        }
+
+        val nodeBuilder = NodeBuilder()
+        val nodeDefinition = nodeBuilder.getNodeDefinition(type)
+        NodeParameterDefinition(
+          parameter,
+          nodeDefinition,
+          isList,
+        )
+      }
+
+      @Suppress("UNCHECKED_CAST")
+      return EventHandlerDefinition(
+        event = eventClass as KClass<out IEvent>,
+        system,
+        function,
+        nodes,
+      )
+    }
+  }
+}
+
+data class EventHandlerV2Definition(
+  val context: KClass<out IModelContext>,
+  val event: KClass<out IEvent>,
+  val system: KClass<out AbstractSystem>,
+  val function: KFunction<*>,
+  val nodes: List<NodeV2ParameterDefinition>,
+) {
+  val mandatory = true
+  val outOfOrder = function.hasAnnotation<OutOfOrderExecution>()
+
+  companion object {
+    fun new(system: KClass<out AbstractSystem>, function: KFunction<*>): EventHandlerV2Definition {
+      val parameters = function.valueParameters
+
+      val contextClass = parameters[0].type.kotlinClass
+      if(!contextClass.isSubclassOf(IModelContext::class)) {
+        throw IllegalArgumentException("${system.qualifiedName}::${function.name} first parameter is not a context type, got $contextClass")
+      }
+      @Suppress("UNCHECKED_CAST")
+      contextClass as KClass<out IModelContext>
+
+      val eventClass = parameters[1].type.kotlinClass
+      if(!eventClass.isSubclassOf(IEvent::class)) {
+        throw IllegalArgumentException("${system.qualifiedName}::${function.name} second parameter is not an event type, got $eventClass")
+      }
+      @Suppress("UNCHECKED_CAST")
+      eventClass as KClass<out IEvent>
+
+      val nodeParameters = parameters.drop(2)
+      val nodes = nodeParameters.map { parameter ->
+        var type = parameter.type
+        var isList = false
+        if(type.kotlinClass.isSubclassOf(List::class)) {
+          type = requireNotNull(type.arguments[0].type) {
+            "${system.qualifiedName}::${function.name} parameter '${parameter.name}' has an illegal List<T> type argument"
+          }
+          isList = true
+        }
+        if(!type.kotlinClass.isSubclassOf(NodeV2::class)) {
+          throw IllegalArgumentException("${system.qualifiedName}::${function.name} parameter '${parameter.name}' illegal type $type")
+        }
+
+        val nodeBuilder = NodeBuilder()
+        val nodeDefinition = nodeBuilder.getNodeV2Definition(type)
+        NodeV2ParameterDefinition(
+          parameter,
+          nodeDefinition,
+          isList,
+        )
+      }
+
+      @Suppress("UNCHECKED_CAST")
+      return EventHandlerV2Definition(
+        context = contextClass,
+        event = eventClass,
+        system,
+        function,
+        nodes,
+      )
+    }
+  }
+}
+
+data class NodeV2ParameterDefinition(
+  val parameter: KParameter,
+  val nodeDefinition: NodeV2Definition,
+  val isList: Boolean,
+) {
+  val optional = parameter.hasAnnotation<Optional>()
+  val joinAll = parameter.hasAnnotation<JoinAll>()
+  val joinBy = parameter.annotations
+    .filterIsInstance<JoinBy>()
+    .map { it.component }
+    .singleOrNullOrThrow()
+}
+
 class EventScheduler(private val scope: CoroutineScope) : IEventScheduler, KoinComponent {
   private val logger = KotlinLogging.logger { }
 
@@ -83,36 +225,12 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler, KoinC
     }
   }
 
-  data class NodeParameterDefinition(
-    val parameter: KParameter,
-    val nodeDefinition: NodeDefinition,
-    val isList: Boolean,
-  ) {
-    val joinAll = parameter.hasAnnotation<JoinAll>()
-    val joinBy = parameter.annotations
-      .filterIsInstance<JoinBy>()
-      .map { it.component }
-      .singleOrNullOrThrow()
-    val perChannel = parameter.hasAnnotation<PerChannel>()
-    val allowUnloaded = parameter.hasAnnotation<AllowUnloaded>()
-  }
-
-  data class EventHandlerDefinition(
-    val event: KClass<out IEvent>,
-    val system: KClass<out AbstractSystem>,
-    val function: KFunction<*>,
-    val nodes: List<NodeParameterDefinition>,
-  ) {
-    val mandatory = function.hasAnnotation<Mandatory>()
-    val outOfOrder = function.hasAnnotation<OutOfOrderExecution>()
-    val onlySpaceContext = function.hasAnnotation<OnlySpaceContext>()
-  }
-
   private val sessions: ISessionRegistry by inject()
 
   private val nodeBuilder = NodeBuilder()
   private val systems: List<KClass<out AbstractSystem>>
   private val handlers: List<EventHandlerDefinition>
+  private val handlersV2: List<EventHandlerV2Definition>
   private val middleware: List<EventMiddleware>
 
   init {
@@ -133,53 +251,25 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler, KoinC
     handlers = systems.flatMap { system ->
       system.declaredFunctions
         .filter { function -> function.hasAnnotation<OnEventFire>() }
-        .map { function -> makeHandlerDefinition(system, function) }
+        .map { function -> EventHandlerDefinition.new(system, function) }
+    }
+
+    handlersV2 = systems.flatMap { system ->
+      system.declaredFunctions
+        .filter { function -> function.hasAnnotation<OnEventFireV2>() }
+        .map { function -> EventHandlerV2Definition.new(system, function) }
     }
 
     for(handler in handlers) {
       logger.info { "Discovered event handler: ${handler.system.qualifiedName}::${handler.function.name} for ${handler.event.qualifiedName} with ${handler.nodes.map { it.nodeDefinition }}" }
     }
 
+    for(handler in handlersV2) {
+      logger.info { "Discovered event handler V2: ${handler.system.qualifiedName}::${handler.function.name} for ${handler.event.qualifiedName} with ${handler.nodes.map { it.nodeDefinition }}" }
+    }
+
     middleware = listOf(
       BattlefieldReplayMiddleware,
-    )
-  }
-
-  fun makeHandlerDefinition(system: KClass<out AbstractSystem>, function: KFunction<*>): EventHandlerDefinition {
-    val parameters = function.valueParameters
-    val eventClass = parameters[0].type.kotlinClass
-    if(!eventClass.isSubclassOf(IEvent::class)) {
-      throw IllegalArgumentException("${system.qualifiedName}::${function.name} first parameter is not an event type, got $eventClass")
-    }
-
-    val nodeParameters = parameters.drop(1)
-    val nodes = nodeParameters.map { parameter ->
-      var type = parameter.type
-      var isList = false
-      if(type.kotlinClass.isSubclassOf(List::class)) {
-        type = requireNotNull(type.arguments[0].type) {
-          "${system.qualifiedName}::${function.name} parameter ${parameter.name} has an illegal List<T> type argument"
-        }
-        isList = true
-      }
-      if(!type.kotlinClass.isSubclassOf(Node::class)) {
-        throw IllegalArgumentException("${system.qualifiedName}::${function.name} parameter ${parameter.name} illegal type $type")
-      }
-
-      val nodeDefinition = nodeBuilder.getNodeDefinition(type)
-      NodeParameterDefinition(
-        parameter,
-        nodeDefinition,
-        isList,
-      )
-    }
-
-    @Suppress("UNCHECKED_CAST")
-    return EventHandlerDefinition(
-      event = eventClass as KClass<out IEvent>,
-      system,
-      function,
-      nodes,
     )
   }
 
@@ -243,6 +333,49 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler, KoinC
 
       durationsResolve.add(Clock.System.now() - startResolve)
       invokeHandler(event, context, handler, args)
+      handled = true
+    }
+
+    for(handler in handlersV2) {
+      startResolve = Clock.System.now()
+      if(!event::class.isSubclassOf(handler.event)) continue
+
+      if(!handler.context.isSuperclassOf(context::class)) {
+        logger.debug { "Skipping handler ${handler.system.qualifiedName}::${handler.function.name} for $event, requires ${handler.context.simpleName}, but got ${context::class.simpleName}" }
+        continue
+      }
+
+      logger.debug { "Trying handler ${handler.system.qualifiedName}::${handler.function.name} for $event" }
+
+      val args = mutableMapOf<KParameter, Any?>()
+      args[handler.function.valueParameters[0]] = context
+      args[handler.function.valueParameters[1]] = event
+
+      // Client-to-server events always have exactly 1 context object attached by the client.
+      // We use Set<T> to avoid duplicates (e.g., in case event is scheduled to the user object).
+      val contextObjects = mutableSetOf(gameObject)
+
+      // If present, we also attach a user object
+      if(context is SpaceChannelModelContext) {
+        val user = context.channel.sessionNotNull.user
+        if(user != null) {
+          logger.debug { "Attached user object to the context of $event" }
+          contextObjects.add(user)
+        }
+      }
+
+      if(!buildNodesV2(context, contextObjects, handler, args)) {
+        continue
+      }
+
+      val instanceParameter = requireNotNull(handler.function.instanceParameter) {
+        "${handler.system.qualifiedName}::${handler.function.name} is not an instance method"
+      }
+      val instance = handler.system.createInstance()
+      args[instanceParameter] = instance
+
+      durationsResolve.add(Clock.System.now() - startResolve)
+      invokeHandlerV2(event, context, handler, args)
       handled = true
     }
 
@@ -353,10 +486,133 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler, KoinC
     return true
   }
 
+  private fun buildNodesV2(
+    context: IModelContext,
+    contextObjects: Set<IGameObject>,
+    handler: EventHandlerV2Definition,
+    args: MutableMap<KParameter, Any?>
+  ): Boolean {
+    var previousObjects: Set<IGameObject>? = null
+    for(nodeParameter in handler.nodes) {
+      val (parameter, nodeDefinition) = nodeParameter
+
+      val unfilteredObjects = if(nodeParameter.joinAll) {
+        context.space.objects.all
+      } else {
+        contextObjects
+      }
+
+      val objects = if(nodeParameter.joinBy != null) {
+        requireNotNull(previousObjects) { "JoinBy requires previous node to act as a key" }
+        val previousObject = if(previousObjects.size == 1) {
+          previousObjects.single()
+        } else {
+          throw IllegalArgumentException("JoinBy requires exactly one key object, got ${previousObjects.size}")
+        }
+
+        val keyGroup = previousObject.getComponent(nodeParameter.joinBy)
+        unfilteredObjects.filter { gameObject ->
+          val targetGroup = gameObject.getComponentOrNull(nodeParameter.joinBy)
+          logger.info { "Wants $keyGroup, got $targetGroup, pass: ${targetGroup == keyGroup}" }
+          targetGroup == keyGroup
+        }.toSet()
+      } else {
+        unfilteredObjects
+      }
+
+      // TODO: This is inefficient (node-object double loop), should do something to it
+      val nodes = mutableListOf<NodeV2>()
+      for(gameObject in objects) {
+        if(nodeDefinition.matchTemplate != null) {
+          if(!nodeDefinition.matchTemplate.isSuperclassOf(gameObject.template::class)) {
+            logger.trace { "[${nodeDefinition.type.kotlinClass.simpleName}] $gameObject does not match template ${nodeDefinition.matchTemplate}, excluding" }
+            continue
+          }
+        }
+
+        val node = nodeBuilder.tryBuildLazyStateless(nodeDefinition, gameObject)
+        if(node != null) {
+          nodes.add(node)
+          logger.trace { "[${nodeDefinition.type.kotlinClass.simpleName}] Built node $node for $gameObject" }
+        } else {
+          logger.trace { "[${nodeDefinition.type.kotlinClass.simpleName}] Failed to build for $gameObject" }
+        }
+      }
+
+      if(nodeParameter.isList) {
+        args[parameter] = nodes
+        logger.trace { "[${nodeDefinition.type.kotlinClass.simpleName}] Built nodes $nodes for '${parameter.name}' of ${handler.system.qualifiedName}::${handler.function.name}" }
+      } else {
+        val node = when(nodes.size) {
+          0    -> {
+            if(nodeParameter.optional) return false
+            if(handler.mandatory) throw IllegalArgumentException("Failed to build non-optional node $nodeDefinition for '${parameter.name}' of mandatory ${handler.system.qualifiedName}::${handler.function.name}")
+
+            logger.trace { "[${nodeDefinition.type.kotlinClass.simpleName}] Failed to build for '${parameter.name}' of ${handler.system.qualifiedName}::${handler.function.name}" }
+            return false
+          }
+
+          1    -> nodes[0]
+          else -> throw IllegalArgumentException("Expected one game object for '${parameter.name}' of ${handler.system.qualifiedName}::${handler.function.name}, got ${nodes.size}")
+        }
+
+        args[parameter] = node
+        logger.trace { "[${nodeDefinition.type.kotlinClass.simpleName}] Built node $node for '${parameter.name}' of ${handler.system.qualifiedName}::${handler.function.name}" }
+      }
+
+      previousObjects = nodes.gameObjects.toSet()
+    }
+
+    return true
+  }
+
   private suspend fun invokeHandler(
     event: IEvent,
     context: IModelContext,
     handler: EventHandlerDefinition,
+    args: Map<KParameter, Any?>,
+  ) {
+    logger.trace { "Invoking ${handler.system.qualifiedName}::${handler.function.name} with ${args.mapKeys { (parameter, _) -> parameter.name }}" }
+    if(handler.function.isSuspend) {
+      if(handler.outOfOrder) {
+        context.requireSpaceChannel.socket.launch {
+          val timeout = 5.seconds
+          val job = scope.launch {
+            delay(timeout)
+            logger.warn { "${handler.system.qualifiedName}::${handler.function.name} timed out ($timeout) while processing $event" }
+          }
+
+          try {
+            handler.function.callSuspendBy(args)
+            logger.trace { "${handler.system.qualifiedName}::${handler.function.name} processed $event" }
+          } finally {
+            job.cancelAndJoin()
+          }
+        }
+      } else {
+        val timeout = 5.seconds
+        val job = scope.launch {
+          delay(timeout)
+          logger.error { "${handler.system.qualifiedName}::${handler.function.name} timed out ($timeout) while processing $event" }
+          logger.error { "Possible deadlock detected, try marking event handler with @${OutOfOrderExecution::class.simpleName} to not suspend incoming command queue" }
+        }
+
+        try {
+          handler.function.callSuspendBy(args)
+          logger.trace { "${handler.system.qualifiedName}::${handler.function.name} processed $event" }
+        } finally {
+          job.cancelAndJoin()
+        }
+      }
+    } else {
+      handler.function.callBy(args)
+    }
+  }
+
+  private suspend fun invokeHandlerV2(
+    event: IEvent,
+    context: IModelContext,
+    handler: EventHandlerV2Definition,
     args: Map<KParameter, Any?>,
   ) {
     logger.trace { "Invoking ${handler.system.qualifiedName}::${handler.function.name} with ${args.mapKeys { (parameter, _) -> parameter.name }}" }
