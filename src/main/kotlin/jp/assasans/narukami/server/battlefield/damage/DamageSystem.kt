@@ -19,11 +19,15 @@
 package jp.assasans.narukami.server.battlefield.damage
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import jp.assasans.narukami.server.battlefield.BattlefieldNodeV2
 import jp.assasans.narukami.server.battlefield.HealthComponent
 import jp.assasans.narukami.server.battlefield.TankNodeV2
+import jp.assasans.narukami.server.battlefield.UserGroupComponent
 import jp.assasans.narukami.server.battlefield.tank.*
 import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.lobby.communication.remote
+import jp.assasans.narukami.server.net.session.userNotNull
+import jp.assasans.narukami.server.net.sessionNotNull
 
 data class DamageIndicatorNode(
   val damageIndicator: DamageIndicatorModelCC,
@@ -37,6 +41,10 @@ data class DamageTankNode(
 data class DamageEvent(
   val source: IGameObject,
   val amount: Float,
+) : IEvent
+
+data class ShowDamageEvent(
+  val damages: List<TargetTankDamage>,
 ) : IEvent
 
 class DamageSystem : AbstractSystem() {
@@ -58,6 +66,35 @@ class DamageSystem : AbstractSystem() {
     if(tank.health.health <= 0) {
       TankModelKillEvent(event.source.id, 1000, DamageType.ISIS).schedule(tank, tankShared)
     }
+
+    val sourceContexts = remote(event.source)
+    // TODO: There is no API that allows to get an "owner" context of a game object.
+    val sourceContext = sourceContexts.single {
+      it.requireSpaceChannel.sessionNotNull.userNotNull.getComponent<UserGroupComponent>() == event.source.getComponent<UserGroupComponent>()
+    }
+    ShowDamageEvent(
+      damages = listOf(
+        TargetTankDamage(
+          target = tank.gameObject,
+          damageAmount = event.amount,
+          damageIndicatorType = if(tank.health.health <= 0) DamageIndicatorType.FATAL else DamageIndicatorType.NORMAL,
+        )
+      )
+    ).schedule(sourceContext, event.source)
+  }
+
+  @OnEventFireV2
+  fun showDamage(
+    context: IModelContext,
+    event: ShowDamageEvent,
+    tank: TankNodeV2,
+    @JoinAll battlefield: BattlefieldNodeV2,
+  ) = context {
+    check(event.damages.isNotEmpty()) { "ShowDamageEvent must contain at least one element" }
+
+    DamageIndicatorModelShowDamageForShooterEvent(
+      damages = event.damages
+    ).schedule(battlefield)
   }
 
   @OnEventFireV2

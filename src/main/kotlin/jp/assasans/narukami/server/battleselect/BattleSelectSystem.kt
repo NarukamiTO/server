@@ -201,7 +201,7 @@ class BattleSelectSystem : AbstractSystem() {
       BattlefieldReplayMiddleware.replayWriter!!.writeUserObject(context.requireSpaceChannel.sessionNotNull.hash, user.gameObject)
       BattlefieldReplayMiddleware.replayWriter!!.writeExternObject(battleUserObject)
     } else {
-      startReplay(battleSpace)
+      // startReplay(battleSpace)
     }
   }
 

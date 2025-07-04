@@ -18,6 +18,7 @@
 
 package jp.assasans.narukami.server.battlefield.damage
 
+import jp.assasans.narukami.server.core.IClientEvent
 import jp.assasans.narukami.server.core.IGameObject
 import jp.assasans.narukami.server.core.IModelConstructor
 import jp.assasans.narukami.server.protocol.*
@@ -28,7 +29,7 @@ class DamageIndicatorModelCC : IModelConstructor
 @ProtocolEvent(1597293699677435224)
 data class DamageIndicatorModelShowDamageForShooterEvent(
   val damages: List<TargetTankDamage>,
-) : IModelConstructor
+) : IClientEvent
 
 @ProtocolStruct
 data class TargetTankDamage(
