@@ -247,22 +247,8 @@ class BattleSelectSystem : AbstractSystem() {
   }
 
   private fun startReplay(battleSpace: ISpace) {
-    return
     GlobalScope.launch {
       delay(3000)
-      // val userObject = UserTemplate.instantiate(250774142).apply {
-      //   addComponent(UsernameComponent("REPLAY_User1"))
-      //   addComponent(ScoreComponent(Random.nextInt(10_000, 1_000_000).roundToNearest(100)))
-      //   addComponent(CrystalsComponent(Random.nextInt(100_000, 10_000_000).roundToNearest(100)))
-      // }
-      // userObject.addComponent(UserGroupComponent(userObject))
-      //
-      // val battleUserObject = BattleUserTemplate.create(
-      //   id = -268415476,
-      //   user = userObject
-      // )
-      // battleUserObject.addComponent(TeamComponent(BattleTeam.NONE))
-      // battleSpace.objects.add(battleUserObject)
 
       val reader = ReplayReader(battleSpace)
       reader.readEvents().collect { entry ->

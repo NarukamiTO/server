@@ -46,16 +46,16 @@ class BattlefieldMovementSystem : AbstractSystem() {
     TankModelMoveEvent(moveCommand = event.moveCommand).schedule(tank, tankShared - context)
 
     // Jump Pad from Tanki X - requires a patch on the client to work properly
-    if(event.moveCommand.control != 0.toByte()) {
-      TankModelPushEvent(
-        hitPoint = Vector3d(x = 0.0f, y = 0.0f, z = 0.0f),
-        force = Vector3d(
-          x = 0.0f,
-          y = 1000.0f * 5000000.0f,
-          z = 20000.0f * 5000000.0f,
-        )
-      ).schedule(tank, tankShared)
-    }
+    // if(event.moveCommand.control != 0.toByte()) {
+    //   TankModelPushEvent(
+    //     hitPoint = Vector3d(x = 0.0f, y = 0.0f, z = 0.0f),
+    //     force = Vector3d(
+    //       x = 0.0f,
+    //       y = 1000.0f * 5000000.0f,
+    //       z = 20000.0f * 5000000.0f,
+    //     )
+    //   ).schedule(tank, tankShared)
+    // }
   }
 
   @OnEventFireV2

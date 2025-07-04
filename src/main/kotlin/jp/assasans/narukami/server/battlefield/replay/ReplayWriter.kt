@@ -45,7 +45,7 @@ class ReplayWriter(val space: ISpace) : KoinComponent {
 
   private val objectMapper: ObjectMapper by inject()
 
-  val writer = Files.newOutputStream(Paths.get("battle-2.replay"), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)!!.writer()
+  val writer = Files.newOutputStream(Paths.get("battle.replay"), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)!!.writer()
 
   val protocol = Protocol(FakeSocket(space))
   val protocolBufferCodec = ProtocolBufferCodec()

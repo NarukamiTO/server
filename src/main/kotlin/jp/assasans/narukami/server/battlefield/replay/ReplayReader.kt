@@ -52,7 +52,7 @@ class ReplayReader(val space: ISpace) : KoinComponent {
   private val sessions: ISessionRegistry by inject()
   private val spaceEventProcessor: SpaceEventProcessor by inject()
 
-  private val reader = Files.newBufferedReader(Paths.get("battle-2.replay"))
+  private val reader = Files.newBufferedReader(Paths.get("battle.replay"))
 
   val sessionToUser = mutableMapOf<SessionHash, IGameObject>()
 
