@@ -51,7 +51,7 @@ class IsidaSystem : AbstractSystem() {
       return
     }
 
-    DamageEvent(amount = 120f, source = tank.gameObject).schedule(context, isida.isidaTarget.target)
+    DamageEvent(amount = 30f, source = tank.gameObject).schedule(context, isida.isidaTarget.target)
   }
 
   @OnEventFireV2

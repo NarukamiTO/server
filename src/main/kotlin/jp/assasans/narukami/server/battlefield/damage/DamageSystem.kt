@@ -19,10 +19,7 @@
 package jp.assasans.narukami.server.battlefield.damage
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import jp.assasans.narukami.server.battlefield.BattlefieldNodeV2
-import jp.assasans.narukami.server.battlefield.HealthComponent
-import jp.assasans.narukami.server.battlefield.TankNodeV2
-import jp.assasans.narukami.server.battlefield.UserGroupComponent
+import jp.assasans.narukami.server.battlefield.*
 import jp.assasans.narukami.server.battlefield.tank.*
 import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.lobby.communication.remote
@@ -51,6 +48,7 @@ class DamageSystem : AbstractSystem() {
   private val logger = KotlinLogging.logger { }
 
   @OnEventFireV2
+  @BattlefieldLogEvent
   fun damage(
     context: IModelContext,
     event: DamageEvent,

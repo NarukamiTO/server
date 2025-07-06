@@ -18,6 +18,9 @@
 
 package jp.assasans.narukami.server.core
 
+import jp.assasans.narukami.server.core.impl.EventHandlerV2Definition
+
 interface EventMiddleware {
-  fun process(eventScheduler: IEventScheduler, event: IEvent, gameObject: IGameObject, context: IModelContext)
+  fun process(eventScheduler: IEventScheduler, event: IEvent, gameObject: IGameObject, context: IModelContext) {}
+  fun processHandler(eventScheduler: IEventScheduler, event: IEvent, gameObject: IGameObject, context: IModelContext, handler: EventHandlerV2Definition) {}
 }

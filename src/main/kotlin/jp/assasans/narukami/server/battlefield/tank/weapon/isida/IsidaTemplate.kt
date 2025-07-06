@@ -22,7 +22,10 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import jp.assasans.narukami.server.battlefield.LightEffectItem
 import jp.assasans.narukami.server.battlefield.LightingSFXEntity
-import jp.assasans.narukami.server.battlefield.tank.weapon.*
+import jp.assasans.narukami.server.battlefield.tank.weapon.RotatingTurretModelCC
+import jp.assasans.narukami.server.battlefield.tank.weapon.TurretControlType
+import jp.assasans.narukami.server.battlefield.tank.weapon.TurretStateCommand
+import jp.assasans.narukami.server.battlefield.tank.weapon.WeaponTemplate
 import jp.assasans.narukami.server.core.IGameObject
 import jp.assasans.narukami.server.core.addModel
 import jp.assasans.narukami.server.core.getComponent
@@ -48,17 +51,11 @@ object IsidaTemplate : WeaponTemplate(), KoinComponent {
       )
     )
     addModel(
-      WeaponVerticalAnglesModelCC(
-        angleDown = 0.2f,
-        angleUp = 0.2f
-      )
-    )
-    addModel(
       IsisModelCC(
         capacity = 1000.0f,
         chargeRate = 100.0f,
         checkPeriodMsec = 250,
-        coneAngle = 135.0f.toRadians(),
+        coneAngle = 30.0f.toRadians(),
         dischargeDamageRate = 10.0f,
         dischargeHealingRate = 10.0f,
         dischargeIdleRate = 5.0f,

@@ -37,6 +37,7 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import jp.assasans.narukami.server.battlefield.BattlefieldDebugMiddleware
 import jp.assasans.narukami.server.battlefield.replay.BattlefieldReplayMiddleware
 import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.extensions.kotlinClass
@@ -270,6 +271,7 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler, KoinC
 
     middleware = listOf(
       BattlefieldReplayMiddleware,
+      BattlefieldDebugMiddleware,
     )
   }
 
@@ -376,6 +378,16 @@ class EventScheduler(private val scope: CoroutineScope) : IEventScheduler, KoinC
       args[instanceParameter] = instance
 
       durationsResolve.add(Clock.System.now() - startResolve)
+
+      for(middleware in middleware) {
+        try {
+          logger.trace { "Processing $event by middleware $middleware" }
+          middleware.processHandler(this, event, gameObject, context, handler)
+        } catch(exception: Exception) {
+          logger.error(exception) { "Error processing middleware $middleware for $event" }
+        }
+      }
+
       invokeHandlerV2(event, context, handler, args)
       handled = true
     }
