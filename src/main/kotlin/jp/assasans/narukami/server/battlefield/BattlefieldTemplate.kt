@@ -137,5 +137,36 @@ object BattlefieldTemplate : TemplateV2(), KoinComponent {
     addModel(DamageIndicatorModelCC())
 
     addModel(BattleDMModelCC())
+
+    // Fatal error on Standalone Flash Player
+    addModel(
+      PerformanceModelCC(
+        alertFPSRatioThreshold = 0.9f,
+        alertFPSThreshold = 10000f,
+        alertMinTestTime = 10000f,
+        alertPingRatioThreshold = 0.9f,
+        alertPingThreshold = 900f,
+
+        indicatorHighFPS = 50,
+        indicatorHighFPSColor = "0x00ff00",
+        indicatorHighPing = 200,
+        indicatorHighPingColor = "0xaaaa00",
+        indicatorLowFPS = 30,
+        indicatorLowFPSColor = "0xaaaa00",
+        indicatorLowPing = 50,
+        indicatorLowPingColor = "0x00ff00",
+        indicatorVeryHighPing = 900,
+        indicatorVeryHighPingColor = "0xff0000",
+        indicatorVeryLowFPS = 10,
+        indicatorVeryLowFPSColor = "0xff0000",
+
+        qualityFPSThreshold = 40f,
+        qualityIdleTime = 1000f,
+        qualityMaxAttempts = 10,
+        qualityRatioThreshold = 0.5f,
+        qualityTestTime = 1000f,
+        qualityVisualizationSpeed = 1000f,
+      )
+    )
   }
 }
