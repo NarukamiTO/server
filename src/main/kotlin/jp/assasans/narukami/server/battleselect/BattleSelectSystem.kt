@@ -19,6 +19,7 @@
 package jp.assasans.narukami.server.battleselect
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
+import com.fasterxml.jackson.annotation.JsonProperty
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
@@ -333,6 +334,8 @@ class BattleSelectSystem : AbstractSystem() {
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class PrivateMapDataEntity(
+  @JsonProperty("spawn-points")
+  val spawnPoints: List<SpawnPoint>,
   val proplibs: List<MapProplib>
 )
 
@@ -343,3 +346,27 @@ data class MapProplib(
   val version: Long,
   val namespaces: Map<String, String>,
 )
+
+const val TANK_SPAWN_Z_OFFSET = 200
+
+data class SpawnPoint(
+  val kind: String,
+  val position: Vector3Data,
+  val rotation: Vector3Data
+) {
+  companion object {
+    val Default = SpawnPoint(
+      kind = "default",
+      position = Vector3Data(0f, 0f, 0f),
+      rotation = Vector3Data(0f, 0f, 0f)
+    )
+  }
+}
+
+data class Vector3Data(
+  val x: Float,
+  val y: Float,
+  val z: Float
+)
+
+fun Vector3Data.toVector3d() = Vector3d(x, y, z)

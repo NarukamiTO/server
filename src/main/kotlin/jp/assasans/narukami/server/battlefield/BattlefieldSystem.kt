@@ -177,6 +177,11 @@ data class BattleMapNodeV2(
 @MatchTemplate(BattlefieldTemplate::class)
 class BattlefieldNodeV2 : NodeV2()
 
+data class TankPrepareToSpawnComponent(
+  val position: Vector3d,
+  val orientation: Vector3d,
+) : IComponent
+
 class BattlefieldSystem : AbstractSystem() {
   private val logger = KotlinLogging.logger { }
 
@@ -367,8 +372,18 @@ class BattlefieldSystem : AbstractSystem() {
     context: IModelContext,
     event: TankSpawnerModelReadyToSpawnEvent,
     tank: TankNodeV2,
+    @JoinAll battleMap: BattleMapNodeV2,
   ) = context {
     logger.debug { "Process ready-to-spawn" }
+
+    val text = gameResourceRepository.resolve(battleMap.mapResource.resource, "private.json").readText()
+    val data = objectMapper.readValue<PrivateMapDataEntity>(text)
+    val spawnPoint = data.spawnPoints.randomOrNull() ?: SpawnPoint.Default
+
+    val position = spawnPoint.position.copy(z = spawnPoint.position.z + TANK_SPAWN_Z_OFFSET).toVector3d()
+    val orientation = spawnPoint.rotation.toVector3d()
+
+    tank.gameObject.addComponent(TankPrepareToSpawnComponent(position, orientation))
 
     // Sending this starts the game rendering on the client. The client calls
     // [SpawnCameraConfigurator#setupCamera], which sets up the camera.
@@ -376,8 +391,8 @@ class BattlefieldSystem : AbstractSystem() {
     // Once this event is received, the client will send [TankSpawnerModelSetReadyToPlaceEvent] after
     // [BattlefieldModelCC.respawnDuration] milliseconds.
     TankSpawnerModelPrepareToSpawnEvent(
-      Vector3d(0f, 0f, 200f),
-      Vector3d(0f, 0f, 0f),
+      position = position,
+      orientation = orientation,
     ).schedule(tank)
   }
 
@@ -395,15 +410,17 @@ class BattlefieldSystem : AbstractSystem() {
     val health = tank.gameObject.getComponent<HealthComponent>()
     health.health = health.maxHealth
 
+    // TODO: This is bad practice, should access components in handler signature
     val logicStateComponent = tank.gameObject.getComponent<TankLogicStateComponent>()
+    val prepareToSpawnComponent = tank.gameObject.removeComponent<TankPrepareToSpawnComponent>()
 
     // Spawn current tank for the entire battlefield
     logicStateComponent.logicState = TankLogicState.ACTIVATING
     for(battlefieldRemote in battlefieldShared) {
       TankSpawnerModelSpawnEvent(
         team = BattleTeam.NONE,
-        position = Vector3d(x = 0.0f, y = 0.0f, z = 200.0f),
-        orientation = Vector3d(x = 0.0f, y = 0.0f, z = 0.0f),
+        position = prepareToSpawnComponent.position,
+        orientation = prepareToSpawnComponent.orientation,
         health = 1000,
         incarnationId = 0,
       ).schedule(battlefieldRemote, tank.gameObject)
